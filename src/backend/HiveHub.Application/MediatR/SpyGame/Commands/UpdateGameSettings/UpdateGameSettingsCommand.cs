@@ -8,12 +8,12 @@ using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HiveHub.Application.MediatR.SpyGame.Commands.UpdateGameSettings;
+namespace HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
 
 public record UpdateGameSettingsCommand(
     string RoomCode,
     string HostConnectionId,
-    RoomGameSettings Settings
+    RoomGameSettingsDto NewSettings
 ) : IRequest<Result>;
 
 public class UpdateGameSettingsHandler(
@@ -46,34 +46,28 @@ public class UpdateGameSettingsHandler(
                 return Results.ActionFailed("Тільки хост може змінювати налаштування.");
             }
 
-            var s = request.Settings;
-            if (s.TimerMinutes < 1 || s.TimerMinutes > 60)
-                return Results.ActionFailed("Таймер має бути від 1 до 60 хвилин.");
-
-            if (s.SpiesCount < 1)
-                return Results.ActionFailed("Мінімум 1 шпигун.");
-
-            if (s.WordsCategories.Any(c => string.IsNullOrWhiteSpace(c.Name) || c.Words.Count == 0))
-                return Results.ActionFailed("Категорії не можуть бути порожніми.");
-
-            var newSettings = new SpyRoomSettings
+            if (request.NewSettings.TimerMinutes < 1 || request.NewSettings.TimerMinutes > 30)
             {
-                TimerMinutes = s.TimerMinutes,
-                SpiesCount = s.SpiesCount,
-                SpiesKnowEachOther = s.SpiesKnowEachOther,
-                ShowCategoryToSpy = s.ShowCategoryToSpy,
-                Categories = s.WordsCategories.Select(c => new SpyGameWordsCategory
+                return Results.ActionFailed("Час гри повинен бути від 1 до 30 хвилин.");
+            }
+
+            if (request.NewSettings.SpiesCount < 1)
+            {
+                return Results.ActionFailed("Кількість шпигунів повинна бути мінімум 1.");
+            }
+
+            room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;
+            room.GameSettings.SpiesCount = request.NewSettings.SpiesCount;
+            room.GameSettings.SpiesKnowEachOther = request.NewSettings.SpiesKnowEachOther;
+            room.GameSettings.ShowCategoryToSpy = request.NewSettings.ShowCategoryToSpy;
+
+            room.GameSettings.Categories = request.NewSettings.WordsCategories
+                .Select(c => new SpyGameWordsCategory
                 {
                     Name = c.Name,
-                    Words = c.Words.Where(w => !string.IsNullOrWhiteSpace(w)).ToList()
-                }).ToList()
-            };
-
-            room.GameSettings.TimerMinutes = newSettings.TimerMinutes;
-            room.GameSettings.SpiesCount = newSettings.SpiesCount;
-            room.GameSettings.SpiesKnowEachOther = newSettings.SpiesKnowEachOther;
-            room.GameSettings.ShowCategoryToSpy = newSettings.ShowCategoryToSpy;
-            room.GameSettings.Categories = newSettings.Categories;
+                    Words = c.Words
+                })
+                .ToList();
 
             return Result.Ok();
         });
@@ -85,7 +79,8 @@ public class UpdateGameSettingsHandler(
 
         _logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
 
-        await _publisher.PublishGameSettingsUpdatedAsync(new GameSettingsUpdatedEventDto(request.RoomCode, request.Settings));
+        var eventDto = new GameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings);
+        await _publisher.PublishGameSettingsUpdatedAsync(eventDto);
 
         return Result.Ok();
     }

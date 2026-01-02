@@ -4,66 +4,25 @@ namespace HiveHub.Domain;
 
 public abstract class PlayerBase<TPlayerState>
 {
-    public string ConnectionId { get; init; }
-    public string IdInRoom { get; init; }
-    public string Name { get; set; }
-    public string AvatarId { get; set; }
+    public string ConnectionId { get; init; } = string.Empty;
+    public string IdInRoom { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string AvatarId { get; set; } = string.Empty;
     public bool IsHost { get; set; }
-
-    public TPlayerState PlayerState { get; init; }
+    public bool IsReady { get; set; } = false;
+    
+    public TPlayerState PlayerState { get; init; } = default!;
 }
 
-public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState> 
+public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code)
     where TPlayer : PlayerBase<TPlayerState>
 {
-    private readonly SemaphoreSlim _roomLock = new(1, 1);
-
-    public string RoomCode { get; set; }
-    public string GameType { get; set; }
+    public string RoomCode { get; } = code;
     public RoomState State { get; set; } = RoomState.Lobby;
     public ConcurrentDictionary<string, TPlayer> Players { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public TGameSettings GameSettings { get; init; }
-
-    public async Task ExecuteLockedAsync(Func<Task> action)
-    {
-        await _roomLock.WaitAsync();
-        try
-        {
-            await action();
-        }
-        finally
-        {
-            _roomLock.Release();
-        }
-    }
-
-    public async Task<T> ExecuteLockedAsync<T>(Func<Task<T>> action)
-    {
-        await _roomLock.WaitAsync();
-        try
-        {
-            return await action();
-        }
-        finally
-        {
-            _roomLock.Release();
-        }
-    }
-
-    public async Task<T> ExecuteLockedAsync<T>(Func<T> action)
-    {
-        await _roomLock.WaitAsync();
-        try
-        {
-            return action();
-        }
-        finally
-        {
-            _roomLock.Release();
-        }
-    }
+    public TGameSettings GameSettings { get; init; } = default!;
 }
 
 public enum RoomState
@@ -76,6 +35,7 @@ public enum RoomState
 public sealed class SpyPlayerState
 {
     public bool IsSpy { get; set; } = false;
+    public bool VotedToStopTimer { get; set; } = false;
 }
 
 public sealed class SpyPlayer : PlayerBase<SpyPlayerState>
@@ -99,19 +59,27 @@ public class SpyRoomSettings
 
 public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerState>
 {
-    public string CurrentSecretWord { get; set; }
+    public string? CurrentSecretWord { get; set; }
     public DateTime? GameStartTime { get; set; }
-    public TimeSpan RemainingTime { get; set; }
+    public bool IsTimerStopped { get; set; } = false;
+    public DateTime? TimerStoppedAt { get; set; }
+    public List<ChatMessage> ChatMessages { get; set; } = new();
 
-    public SpyRoom(string code)
+    public SpyRoom(string code) : base(code)
     {
         GameSettings = new SpyRoomSettings();
-        RoomCode = code;
-        GameType = "Spy";
     }
 }
 
 public class SpyGameWordsCategory {
     public string Name { get; set; }
     public List<string> Words { get; set; } = new();
+}
+
+public class ChatMessage(string playerId, string playerName, string message, DateTime timestamp)
+{
+    public string PlayerId { get; } = playerId;
+    public string PlayerName { get; } = playerName;
+    public string Message { get; } = message;
+    public DateTime Timestamp { get; } = timestamp;
 }

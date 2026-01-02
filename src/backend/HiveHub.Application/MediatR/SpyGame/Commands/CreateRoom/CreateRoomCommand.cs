@@ -10,8 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
 
 public record CreateRoomCommand(
-    string ConnectionId,
-    string PlayerName
+    string ConnectionId
 ) : IRequest<Result<CreateRoomResponseDto>>;
 
 public class CreateRoomHandler(
@@ -29,14 +28,15 @@ public class CreateRoomHandler(
     public async Task<Result<CreateRoomResponseDto>> Handle(CreateRoomCommand request, CancellationToken cancellationToken)
     {
         var roomCode = _gameManager.GenerateUniqueRoomCode();
-
         var room = new SpyRoom(roomCode);
-
         var hostPublicId = _idGenerator.GenerateId(length: 16);
+
         var hostPlayer = new SpyPlayer(request.ConnectionId, hostPublicId)
         {
-            Name = request.PlayerName,
-            IsHost = true
+            Name = "Player 1",
+            IsHost = true,
+            AvatarId = "default",
+            IsReady = false
         };
 
         if (!room.Players.TryAdd(request.ConnectionId, hostPlayer))
@@ -49,9 +49,14 @@ public class CreateRoomHandler(
             return Results.ActionFailed("Не вдалося зареєструвати кімнату.");
         }
 
-        var myDto = new PlayerDto(hostPlayer.IdInRoom, hostPlayer.Name, hostPlayer.IsHost);
+        var myDto = new PlayerDto(
+            hostPlayer.IdInRoom,
+            hostPlayer.Name,
+            hostPlayer.IsHost,
+            hostPlayer.IsReady,
+            hostPlayer.AvatarId);
 
-        var settingsDto = new RoomGameSettings(
+        var settingsDto = new RoomGameSettingsDto(
             room.GameSettings.TimerMinutes,
             room.GameSettings.SpiesCount,
             room.GameSettings.SpiesKnowEachOther,

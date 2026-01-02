@@ -51,12 +51,17 @@ public class StartGameHandler(
                 return Results.ActionFailed("Недостатньо гравців (мінімум 3).");
             }
 
+            if (room.Players.Values.Any(p => !p.IsReady))
+            {
+                return Results.ActionFailed("Не всі гравці готові. Всі повинні натиснути 'Готовий'.");
+            }
+
             if (room.GameSettings.Categories.Count == 0)
             {
                 return Results.ActionFailed("Немає категорій слів для гри.");
             }
 
-        if (room.GameSettings.Categories.All(x => x.Words.Count == 0))
+            if (room.GameSettings.Categories.All(x => x.Words.Count == 0))
             {
                 return Results.ActionFailed("Немає категорій що містять хоча б одне слово.");
             }
@@ -68,18 +73,17 @@ public class StartGameHandler(
             foreach (var player in room.Players.Values)
             {
                 player.PlayerState.IsSpy = false;
+                player.PlayerState.VotedToStopTimer = false;
             }
 
             int spiesCount = Math.Min(room.GameSettings.SpiesCount, room.Players.Count - 1);
             var playerIds = room.Players.Keys.ToList();
 
-            // Тасовання Фішера-Єтса або просто вибір випадкових індексів
             for (int i = 0; i < spiesCount; i++)
             {
                 int index = random.Next(playerIds.Count);
                 var spyConnectionId = playerIds[index];
 
-                // Якщо вже шпигун - шукаємо іншого (в реалі краще видаляти зі списку кандидатів, але для MVP ок)
                 while (room.Players[spyConnectionId].PlayerState.IsSpy)
                 {
                     index = random.Next(playerIds.Count);
@@ -92,6 +96,9 @@ public class StartGameHandler(
             room.CurrentSecretWord = randomWord;
             room.GameStartTime = DateTime.UtcNow;
             room.State = RoomState.InGame;
+            room.IsTimerStopped = false;
+            room.TimerStoppedAt = null;
+            room.ChatMessages.Clear();
 
             var gameEndTime = DateTime.UtcNow.AddMinutes(room.GameSettings.TimerMinutes);
 
@@ -103,7 +110,7 @@ public class StartGameHandler(
                     RoomCode: room.RoomCode,
                     IsSpy: isSpy,
                     SecretWord: isSpy ? null : randomWord,
-                    Category: randomCategory.Name,
+                    Category: room.GameSettings.ShowCategoryToSpy || !isSpy ? randomCategory.Name : null,
                     GameEndTime: gameEndTime
                 );
 

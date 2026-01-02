@@ -13,15 +13,14 @@ namespace HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 
 public record JoinRoomCommand(
     string ConnectionId,
-    string RoomCode,
-    string PlayerName
+    string RoomCode
 ) : IRequest<Result<JoinRoomResponseDto>>;
 
 public class JoinRoomHandler(
-    SpyGameManager gameManager, 
-    ISpyGamePublisher publisher, 
-    ILogger<JoinRoomHandler> logger, 
-    IIdGenerator idGenerator) 
+    SpyGameManager gameManager,
+    ISpyGamePublisher publisher,
+    ILogger<JoinRoomHandler> logger,
+    IIdGenerator idGenerator)
     : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto>>
 {
     private readonly SpyGameManager _gameManager = gameManager;
@@ -58,11 +57,14 @@ public class JoinRoomHandler(
 
             var publicId = _idGenerator.GenerateId(length: 16);
             bool isHost = room.Players.IsEmpty;
+            var playerName = $"Player {room.Players.Count + 1}";
 
             var newPlayer = new SpyPlayer(request.ConnectionId, publicId)
             {
-                Name = request.PlayerName,
-                IsHost = isHost
+                Name = playerName,
+                IsHost = isHost,
+                AvatarId = "default",
+                IsReady = false
             };
 
             if (!room.Players.TryAdd(request.ConnectionId, newPlayer))
@@ -70,13 +72,18 @@ public class JoinRoomHandler(
                 return Results.ActionFailed("Помилка додавання гравця.");
             }
 
-            var myDto = new PlayerDto(newPlayer.IdInRoom, newPlayer.Name, newPlayer.IsHost);
+            var myDto = new PlayerDto(
+                newPlayer.IdInRoom,
+                newPlayer.Name,
+                newPlayer.IsHost,
+                newPlayer.IsReady,
+                newPlayer.AvatarId);
 
             var allPlayersDto = room.Players.Values
-                .Select(p => new PlayerDto(p.IdInRoom, p.Name, p.IsHost))
+                .Select(p => new PlayerDto(p.IdInRoom, p.Name, p.IsHost, p.IsReady, p.AvatarId))
                 .ToList();
 
-            var settingsDto = new RoomGameSettings(
+            var settingsDto = new RoomGameSettingsDto(
                 room.GameSettings.TimerMinutes,
                 room.GameSettings.SpiesCount,
                 room.GameSettings.SpiesKnowEachOther,
