@@ -14,12 +14,12 @@ public record LeaveRoomCommand(
 ) : IRequest<Result>;
 
 public class LeaveRoomHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<LeaveRoomHandler> logger)
     : IRequestHandler<LeaveRoomCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<LeaveRoomHandler> _logger = logger;
 
@@ -78,7 +78,7 @@ public class LeaveRoomHandler(
 
         if (roomShouldBeDeleted)
         {
-            _gameManager.RemoveRoom(request.RoomCode);
+            await _gameManager.RemoveRoomAsync(request.RoomCode);
             _logger.LogInformation("Room {RoomCode} deleted - no players left", request.RoomCode);
         }
         else

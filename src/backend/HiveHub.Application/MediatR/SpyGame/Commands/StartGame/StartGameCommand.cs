@@ -15,12 +15,12 @@ public record StartGameCommand(
 ) : IRequest<Result>;
 
 public class StartGameHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<StartGameHandler> logger)
     : IRequestHandler<StartGameCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<StartGameHandler> _logger = logger;
 
@@ -94,13 +94,19 @@ public class StartGameHandler(
             }
 
             room.CurrentSecretWord = randomWord;
-            room.GameStartTime = DateTime.UtcNow;
-            room.State = RoomState.InGame;
-            room.IsTimerStopped = false;
-            room.TimerStoppedAt = null;
-            room.ChatMessages.Clear();
+            room.CurrentCategory = randomCategory.Name;
 
-            var gameEndTime = DateTime.UtcNow.AddMinutes(room.GameSettings.TimerMinutes);
+            // Setup Timer
+            var now = DateTime.UtcNow;
+            var duration = TimeSpan.FromMinutes(room.GameSettings.TimerMinutes);
+            room.TimerState.GameStartTime = now;
+            room.TimerState.PlannedGameEndTime = now.Add(duration);
+            room.TimerState.IsTimerStopped = false;
+            room.TimerState.TimerStoppedAt = null;
+
+            room.State = RoomState.InGame;
+            room.ChatMessages.Clear();
+            room.IncrementVersion();
 
             foreach (var player in room.Players.Values)
             {
@@ -111,7 +117,7 @@ public class StartGameHandler(
                     IsSpy: isSpy,
                     SecretWord: isSpy ? null : randomWord,
                     Category: room.GameSettings.ShowCategoryToSpy || !isSpy ? randomCategory.Name : null,
-                    GameEndTime: gameEndTime
+                    GameEndTime: room.TimerState.PlannedGameEndTime.Value
                 );
 
                 notifications.Add((player.ConnectionId, dto));

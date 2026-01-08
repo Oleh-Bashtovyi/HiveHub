@@ -16,12 +16,12 @@ public record ChangeAvatarCommand(
 ) : IRequest<Result>;
 
 public class ChangeAvatarHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<ChangeAvatarHandler> logger)
     : IRequestHandler<ChangeAvatarCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ChangeAvatarHandler> _logger = logger;
 

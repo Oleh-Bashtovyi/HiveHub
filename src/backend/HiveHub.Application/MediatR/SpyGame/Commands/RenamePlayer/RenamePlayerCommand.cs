@@ -16,12 +16,12 @@ public record RenamePlayerCommand(
 ) : IRequest<Result>;
 
 public class RenamePlayerHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<RenamePlayerHandler> logger)
     : IRequestHandler<RenamePlayerCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<RenamePlayerHandler> _logger = logger;
 

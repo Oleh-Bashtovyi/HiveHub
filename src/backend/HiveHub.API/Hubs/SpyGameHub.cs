@@ -2,9 +2,11 @@
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeAvatar;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeHost;
 using HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
+using HiveHub.Application.MediatR.SpyGame.Commands.HandleDisconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 using HiveHub.Application.MediatR.SpyGame.Commands.KickPlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.LeaveRoom;
+using HiveHub.Application.MediatR.SpyGame.Commands.Reconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.RenamePlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.ReturnToLobby;
 using HiveHub.Application.MediatR.SpyGame.Commands.RevealSpies;
@@ -14,18 +16,15 @@ using HiveHub.Application.MediatR.SpyGame.Commands.ToggleReady;
 using HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
 using HiveHub.Application.MediatR.SpyGame.Commands.VoteStopTimer;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 
 namespace HiveHub.API.Hubs;
 
-public class SpyGameHub : Hub<ISpyGameClient>
+public class SpyGameHub : BaseGameHub<ISpyGameClient>
 {
-    private readonly IMediator _mediator;
     private readonly ILogger<SpyGameHub> _logger;
 
-    public SpyGameHub(IMediator mediator, ILogger<SpyGameHub> logger)
+    public SpyGameHub(IMediator mediator, ILogger<SpyGameHub> logger) : base(mediator)
     {
-        _mediator = mediator;
         _logger = logger;
     }
 
@@ -37,174 +36,60 @@ public class SpyGameHub : Hub<ISpyGameClient>
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
+        _logger.LogInformation("Client disconnected: {ConnectionId}. Reason: {Message}",
+            Context.ConnectionId, exception?.Message ?? "Normal closure");
+
+        await _mediator.Send(new HandleDisconnectCommand(Context.ConnectionId));
+
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task<object> CreateRoom()
-    {
-        var command = new CreateRoomCommand(Context.ConnectionId);
-        var result = await _mediator.Send(command);
+    // --- Connection Management ---
+    public Task<object> CreateRoom()
+        => HandleCommand(new CreateRoomCommand(Context.ConnectionId));
 
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
+    public Task<object> JoinRoom(string roomCode)
+        => HandleCommand(new JoinRoomCommand(Context.ConnectionId, roomCode));
 
-        return new { success = true, data = result.Value };
-    }
+    public Task<object> Reconnect(string roomCode, string lastPlayerId)
+        => HandleCommand(new ReconnectCommand(roomCode, lastPlayerId, Context.ConnectionId));
 
-    // Приєднатися до кімнати
-    public async Task<object> JoinRoom(string roomCode)
-    {
-        var command = new JoinRoomCommand(Context.ConnectionId, roomCode);
-        var result = await _mediator.Send(command);
+    public Task<object> LeaveRoom(string roomCode)
+        => HandleCommand(new LeaveRoomCommand(roomCode, Context.ConnectionId));
 
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
+    // --- Profile ---
+    public Task<object> ChangeName(string roomCode, string newName)
+        => HandleCommand(new RenamePlayerCommand(roomCode, Context.ConnectionId, newName));
 
-        return new { success = true, data = result.Value };
-    }
+    public Task<object> ChangeAvatar(string roomCode, string avatarId)
+        => HandleCommand(new ChangeAvatarCommand(roomCode, Context.ConnectionId, avatarId));
 
-    // Вийти з кімнати
-    public async Task<object> LeaveRoom(string roomCode)
-    {
-        var command = new LeaveRoomCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
+    public Task<object> ToggleReady(string roomCode)
+        => HandleCommand(new ToggleReadyCommand(roomCode, Context.ConnectionId));
 
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
+    // --- Host Actions ---
+    public Task<object> ChangeHost(string roomCode, string newHostPlayerId)
+        => HandleCommand(new ChangeHostCommand(roomCode, Context.ConnectionId, newHostPlayerId));
 
-        return new { success = true };
-    }
+    public Task<object> KickPlayer(string roomCode, string targetPlayerId)
+        => HandleCommand(new KickPlayerCommand(roomCode, Context.ConnectionId, targetPlayerId));
 
-    // Змінити ім'я
-    public async Task<object> ChangeName(string roomCode, string newName)
-    {
-        var command = new RenamePlayerCommand(roomCode, Context.ConnectionId, newName);
-        var result = await _mediator.Send(command);
+    public Task<object> UpdateSettings(string roomCode, RoomGameSettingsDto settings)
+        => HandleCommand(new UpdateGameSettingsCommand(roomCode, Context.ConnectionId, settings));
 
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
+    public Task<object> ReturnToLobby(string roomCode)
+        => HandleCommand(new ReturnToLobbyCommand(roomCode, Context.ConnectionId));
 
-        return new { success = true };
-    }
+    // --- Gameplay ---
+    public Task<object> StartGame(string roomCode)
+        => HandleCommand(new StartGameCommand(roomCode, Context.ConnectionId));
 
-    // Змінити аватар
-    public async Task<object> ChangeAvatar(string roomCode, string avatarId)
-    {
-        var command = new ChangeAvatarCommand(roomCode, Context.ConnectionId, avatarId);
-        var result = await _mediator.Send(command);
+    public Task<object> SendMessage(string roomCode, string message)
+        => HandleCommand(new SendMessageCommand(roomCode, Context.ConnectionId, message));
 
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
+    public Task<object> VoteStopTimer(string roomCode)
+        => HandleCommand(new VoteStopTimerCommand(roomCode, Context.ConnectionId));
 
-        return new { success = true };
-    }
-
-    // Змінити статус готовності
-    public async Task<object> ToggleReady(string roomCode)
-    {
-        var command = new ToggleReadyCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Передати права хоста
-    public async Task<object> ChangeHost(string roomCode, string newHostPlayerId)
-    {
-        var command = new ChangeHostCommand(roomCode, Context.ConnectionId, newHostPlayerId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Вигнати гравця
-    public async Task<object> KickPlayer(string roomCode, string targetPlayerId)
-    {
-        var command = new KickPlayerCommand(roomCode, Context.ConnectionId, targetPlayerId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Оновити налаштування гри
-    public async Task<object> UpdateSettings(string roomCode, RoomGameSettingsDto settings)
-    {
-        var command = new UpdateGameSettingsCommand(roomCode, Context.ConnectionId, settings);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Почати гру
-    public async Task<object> StartGame(string roomCode)
-    {
-        var command = new StartGameCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Відправити повідомлення в чат
-    public async Task<object> SendMessage(string roomCode, string message)
-    {
-        var command = new SendMessageCommand(roomCode, Context.ConnectionId, message);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Проголосувати за зупинку таймера
-    public async Task<object> VoteStopTimer(string roomCode)
-    {
-        var command = new VoteStopTimerCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Показати шпигунів
-    public async Task<object> RevealSpies(string roomCode)
-    {
-        var command = new RevealSpiesCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
-
-    // Повернутися в лобі
-    public async Task<object> ReturnToLobby(string roomCode)
-    {
-        var command = new ReturnToLobbyCommand(roomCode, Context.ConnectionId);
-        var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message };
-
-        return new { success = true };
-    }
+    public Task<object> RevealSpies(string roomCode)
+        => HandleCommand(new RevealSpiesCommand(roomCode, Context.ConnectionId));
 }

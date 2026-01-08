@@ -16,12 +16,12 @@ public record RevealSpiesCommand(
 ) : IRequest<Result>;
 
 public class RevealSpiesHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<RevealSpiesHandler> logger)
     : IRequestHandler<RevealSpiesCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<RevealSpiesHandler> _logger = logger;
 
@@ -42,7 +42,7 @@ public class RevealSpiesHandler(
                 return Results.ActionFailed("Гра не йде.");
             }
 
-            if (!room.IsTimerStopped)
+            if (!room.TimerState.IsTimerStopped)
             {
                 return Results.ActionFailed("Спочатку потрібно зупинити таймер.");
             }

@@ -17,12 +17,12 @@ public record UpdateGameSettingsCommand(
 ) : IRequest<Result>;
 
 public class UpdateGameSettingsHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<UpdateGameSettingsHandler> logger)
     : IRequestHandler<UpdateGameSettingsCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<UpdateGameSettingsHandler> _logger = logger;
 

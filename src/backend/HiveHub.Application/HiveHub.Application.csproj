@@ -7,17 +7,22 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\HiveHub.Domain\HiveHub.Domain.csproj" />
+    <Compile Remove="MediatR\SpyGame\Commands\StopTimer\**" />
+    <Compile Remove="MediatR\SpyGame\Queries\GetSessionState\**" />
+    <EmbeddedResource Remove="MediatR\SpyGame\Commands\StopTimer\**" />
+    <EmbeddedResource Remove="MediatR\SpyGame\Queries\GetSessionState\**" />
+    <None Remove="MediatR\SpyGame\Commands\StopTimer\**" />
+    <None Remove="MediatR\SpyGame\Queries\GetSessionState\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="MediatR\SpyGame\Commands\StopTimer\" />
-    <Folder Include="MediatR\SpyGame\Queries\GetSessionState\" />
+    <ProjectReference Include="..\HiveHub.Domain\HiveHub.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentResults" Version="4.0.0" />
     <PackageReference Include="MediatR" Version="14.0.0" />
+    <PackageReference Include="RedLock.net" Version="2.3.2" />
   </ItemGroup>
 
 </Project>

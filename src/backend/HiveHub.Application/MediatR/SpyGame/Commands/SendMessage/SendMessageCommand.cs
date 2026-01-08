@@ -17,12 +17,12 @@ public record SendMessageCommand(
 ) : IRequest<Result>;
 
 public class SendMessageHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<SendMessageHandler> logger)
     : IRequestHandler<SendMessageCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<SendMessageHandler> _logger = logger;
 

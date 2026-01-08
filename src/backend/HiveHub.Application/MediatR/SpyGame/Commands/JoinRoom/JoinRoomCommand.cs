@@ -17,26 +17,26 @@ public record JoinRoomCommand(
 ) : IRequest<Result<JoinRoomResponseDto>>;
 
 public class JoinRoomHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository spyGameRepository,
+    IConnectionMappingService mappingService,
     ISpyGamePublisher publisher,
     ILogger<JoinRoomHandler> logger,
     IIdGenerator idGenerator)
     : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto>>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _spyGameRepository = spyGameRepository;
+    private readonly IConnectionMappingService _mappingService = mappingService;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<JoinRoomHandler> _logger = logger;
     private readonly IIdGenerator _idGenerator = idGenerator;
 
     public async Task<Result<JoinRoomResponseDto>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _spyGameRepository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound("Кімната не знайдена.");
         }
-
-        JoinRoomResponseDto? response = null;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
@@ -91,20 +91,22 @@ public class JoinRoomHandler(
                 room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList()
             );
 
-            response = new JoinRoomResponseDto(
-                Me: myDto,
-                RoomCode: room.RoomCode,
-                Players: allPlayersDto,
-                Settings: settingsDto
-            );
+            var responseDto = new JoinRoomResponseDto(
+                    Me: myDto,
+                    RoomCode: room.RoomCode,
+                    Players: allPlayersDto,
+                    Settings: settingsDto
+                );
 
-            return Result.Ok();
+            return Result.Ok(responseDto);
         });
 
         if (result.IsFailed)
         {
             return result;
         }
+
+        var response = result.Value;
 
         if (response == null)
         {
@@ -115,6 +117,8 @@ public class JoinRoomHandler(
             request.ConnectionId,
             response.Me.Id,
             response.RoomCode);
+
+        _mappingService.Map(request.ConnectionId, request.RoomCode);
 
         await _publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
 

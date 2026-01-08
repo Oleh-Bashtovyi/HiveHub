@@ -16,12 +16,12 @@ public record ChangeHostCommand(
 ) : IRequest<Result>;
 
 public class ChangeHostHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<ChangeHostHandler> logger)
     : IRequestHandler<ChangeHostCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ChangeHostHandler> _logger = logger;
 

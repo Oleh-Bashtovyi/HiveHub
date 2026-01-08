@@ -1,47 +1,48 @@
 ﻿using HiveHub.Application.Models;
+using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
 using HiveHub.Domain;
+using HiveHub.Infrastructure.Models;
 using System.Collections.Concurrent;
 
-namespace HiveHub.Application.Services;
+namespace HiveHub.Infrastructure.Services;
 
-public sealed class SpyGameManager(IIdGenerator idGenerator)
+public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGameRepository
 {
-    private readonly ConcurrentDictionary<string, SpyRoomAccessor> _rooms = new();
+    private readonly ConcurrentDictionary<string, RamSpyRoomAccessor> _rooms = new();
     private readonly IIdGenerator _idGenerator = idGenerator;
 
-    public string GenerateUniqueRoomCode()
+    public Task<string> GenerateUniqueRoomCodeAsync()
     {
         var code = _idGenerator.GenerateId(8);
-
         while (_rooms.ContainsKey(code))
         {
             code = _idGenerator.GenerateId(8);
         }
-
-        return code;
+        return Task.FromResult(code);
     }
 
-    public SpyRoomAccessor? GetRoom(string roomCode)
+    public ISpyRoomAccessor? GetRoom(string roomCode)
     {
         if (string.IsNullOrEmpty(roomCode)) return null;
-
         _rooms.TryGetValue(roomCode, out var accessor);
-        
         return accessor;
     }
 
-    public bool TryAddRoom(SpyRoom room)
+    public Task<bool> TryAddRoomAsync(SpyRoom room)
     {
-        var accessor = new SpyRoomAccessor(room);
-
-        return _rooms.TryAdd(room.RoomCode, accessor);
+        var accessor = new RamSpyRoomAccessor(room);
+        var result = _rooms.TryAdd(room.RoomCode, accessor);
+        return Task.FromResult(result);
     }
 
-    public void RemoveRoom(string roomCode)
+    public Task RemoveRoomAsync(string roomCode)
     {
-        if (string.IsNullOrEmpty(roomCode)) return;
-        _rooms.TryRemove(roomCode, out _);
+        if (!string.IsNullOrEmpty(roomCode) && _rooms.TryRemove(roomCode, out var accessor))
+        {
+            accessor.Dispose();
+        }
+        return Task.CompletedTask;
     }
 
     public async Task<int> RemoveInactiveRoomsAsync(TimeSpan expirationThreshold)
@@ -65,7 +66,6 @@ public sealed class SpyGameManager(IIdGenerator idGenerator)
                 count++;
             }
         }
-
         return count;
     }
 }

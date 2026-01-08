@@ -15,12 +15,12 @@ public record ToggleReadyCommand(
 ) : IRequest<Result>;
 
 public class ToggleReadyHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<ToggleReadyHandler> logger)
     : IRequestHandler<ToggleReadyCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ToggleReadyHandler> _logger = logger;
 

@@ -9,27 +9,21 @@ using Microsoft.Extensions.Logging;
 
 namespace HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
 
-public record CreateRoomCommand(
-    string ConnectionId
-) : IRequest<Result<CreateRoomResponseDto>>;
+public record CreateRoomCommand(string ConnectionId) : IRequest<Result<CreateRoomResponseDto>>;
 
 public class CreateRoomHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository spyGameRepository,
+    IConnectionMappingService mappingService,
     ISpyGamePublisher publisher,
     ILogger<CreateRoomHandler> logger,
     IIdGenerator idGenerator)
     : IRequestHandler<CreateRoomCommand, Result<CreateRoomResponseDto>>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<CreateRoomHandler> _logger = logger;
-    private readonly IIdGenerator _idGenerator = idGenerator;
-
     public async Task<Result<CreateRoomResponseDto>> Handle(CreateRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomCode = _gameManager.GenerateUniqueRoomCode();
+        var roomCode = await spyGameRepository.GenerateUniqueRoomCodeAsync();
         var room = new SpyRoom(roomCode);
-        var hostPublicId = _idGenerator.GenerateId(length: 16);
+        var hostPublicId = idGenerator.GenerateId(length: 16);
 
         var hostPlayer = new SpyPlayer(request.ConnectionId, hostPublicId)
         {
@@ -44,18 +38,14 @@ public class CreateRoomHandler(
             return Results.ActionFailed("Не вдалося додати хоста в кімнату.");
         }
 
-        if (!_gameManager.TryAddRoom(room))
+        if (!await spyGameRepository.TryAddRoomAsync(room))
         {
             return Results.ActionFailed("Не вдалося зареєструвати кімнату.");
         }
 
-        var myDto = new PlayerDto(
-            hostPlayer.IdInRoom,
-            hostPlayer.Name,
-            hostPlayer.IsHost,
-            hostPlayer.IsReady,
-            hostPlayer.AvatarId);
+        mappingService.Map(request.ConnectionId, roomCode);
 
+        var myDto = new PlayerDto(hostPlayer.IdInRoom, hostPlayer.Name, true, false, "default");
         var settingsDto = new RoomGameSettingsDto(
             room.GameSettings.TimerMinutes,
             room.GameSettings.SpiesCount,
@@ -64,15 +54,10 @@ public class CreateRoomHandler(
             room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList()
         );
 
-        var response = new CreateRoomResponseDto(
-            RoomCode: roomCode,
-            Me: myDto,
-            Settings: settingsDto
-        );
+        var response = new CreateRoomResponseDto(roomCode, myDto, settingsDto);
 
-        _logger.LogInformation("Room created with code: {RoomCode} by host: {HostId}", roomCode, hostPublicId);
-
-        await _publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);
+        logger.LogInformation("Room created: {RoomCode}", roomCode);
+        await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);
 
         return Result.Ok(response);
     }

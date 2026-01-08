@@ -15,12 +15,12 @@ public record VoteStopTimerCommand(
 ) : IRequest<Result>;
 
 public class VoteStopTimerHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<VoteStopTimerHandler> logger)
     : IRequestHandler<VoteStopTimerCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<VoteStopTimerHandler> _logger = logger;
 
@@ -42,7 +42,7 @@ public class VoteStopTimerHandler(
                 return Results.ActionFailed("Гра не йде.");
             }
 
-            if (room.IsTimerStopped)
+            if (room.TimerState.IsTimerStopped)
             {
                 return Results.ActionFailed("Таймер вже зупинено.");
             }
@@ -63,8 +63,8 @@ public class VoteStopTimerHandler(
             // Потрібно 2 голоси для зупинки таймера
             if (votesCount >= 2)
             {
-                room.IsTimerStopped = true;
-                room.TimerStoppedAt = DateTime.UtcNow;
+                room.TimerState.IsTimerStopped = true;
+                room.TimerState.TimerStoppedAt = DateTime.UtcNow;
                 timerStopped = true;
             }
 

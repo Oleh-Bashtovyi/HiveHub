@@ -2,10 +2,32 @@
 
 namespace HiveHub.Domain;
 
+public sealed class TimerState
+{
+    public DateTime? GameStartTime { get; set; }
+    public DateTime? PlannedGameEndTime { get; set; }
+    public DateTime? TimerStoppedAt { get; set; }
+    public bool IsTimerStopped { get; set; } = true;
+
+    public double GetRemainingSeconds()
+    {
+        if (IsTimerStopped)
+        {
+            return 0;
+        }
+
+        if (!PlannedGameEndTime.HasValue) return 0;
+
+        var remaining = PlannedGameEndTime.Value - DateTime.UtcNow;
+        return remaining.TotalSeconds > 0 ? remaining.TotalSeconds : 0;
+    }
+}
+
 public abstract class PlayerBase<TPlayerState>
 {
-    public string ConnectionId { get; init; } = string.Empty;
+    public string ConnectionId { get; set; } = string.Empty;
     public string IdInRoom { get; init; } = string.Empty;
+    public bool IsConnected { get; set; } = true;
     public string Name { get; set; } = string.Empty;
     public string AvatarId { get; set; } = string.Empty;
     public bool IsHost { get; set; }
@@ -17,12 +39,19 @@ public abstract class PlayerBase<TPlayerState>
 public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code)
     where TPlayer : PlayerBase<TPlayerState>
 {
-    public string RoomCode { get; } = code;
+    public string RoomCode { get; init; } = code;
     public RoomState State { get; set; } = RoomState.Lobby;
     public ConcurrentDictionary<string, TPlayer> Players { get; } = new();
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public long StateVersion { get; private set; } = 0;
 
     public TGameSettings GameSettings { get; init; } = default!;
+    public TimerState TimerState { get; init; } = default!;
+
+    public void IncrementVersion()
+    {
+        StateVersion++;
+    }
 }
 
 public enum RoomState
@@ -60,14 +89,13 @@ public class SpyRoomSettings
 public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerState>
 {
     public string? CurrentSecretWord { get; set; }
-    public DateTime? GameStartTime { get; set; }
-    public bool IsTimerStopped { get; set; } = false;
-    public DateTime? TimerStoppedAt { get; set; }
+    public string? CurrentCategory { get; set; }
     public List<ChatMessage> ChatMessages { get; set; } = new();
 
     public SpyRoom(string code) : base(code)
     {
         GameSettings = new SpyRoomSettings();
+        TimerState = new TimerState();
     }
 }
 

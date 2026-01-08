@@ -1,4 +1,6 @@
-﻿namespace HiveHub.Application.Dtos.SpyGame;
+﻿using HiveHub.Domain;
+
+namespace HiveHub.Application.Dtos.SpyGame;
 
 public record JoinRoomResponseDto(
     PlayerDto Me,
@@ -43,3 +45,29 @@ public record RevealSpiesDto(
 public record SpyRevealDto(
     string PlayerId,
     string PlayerName);
+
+
+
+
+
+public record RoomStateDto(
+    string RoomCode,
+    RoomState State,
+    List<PlayerDto> Players,
+    RoomGameSettingsDto Settings,
+    GameStateDto? GameState,
+    long Version
+);
+
+
+public record GameStateDto(
+    string? CurrentSecretWord, // Null для шпигуна
+    string? Category,          // Null для шпигуна (якщо налаштування ShowCategoryToSpy == false)
+    DateTime GameStartTime,
+    DateTime? GameEndTime,     // Розрахунковий час завершення (для таймера на клієнті)
+    bool IsTimerStopped,       // Чи стоїть гра на паузі (обговорення)
+    DateTime? TimerStoppedAt,  // Коли зупинили таймер
+    int TimerVotesCount,       // Скільки гравців проголосувало за зупинку
+    List<ChatMessageDto> RecentMessages // Останні повідомлення чату
+);
+

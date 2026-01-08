@@ -15,12 +15,12 @@ public record ReturnToLobbyCommand(
 ) : IRequest<Result>;
 
 public class ReturnToLobbyHandler(
-    SpyGameManager gameManager,
+    ISpyGameRepository gameManager,
     ISpyGamePublisher publisher,
     ILogger<ReturnToLobbyHandler> logger)
     : IRequestHandler<ReturnToLobbyCommand, Result>
 {
-    private readonly SpyGameManager _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = gameManager;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ReturnToLobbyHandler> _logger = logger;
 
@@ -46,9 +46,9 @@ public class ReturnToLobbyHandler(
 
             room.State = RoomState.Lobby;
             room.CurrentSecretWord = null;
-            room.GameStartTime = null;
-            room.IsTimerStopped = false;
-            room.TimerStoppedAt = null;
+            room.TimerState.GameStartTime = null;
+            room.TimerState.IsTimerStopped = false;
+            room.TimerState.TimerStoppedAt = null;
             room.ChatMessages.Clear();
 
             foreach (var player in room.Players.Values)
