@@ -31,23 +31,17 @@ public class ReconnectHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            var playerPair = room.Players.FirstOrDefault(x => x.Value.IdInRoom == request.OldPlayerId);
-            if (playerPair.Value == null)
+            var player = room.Players.FirstOrDefault(x => x.IdInRoom == request.OldPlayerId);
+            if (player == null)
                 return Results.NotFound<JoinRoomResponseDto>("Player not found.");
 
-            oldConnectionId = playerPair.Key;
-            var player = playerPair.Value;
-
-            if (room.Players.TryRemove(oldConnectionId, out var existingPlayer))
-            {
-                existingPlayer.ConnectionId = request.NewConnectionId;
-                existingPlayer.IsConnected = true;
-                room.Players.TryAdd(request.NewConnectionId, existingPlayer);
-            }
+            oldConnectionId = player.ConnectionId;
+            player.ConnectionId = request.NewConnectionId;
+            player.IsConnected = true;
 
             var myDto = new PlayerDto(player.IdInRoom, player.Name, player.IsHost, player.IsReady, player.AvatarId);
 
-            var allPlayersDto = room.Players.Values
+            var allPlayersDto = room.Players
                 .Select(p => new PlayerDto(p.IdInRoom, p.Name, p.IsHost, p.IsReady, p.AvatarId))
                 .ToList();
 
@@ -56,7 +50,7 @@ public class ReconnectHandler(
                 room.GameSettings.SpiesCount,
                 room.GameSettings.SpiesKnowEachOther,
                 room.GameSettings.ShowCategoryToSpy,
-                room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList());
+                room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList());
 
             response = new JoinRoomResponseDto(myDto, room.RoomCode, allPlayersDto, settingsDto);
             return Result.Ok();

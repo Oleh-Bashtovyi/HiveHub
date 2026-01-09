@@ -26,9 +26,9 @@ public record RoomGameSettingsDto(
     int SpiesCount,
     bool SpiesKnowEachOther,
     bool ShowCategoryToSpy,
-    List<WordsCategory> WordsCategories);
+    List<WordsCategoryDto> WordsCategories);
 
-public record WordsCategory(
+public record WordsCategoryDto(
     string Name,
     List<string> Words);
 

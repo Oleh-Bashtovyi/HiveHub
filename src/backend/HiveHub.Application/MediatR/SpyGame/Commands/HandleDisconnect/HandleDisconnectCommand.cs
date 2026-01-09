@@ -30,38 +30,105 @@ public class HandleDisconnectHandler(
         var roomAccessor = gameManager.GetRoom(roomCode);
         if (roomAccessor == null) return Result.Ok();
 
+        string? playerId = null;
+
         await roomAccessor.ExecuteAsync(async (room) =>
         {
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return;
             }
 
             player.IsConnected = false;
+            playerId = player.IdInRoom;
 
             logger.LogInformation("Player {PlayerId} disconnected from room {RoomCode}", player.IdInRoom, roomCode);
 
             if (player.IsHost)
             {
-                var newHostPair = room.Players.FirstOrDefault(p => p.Key != request.ConnectionId && p.Value.IsConnected);
+                var newHost = room.Players.FirstOrDefault(p => p.ConnectionId != request.ConnectionId && p.IsConnected);
 
-                if (newHostPair.Value == null && !room.Players.IsEmpty)
+                if (newHost == null && !(room.Players.Count == 0))
                 {
-                    newHostPair = room.Players.FirstOrDefault(p => p.Key != request.ConnectionId);
+                    newHost = room.Players.FirstOrDefault(p => p.ConnectionId != request.ConnectionId);
                 }
 
-                if (newHostPair.Value != null)
+                if (newHost != null)
                 {
                     player.IsHost = false;
-                    newHostPair.Value.IsHost = true;
+                    newHost.IsHost = true;
 
-                    var hostDto = new HostChangedEventDto(roomCode, newHostPair.Value.IdInRoom);
+                    var hostDto = new HostChangedEventDto(roomCode, newHost.IdInRoom);
                     await publisher.PublishHostChangedAsync(hostDto);
 
-                    logger.LogInformation("Host auto-assigned to {NewHostId} due to disconnect", newHostPair.Value.IdInRoom);
+                    logger.LogInformation("Host auto-assigned to {NewHostId} due to disconnect", newHost.IdInRoom);
                 }
             }
         });
+
+        if (!string.IsNullOrEmpty(playerId))
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                var accessor = gameManager.GetRoom(roomCode);
+                if (accessor == null) return;
+
+                string? removedPlayerId = null;
+                string? newHostId = null;
+                bool roomShouldBeDeleted = false;
+
+                await accessor.ExecuteAsync((room) =>
+                {
+                    var playerToDelete = room.Players.FirstOrDefault(p => p.IdInRoom == playerId);
+                    if (playerToDelete == null) return;
+
+                    if (!playerToDelete.IsConnected)
+                    {
+                        var wasHost = playerToDelete.IsHost;
+                        removedPlayerId = playerToDelete.IdInRoom;
+
+                        room.Players.Remove(playerToDelete);
+
+                        if (room.Players.Count == 0)
+                        {
+                            roomShouldBeDeleted = true;
+                        }
+                        else if (wasHost)
+                        {
+                            var newHost = room.Players.FirstOrDefault(x => x.IsConnected == true);
+
+                            if (newHost != null)
+                            {
+                                newHost.IsHost = true;
+                                newHostId = newHost.IdInRoom;
+                            }
+                        }
+
+                        logger.LogInformation("Player {PlayerId} removed from room {RoomCode} due to prolonged disconnect",
+                            removedPlayerId, roomCode);
+                    }
+                });
+
+                if (roomShouldBeDeleted)
+                {
+                    await gameManager.RemoveRoomAsync(roomCode);
+                    logger.LogInformation("Room {RoomCode} deleted - no players left", roomCode);
+                }
+                else if (!string.IsNullOrEmpty(removedPlayerId))
+                {
+                    var leftEvent = new PlayerLeftEventDto(roomCode, removedPlayerId);
+                    await publisher.PublishPlayerLeftAsync(leftEvent);
+
+                    if (!string.IsNullOrEmpty(newHostId))
+                    {
+                        var hostChangedEvent = new HostChangedEventDto(roomCode, newHostId);
+                        await publisher.PublishHostChangedAsync(hostChangedEvent);
+                    }
+                }
+            });
+        }
 
         return Result.Ok();
     }

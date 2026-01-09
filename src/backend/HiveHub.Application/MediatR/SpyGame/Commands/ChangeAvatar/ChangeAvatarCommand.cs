@@ -42,7 +42,7 @@ public class ChangeAvatarHandler(
                 return Results.ActionFailed("Не можна змінювати аватар під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }

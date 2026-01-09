@@ -35,7 +35,7 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         using (var redLock = await _lockFactory.CreateLockAsync(
             resource,
             ExpireTime,
-            WaitTime, 
+            WaitTime,
             RetryTime))
         {
             if (!redLock.IsAcquired) return Result.Fail("Server busy.");
@@ -54,27 +54,22 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         }
     }
 
-    // 1. Execute з даними Result<T>
     public async Task<Result<T>> ExecuteAsync<T>(Func<SpyRoom, Result<T>> action)
     {
         return await RunInLockAsync(room => Task.FromResult(action(room)), saveChanges: true);
     }
 
-    // 2. Execute без даних (Result)
     public async Task<Result> ExecuteAsync(Func<SpyRoom, Result> action)
     {
-        // Трюк: використовуємо bool як заглушку, щоб використати спільний метод RunInLockAsync
         var result = await RunInLockAsync(room =>
         {
             var r = action(room);
-            // Конвертуємо Result -> Result<bool>
             return Task.FromResult(r.IsSuccess ? Result.Ok(true) : Result.Fail<bool>(r.Errors));
         }, saveChanges: true);
 
-        return result.ToResult(); // Конвертуємо назад Result<bool> -> Result
+        return result.ToResult();
     }
 
-    // 3. Void Execute
     public async Task<Result> ExecuteAsync(Action<SpyRoom> action)
     {
         var result = await RunInLockAsync(room =>
@@ -86,10 +81,8 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         return result.ToResult();
     }
 
-    // 4. ReadAsync
     public async Task<Result<T>> ReadAsync<T>(Func<SpyRoom, T> selector)
     {
-        // saveChanges: false, бо ми тільки читаємо
         return await RunInLockAsync(room =>
         {
             var data = selector(room);
@@ -102,6 +95,6 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         // Читаємо без лока (це допустимо для перевірки очищення)
         var room = await _storage.LoadAsync(_roomCode);
         if (room == null) return true;
-        return room.Players.IsEmpty && (DateTime.UtcNow - room.CreatedAt) > expirationThreshold;
+        return room.Players.Count == 0 && (DateTime.UtcNow - room.CreatedAt) > expirationThreshold;
     }
 }

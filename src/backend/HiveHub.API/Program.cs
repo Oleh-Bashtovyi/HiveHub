@@ -5,6 +5,9 @@ using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
 using HiveHub.Infrastructure.Services;
+using RedLockNet;
+using RedLockNet.SERedis;
+using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +39,7 @@ if (builder.Environment.IsDevelopment())
 {
     Console.WriteLine("Running in DEVELOPMENT mode (In-Memory Storage)");
     builder.Services.AddSingleton<ISpyGameRepository, InMemorySpyGameRepository>();
+    builder.Services.AddHostedService<RoomCleanupService>();
 }
 else
 {
@@ -46,11 +50,18 @@ else
     builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
         ConnectionMultiplexer.Connect(redisConnectionString));
 
+    builder.Services.AddSingleton<IDistributedLockFactory>(sp =>
+    {
+        var redis = sp.GetRequiredService<IConnectionMultiplexer>();
+        return RedLockFactory.Create(new List<RedLockMultiplexer>
+        {
+            new RedLockMultiplexer(redis)
+        });
+    });
+
     builder.Services.AddSingleton<IRoomStorage, RedisRoomStorage>();
     builder.Services.AddSingleton<ISpyGameRepository, RedisSpyGameRepository>();
 }
-
-builder.Services.AddHostedService<RoomCleanupService>();
 
 var app = builder.Build();
 

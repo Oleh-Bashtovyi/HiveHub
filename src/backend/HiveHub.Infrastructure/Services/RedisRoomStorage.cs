@@ -1,31 +1,50 @@
 ﻿using HiveHub.Application.Interfaces;
 using HiveHub.Domain;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using System.Text.Json;
 
 namespace HiveHub.Infrastructure.Services;
 
 public class RedisRoomStorage : IRoomStorage
 {
     private readonly IDatabase _db;
+    private readonly ILogger<RedisRoomStorage> _logger;
 
-    public RedisRoomStorage(IConnectionMultiplexer redis)
+    public RedisRoomStorage(IConnectionMultiplexer redis, ILogger<RedisRoomStorage> logger)
     {
         _db = redis.GetDatabase();
+        _logger = logger;
     }
 
     public async Task<SpyRoom?> LoadAsync(string roomCode)
     {
-        var json = await _db.StringGetAsync($"room:{roomCode}");
-        if (!json.HasValue) return null;
+        try
+        {
+            var json = await _db.StringGetAsync($"room:{roomCode}");
+            if (!json.HasValue) return null;
 
-        return System.Text.Json.JsonSerializer.Deserialize<SpyRoom>(json.ToString());
+            return JsonSerializer.Deserialize<SpyRoom>(json.ToString());
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize room {RoomCode}", roomCode);
+            return null;
+        }
     }
 
     public async Task SaveAsync(SpyRoom room)
     {
-        var json = System.Text.Json.JsonSerializer.Serialize(room);
-
-        await _db.StringSetAsync($"room:{room.RoomCode}", json);
-        await _db.KeyExpireAsync($"room:{room.RoomCode}", TimeSpan.FromHours(1));
+        try
+        {
+            var json = JsonSerializer.Serialize(room);
+            await _db.StringSetAsync($"room:{room.RoomCode}", json);
+            await _db.KeyExpireAsync($"room:{room.RoomCode}", TimeSpan.FromHours(2));
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to serialize room {RoomCode}", room.RoomCode);
+            throw;
+        }
     }
 }

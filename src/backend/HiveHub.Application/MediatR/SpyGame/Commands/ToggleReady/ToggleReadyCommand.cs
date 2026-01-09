@@ -42,7 +42,7 @@ public class ToggleReadyHandler(
                 return Results.ActionFailed("Не можна змінювати статус готовності під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }

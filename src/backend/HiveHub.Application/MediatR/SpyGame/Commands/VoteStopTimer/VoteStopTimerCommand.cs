@@ -47,7 +47,12 @@ public class VoteStopTimerHandler(
                 return Results.ActionFailed("Таймер вже зупинено.");
             }
 
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (room.TimerState.GetRemainingSeconds() <= 0.02)
+            {
+                return Results.ActionFailed("Час вийшов.");
+            }
+
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }
@@ -58,7 +63,7 @@ public class VoteStopTimerHandler(
             }
 
             player.PlayerState.VotedToStopTimer = true;
-            votesCount = room.Players.Values.Count(p => p.PlayerState.VotedToStopTimer);
+            votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
 
             // Потрібно 2 голоси для зупинки таймера
             if (votesCount >= 2)

@@ -72,7 +72,7 @@ public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDispos
         try
         {
             var now = DateTime.UtcNow;
-            return _room.Players.IsEmpty && (now - _room.CreatedAt) > expirationThreshold;
+            return _room.Players.Count == 0 && (now - _room.CreatedAt) > expirationThreshold;
         }
         finally 
         { 

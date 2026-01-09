@@ -36,22 +36,14 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
             return Results.NotFound("Кімната не знайдена.");
         }
 
-        // Використовуємо ExecuteAsync, оскільки всередині є логіка валідації (Result)
         return await roomAccessor.ExecuteAsync<RoomStateDto>((room) =>
         {
-            // Оптимізація трафіку: якщо версія не змінилась, повертаємо порожній успіх
-            if (request.ClientVersion.HasValue && request.ClientVersion.Value == room.StateVersion)
-            {
-                // Повертаємо null як маркер "дані не змінились" (фронтенд має це обробити)
-                return Result.Ok<RoomStateDto>(null!);
-            }
-
-            if (!room.Players.TryGetValue(request.ConnectionId, out var currentPlayer))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var currentPlayer))
             {
                 return Results.NotFound<RoomStateDto>("Гравця не знайдено в кімнаті.");
             }
 
-            var playersDto = room.Players.Values
+            var playersDto = room.Players
                 .Select(p => new PlayerDto(
                     p.IdInRoom,
                     p.Name,
@@ -65,7 +57,7 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
                 room.GameSettings.SpiesCount,
                 room.GameSettings.SpiesKnowEachOther,
                 room.GameSettings.ShowCategoryToSpy,
-                room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList()
+                room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
             );
 
             GameStateDto? gameState = null;
@@ -74,12 +66,12 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
                 var isSpy = currentPlayer.PlayerState.IsSpy;
                 var secretWord = isSpy ? null : room.CurrentSecretWord;
                 var showCategory = room.GameSettings.ShowCategoryToSpy || !isSpy;
-                var votesCount = room.Players.Values.Count(p => p.PlayerState.VotedToStopTimer);
+                var votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
 
                 gameState = new GameStateDto(
                     CurrentSecretWord: secretWord,
-                    Category: showCategory ? room.CurrentCategory : null, // Перевір чи є CurrentCategory в SpyRoom
-                    GameStartTime: room.TimerState.GameStartTime ?? DateTime.UtcNow, // Використовуй TimerState
+                    Category: showCategory ? room.CurrentCategory : null,
+                    GameStartTime: room.TimerState.GameStartTime ?? DateTime.UtcNow,
                     GameEndTime: room.TimerState.PlannedGameEndTime,
                     IsTimerStopped: room.TimerState.IsTimerStopped,
                     TimerStoppedAt: room.TimerState.TimerStoppedAt,

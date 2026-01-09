@@ -47,16 +47,16 @@ public class JoinRoomHandler(
 
             if (room.Players.Count >= 8)
             {
-                return Results.ActionFailed("Кімната заповнена.");
+                return Results.ActionFailed("Кімната заповнена. Максимум 8 гравців.");
             }
 
-            if (room.Players.ContainsKey(request.ConnectionId))
+            if (room.Players.Any(x => x.ConnectionId == request.ConnectionId))
             {
                 return Result.Fail(new ActionFailedError("Ви вже в кімнаті."));
             }
 
             var publicId = _idGenerator.GenerateId(length: 16);
-            bool isHost = room.Players.IsEmpty;
+            bool isHost = room.Players.Count == 0;
             var playerName = $"Player {room.Players.Count + 1}";
 
             var newPlayer = new SpyPlayer(request.ConnectionId, publicId)
@@ -67,10 +67,7 @@ public class JoinRoomHandler(
                 IsReady = false
             };
 
-            if (!room.Players.TryAdd(request.ConnectionId, newPlayer))
-            {
-                return Results.ActionFailed("Помилка додавання гравця.");
-            }
+            room.Players.Add(newPlayer);
 
             var myDto = new PlayerDto(
                 newPlayer.IdInRoom,
@@ -79,8 +76,13 @@ public class JoinRoomHandler(
                 newPlayer.IsReady,
                 newPlayer.AvatarId);
 
-            var allPlayersDto = room.Players.Values
-                .Select(p => new PlayerDto(p.IdInRoom, p.Name, p.IsHost, p.IsReady, p.AvatarId))
+            var allPlayersDto = room.Players
+                .Select(p => new PlayerDto(
+                    p.IdInRoom, 
+                    p.Name, 
+                    p.IsHost, 
+                    p.IsReady, 
+                    p.AvatarId))
                 .ToList();
 
             var settingsDto = new RoomGameSettingsDto(
@@ -88,7 +90,7 @@ public class JoinRoomHandler(
                 room.GameSettings.SpiesCount,
                 room.GameSettings.SpiesKnowEachOther,
                 room.GameSettings.ShowCategoryToSpy,
-                room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList()
+                room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
             );
 
             var responseDto = new JoinRoomResponseDto(

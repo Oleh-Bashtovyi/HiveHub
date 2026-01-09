@@ -41,7 +41,7 @@ public class StartGameHandler(
                 return Results.ActionFailed("Гра вже йде. Спочатку завершіть поточну.");
             }
 
-            if (!room.Players.TryGetValue(request.HostConnectionId, out var host) || !host.IsHost)
+            if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
                 return Results.ActionFailed("Тільки хост може почати гру.");
             }
@@ -51,7 +51,7 @@ public class StartGameHandler(
                 return Results.ActionFailed("Недостатньо гравців (мінімум 3).");
             }
 
-            if (room.Players.Values.Any(p => !p.IsReady))
+            if (room.Players.Any(p => !p.IsReady))
             {
                 return Results.ActionFailed("Не всі гравці готові. Всі повинні натиснути 'Готовий'.");
             }
@@ -70,27 +70,27 @@ public class StartGameHandler(
             var randomCategory = room.GameSettings.Categories[random.Next(room.GameSettings.Categories.Count)];
             var randomWord = randomCategory.Words[random.Next(randomCategory.Words.Count)];
 
-            foreach (var player in room.Players.Values)
+            foreach (var player in room.Players)
             {
                 player.PlayerState.IsSpy = false;
                 player.PlayerState.VotedToStopTimer = false;
             }
 
             int spiesCount = Math.Min(room.GameSettings.SpiesCount, room.Players.Count - 1);
-            var playerIds = room.Players.Keys.ToList();
+            var playerConnectionIds = room.Players.Select(x => x.ConnectionId).ToList();
 
             for (int i = 0; i < spiesCount; i++)
             {
-                int index = random.Next(playerIds.Count);
-                var spyConnectionId = playerIds[index];
+                int index = random.Next(playerConnectionIds.Count);
+                var spyConnectionId = playerConnectionIds[index];
 
-                while (room.Players[spyConnectionId].PlayerState.IsSpy)
+                while (room.Players.First(x => x.ConnectionId == spyConnectionId).PlayerState.IsSpy)
                 {
-                    index = random.Next(playerIds.Count);
-                    spyConnectionId = playerIds[index];
+                    index = random.Next(playerConnectionIds.Count);
+                    spyConnectionId = playerConnectionIds[index];
                 }
 
-                room.Players[spyConnectionId].PlayerState.IsSpy = true;
+                room.Players.First(x => x.ConnectionId == spyConnectionId).PlayerState.IsSpy = true;
             }
 
             room.CurrentSecretWord = randomWord;
@@ -108,7 +108,7 @@ public class StartGameHandler(
             room.ChatMessages.Clear();
             room.IncrementVersion();
 
-            foreach (var player in room.Players.Values)
+            foreach (var player in room.Players)
             {
                 var isSpy = player.PlayerState.IsSpy;
 

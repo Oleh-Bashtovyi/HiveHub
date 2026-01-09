@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 
 namespace HiveHub.Domain;
 
@@ -40,10 +41,10 @@ public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code
     where TPlayer : PlayerBase<TPlayerState>
 {
     public string RoomCode { get; init; } = code;
+    public List<TPlayer> Players { get; } = new();
     public RoomState State { get; set; } = RoomState.Lobby;
-    public ConcurrentDictionary<string, TPlayer> Players { get; } = new();
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public long StateVersion { get; private set; } = 0;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
     public TGameSettings GameSettings { get; init; } = default!;
     public TimerState TimerState { get; init; } = default!;
@@ -51,6 +52,12 @@ public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code
     public void IncrementVersion()
     {
         StateVersion++;
+    }
+
+    public bool TryGetPlayerByConnectionId(string connectionId, [NotNullWhen(true)] out TPlayer? player)
+    {
+        player = Players.FirstOrDefault(x => x.ConnectionId == connectionId);
+        return player != null;
     }
 }
 

@@ -47,12 +47,12 @@ public class RevealSpiesHandler(
                 return Results.ActionFailed("Спочатку потрібно зупинити таймер.");
             }
 
-            if (!room.Players.ContainsKey(request.ConnectionId))
+            if (!room.Players.Any(x => x.ConnectionId == request.ConnectionId))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }
 
-            spies = room.Players.Values
+            spies = room.Players
                 .Where(p => p.PlayerState.IsSpy)
                 .Select(p => new SpyRevealDto(p.IdInRoom, p.Name))
                 .ToList();

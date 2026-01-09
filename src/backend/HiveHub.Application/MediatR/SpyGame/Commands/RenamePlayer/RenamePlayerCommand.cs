@@ -42,7 +42,7 @@ public class RenamePlayerHandler(
                 return Results.ActionFailed("Не можна змінювати ім'я під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }
@@ -50,6 +50,12 @@ public class RenamePlayerHandler(
             if (string.IsNullOrWhiteSpace(request.NewName) || request.NewName.Length > 20)
             {
                 return Results.ActionFailed("Некоректне ім'я.");
+            }
+
+            if (room.Players.Any(p => p.ConnectionId != request.ConnectionId &&
+                                  p.Name.Equals(request.NewName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return Results.ActionFailed("Гравець з таким ім'ям вже існує в кімнаті.");
             }
 
             player.Name = request.NewName;

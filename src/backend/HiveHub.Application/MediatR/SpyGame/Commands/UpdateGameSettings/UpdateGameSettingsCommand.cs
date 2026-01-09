@@ -41,7 +41,7 @@ public class UpdateGameSettingsHandler(
                 return Results.ActionFailed("Не можна змінювати налаштування під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.HostConnectionId, out var host) || !host.IsHost)
+            if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
                 return Results.ActionFailed("Тільки хост може змінювати налаштування.");
             }
@@ -54,6 +54,11 @@ public class UpdateGameSettingsHandler(
             if (request.NewSettings.SpiesCount < 1)
             {
                 return Results.ActionFailed("Кількість шпигунів повинна бути мінімум 1.");
+            }
+
+            if (request.NewSettings.SpiesCount >= room.Players.Count && room.Players.Count > 0)
+            {
+                return Results.ActionFailed("Кількість шпигунів повинна бути менше кількості гравців.");
             }
 
             room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;

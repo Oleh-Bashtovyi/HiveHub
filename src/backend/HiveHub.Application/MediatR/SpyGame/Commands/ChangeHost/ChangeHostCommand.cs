@@ -42,20 +42,20 @@ public class ChangeHostHandler(
                 return Results.ActionFailed("Не можна змінювати хоста під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.CurrentHostConnectionId, out var currentHost) || !currentHost.IsHost)
+            if (!room.TryGetPlayerByConnectionId(request.CurrentHostConnectionId, out var currentHost) || !currentHost.IsHost)
             {
                 return Results.ActionFailed("Тільки хост може передавати права.");
             }
 
-            var newHostPair = room.Players.FirstOrDefault(p => p.Value.IdInRoom == request.NewHostPlayerId);
-            if (newHostPair.Value == null)
+            var newHost = room.Players.FirstOrDefault(p => p.IdInRoom == request.NewHostPlayerId);
+            if (newHost == null)
             {
                 return Results.NotFound("Нового хоста не знайдено.");
             }
 
             currentHost.IsHost = false;
-            newHostPair.Value.IsHost = true;
-            newHostId = newHostPair.Value.IdInRoom;
+            newHost.IsHost = true;
+            newHostId = newHost.IdInRoom;
 
             return Result.Ok();
         });

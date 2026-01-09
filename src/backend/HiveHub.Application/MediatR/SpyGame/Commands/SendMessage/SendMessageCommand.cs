@@ -43,7 +43,7 @@ public class SendMessageHandler(
                 return Results.ActionFailed("Чат доступний тільки під час гри.");
             }
 
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
             }
@@ -54,6 +54,11 @@ public class SendMessageHandler(
             }
 
             var chatMessage = new ChatMessage(player.IdInRoom, player.Name, request.Message.Trim(), DateTime.UtcNow);
+
+            if (room.ChatMessages.Count >= 100)
+            {
+                room.ChatMessages.RemoveAt(0);
+            }
 
             room.ChatMessages.Add(chatMessage);
 

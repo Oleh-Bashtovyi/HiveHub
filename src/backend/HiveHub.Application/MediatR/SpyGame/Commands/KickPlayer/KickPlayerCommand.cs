@@ -35,20 +35,19 @@ public class KickPlayerHandler(
             if (room.State != RoomState.Lobby)
                 return Results.ActionFailed("Не можна виганяти гравців під час гри.");
 
-            if (!room.Players.TryGetValue(request.HostConnectionId, out var host) || !host.IsHost)
+            if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
                 return Results.ActionFailed("Тільки хост може виганяти гравців.");
 
-            var targetPair = room.Players.FirstOrDefault(p => p.Value.IdInRoom == request.TargetPlayerId);
-            if (targetPair.Value == null) return Results.NotFound("Гравця не знайдено.");
+            var target = room.Players.FirstOrDefault(p => p.IdInRoom == request.TargetPlayerId);
+            if (target == null) return Results.NotFound("Гравця не знайдено.");
 
-            if (targetPair.Value.IsHost)
+            if (target.IsHost)
                 return Results.ActionFailed("Хост не може вигнати сам себе.");
 
-            kickedPlayerConnectionId = targetPair.Key;
-            kickedPlayerName = targetPair.Value.Name;
+            kickedPlayerConnectionId = target.ConnectionId;
+            kickedPlayerName = target.Name;
 
-            if (!room.Players.TryRemove(targetPair.Key, out _))
-                return Results.ActionFailed("Помилка при видаленні гравця.");
+            room.Players.Remove(target);
 
             return Result.Ok();
         });

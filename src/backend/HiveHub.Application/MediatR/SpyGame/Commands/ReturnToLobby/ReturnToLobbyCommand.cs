@@ -39,7 +39,7 @@ public class ReturnToLobbyHandler(
                 return Results.ActionFailed("Гра ще не завершена.");
             }
 
-            if (!room.Players.TryGetValue(request.HostConnectionId, out var host) || !host.IsHost)
+            if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
                 return Results.ActionFailed("Тільки хост може повернутися в лобі.");
             }
@@ -51,7 +51,7 @@ public class ReturnToLobbyHandler(
             room.TimerState.TimerStoppedAt = null;
             room.ChatMessages.Clear();
 
-            foreach (var player in room.Players.Values)
+            foreach (var player in room.Players)
             {
                 player.IsReady = false;
                 player.PlayerState.IsSpy = false;

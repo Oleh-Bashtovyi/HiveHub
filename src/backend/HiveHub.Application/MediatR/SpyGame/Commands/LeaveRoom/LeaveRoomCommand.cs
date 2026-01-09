@@ -38,7 +38,7 @@ public class LeaveRoomHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (!room.Players.TryGetValue(request.ConnectionId, out var player))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено в кімнаті.");
             }
@@ -46,12 +46,9 @@ public class LeaveRoomHandler(
             leavingPlayerId = player.IdInRoom;
             wasHost = player.IsHost;
 
-            if (!room.Players.TryRemove(request.ConnectionId, out _))
-            {
-                return Results.ActionFailed("Помилка при видаленні гравця.");
-            }
+            room.Players.Remove(player);
 
-            if (room.Players.IsEmpty)
+            if (room.Players.Count == 0)
             {
                 roomShouldBeDeleted = true;
                 return Result.Ok();
@@ -59,9 +56,13 @@ public class LeaveRoomHandler(
 
             if (wasHost)
             {
-                var newHost = room.Players.Values.First();
-                newHost.IsHost = true;
-                newHostId = newHost.IdInRoom;
+                var newHost = room.Players.FirstOrDefault(x => x.IsConnected);
+
+                if (newHost != null)
+                {
+                    newHost.IsHost = true;
+                    newHostId = newHost.IdInRoom;
+                }
             }
 
             return Result.Ok();

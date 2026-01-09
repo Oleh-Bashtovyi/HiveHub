@@ -33,10 +33,9 @@ public class CreateRoomHandler(
             IsReady = false
         };
 
-        if (!room.Players.TryAdd(request.ConnectionId, hostPlayer))
-        {
-            return Results.ActionFailed("Не вдалося додати хоста в кімнату.");
-        }
+        room.GameSettings.Categories = CreateDefaultCategories();
+
+        room.Players.Add(hostPlayer);
 
         if (!await spyGameRepository.TryAddRoomAsync(room))
         {
@@ -51,7 +50,7 @@ public class CreateRoomHandler(
             room.GameSettings.SpiesCount,
             room.GameSettings.SpiesKnowEachOther,
             room.GameSettings.ShowCategoryToSpy,
-            room.GameSettings.Categories.Select(c => new WordsCategory(c.Name, c.Words)).ToList()
+            room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
         );
 
         var response = new CreateRoomResponseDto(roomCode, myDto, settingsDto);
@@ -60,5 +59,32 @@ public class CreateRoomHandler(
         await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);
 
         return Result.Ok(response);
+    }
+
+    private static List<SpyGameWordsCategory> CreateDefaultCategories()
+    {
+        return new List<SpyGameWordsCategory>
+        {
+            new SpyGameWordsCategory
+            {
+                Name = "Міста",
+                Words = new List<string> { "Київ", "Париж", "Токіо", "Нью-Йорк", "Лондон", "Берлін", "Рим", "Мадрид" }
+            },
+            new SpyGameWordsCategory
+            {
+                Name = "Тварини",
+                Words = new List<string> { "Собака", "Кіт", "Слон", "Жираф", "Лев", "Тигр", "Ведмідь", "Вовк" }
+            },
+            new SpyGameWordsCategory
+            {
+                Name = "Професії",
+                Words = new List<string> { "Лікар", "Вчитель", "Інженер", "Художник", "Музикант", "Кухар", "Пілот", "Архітектор" }
+            },
+            new SpyGameWordsCategory
+            {
+                Name = "Їжа",
+                Words = new List<string> { "Піца", "Суші", "Борщ", "Салат", "Стейк", "Паста", "Торт", "Морозиво" }
+            }
+        };
     }
 }
