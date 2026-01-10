@@ -1,0 +1,88 @@
+@use '../../../styles/variables' as *;
+
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: $border-radius-md;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  font-family: $font-main;
+  text-decoration: none;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  // Variants
+  &.btn-primary {
+    background: linear-gradient(135deg, $color-hive-primary, $color-hive-dark);
+    color: #000;
+
+    &:not(:disabled):hover {
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+  }
+
+  &.btn-secondary {
+    background: transparent;
+    border: 2px solid $color-panel;
+    color: $color-text-main;
+
+    &:not(:disabled):hover {
+      border-color: $color-text-main;
+      transform: translateY(-2px);
+    }
+  }
+
+  &.btn-danger {
+    background: $color-spy-primary;
+    color: white;
+
+    &:not(:disabled):hover {
+      background: $color-spy-dark;
+    }
+  }
+
+  // Spy Theme Specific Overrides (коли кнопка знаходиться всередині .theme-spy)
+  :global(.theme-spy) & {
+    &.btn-primary {
+      background: linear-gradient(135deg, $color-spy-primary, $color-spy-dark);
+      color: white;
+      box-shadow: 0 5px 15px rgba($color-spy-primary, 0.3);
+
+      &:not(:disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba($color-spy-primary, 0.5);
+        background: linear-gradient(135deg, lighten($color-spy-primary, 5%), $color-spy-primary);
+      }
+    }
+
+    &.btn-secondary {
+      border-color: $color-spy-primary;
+      color: $color-spy-primary;
+
+      &:not(:disabled):hover {
+        background: rgba($color-spy-primary, 0.1);
+      }
+    }
+  }
+
+  &.btn-full {
+    width: 100%;
+  }
+
+  &.btn-small {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+}

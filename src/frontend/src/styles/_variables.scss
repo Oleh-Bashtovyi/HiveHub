@@ -1,0 +1,45 @@
+@use 'sass:color';
+
+// --- HiveHub Core Colors ---
+$color-hive-primary: #FFC107;
+$color-hive-dark: #FF6F00;
+$color-bg-dark: #121212;
+$color-panel: #1E1E1E;
+$color-text-main: #FFFFFF;
+$color-text-muted: #B0B0B0;
+
+// --- Spy Game Theme ---
+$color-spy-primary: #E53935;
+$color-spy-dark: #B71C1C;
+$color-spy-bg: #0F0F13;
+$color-spy-panel: #1A1A20;
+$color-spy-panel-light: #25252D;
+$color-spy-success: #4CAF50;
+$color-spy-warning: #FFA502;
+
+// --- Common ---
+$border-radius-sm: 8px;
+$border-radius-md: 12px;
+$border-radius-lg: 20px;
+
+$font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin spy-gradient-text {
+  background: linear-gradient(90deg, $color-spy-primary, $color-spy-dark);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@mixin hover-effect {
+  transition: transform 0.2s, box-shadow 0.2s;
+  &:hover {
+    transform: translateY(-2px);
+  }
+}

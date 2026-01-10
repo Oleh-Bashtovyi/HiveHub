@@ -1,0 +1,132 @@
+@use '../../../styles/variables' as *;
+
+.spy-entry-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  // Apply background specifically for this page wrapper
+  background: linear-gradient(135deg, #1a0000 0%, $color-spy-bg 50%, #1a0000 100%);
+}
+
+.spy-card {
+  background: $color-spy-panel;
+  border-radius: 20px;
+  padding: 50px;
+  box-shadow: 0 20px 60px rgba($color-spy-primary, 0.3);
+  max-width: 500px;
+  width: 100%;
+  animation: fadeIn 0.5s ease-in;
+  border: 1px solid rgba($color-spy-primary, 0.2);
+}
+
+.spy-logo {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.spy-logo-icon {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, $color-spy-primary 0%, $color-spy-dark 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 50px;
+  box-shadow: 0 10px 30px rgba($color-spy-primary, 0.4);
+}
+
+.spy-title {
+  color: $color-text-main;
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.spy-subtitle {
+  color: $color-text-muted;
+  font-size: 16px;
+}
+
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.features {
+  margin-top: 40px;
+  padding: 20px;
+  background: rgba($color-spy-primary, 0.05);
+  border-radius: $border-radius-md;
+  border: 1px solid rgba($color-spy-primary, 0.1);
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  color: $color-text-muted;
+}
+
+.feature-icon {
+  width: 24px;
+  height: 24px;
+  background: $color-spy-primary;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.input-group {
+  margin: 20px 0;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    color: $color-text-muted;
+    font-weight: 500;
+  }
+
+  input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid rgba($color-spy-primary, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    font-size: 16px;
+    color: $color-text-main;
+    text-align: center;
+    letter-spacing: 1px;
+
+    &:focus {
+      outline: none;
+      border-color: $color-spy-primary;
+    }
+
+    &.uppercase {
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  }
+}
+
+.back-link {
+  margin-top: 20px;
+  text-align: center;
+
+  a {
+    color: $color-text-muted;
+    text-decoration: none;
+    font-size: 14px;
+    &:hover { color: $color-spy-primary; }
+  }
+}

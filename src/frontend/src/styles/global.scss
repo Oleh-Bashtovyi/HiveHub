@@ -1,0 +1,27 @@
+@import 'variables';
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: $font-main;
+  background-color: $color-bg-dark;
+  color: $color-text-main;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+// Global scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: $color-spy-panel;
+}
+::-webkit-scrollbar-thumb {
+  background: $color-spy-panel-light;
+  border-radius: 4px;
+  &:hover { background: $color-spy-primary; }
+}
