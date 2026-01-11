@@ -54,6 +54,7 @@ public record ChatMessageEventDto(
 
 public record TimerStoppedEventDto(
     string RoomCode, 
+    string PlayerId,
     int VotesCount, 
     int RequiredVotes);
 

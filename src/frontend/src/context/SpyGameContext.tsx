@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { SpyHubEvents } from '../const/spy-game-events';
 import {
+    RoomState,
     type PlayerDto,
     type RoomGameSettingsDto,
     type GameStateDto,
-    RoomState,
     type SpyRevealDto,
     type PlayerJoinedEventDto,
     type PlayerLeftEventDto,
@@ -20,10 +20,18 @@ import {
     type SpiesRevealedEventDto,
     type PlayerConnectionChangedEventDto
 } from '../models/spy-game';
-import {SpySignalRService} from "../api/spy-signal-r-service.ts";
+import { SpySignalRService } from "../api/spy-signal-r-service";
+
+const SESSION_KEYS = {
+    ROOM: 'hive_room',
+    PLAYER: 'hive_player'
+};
 
 interface SpyGameContextType {
     isConnected: boolean;
+    isConnecting: boolean;
+    isReconnecting: boolean;
+    isInitializing: boolean;
     roomCode: string | null;
     me: PlayerDto | null;
     players: PlayerDto[];
@@ -31,9 +39,6 @@ interface SpyGameContextType {
     roomState: RoomState;
     gameState: GameStateDto | null;
     gameResultSpies: SpyRevealDto[];
-
-    // Actions
-    connect: () => Promise<void>;
     createRoom: (playerName: string) => Promise<void>;
     joinRoom: (roomCode: string) => Promise<void>;
     leaveRoom: () => Promise<void>;
@@ -43,8 +48,6 @@ interface SpyGameContextType {
     voteStopTimer: () => Promise<void>;
     revealSpies: () => Promise<void>;
     returnToLobby: () => Promise<void>;
-
-    // Setters (Settings)
     updateSettings: (newSettings: RoomGameSettingsDto) => Promise<void>;
     changeName: (newName: string) => Promise<void>;
     changeAvatar: (avatarId: string) => Promise<void>;
@@ -56,6 +59,9 @@ const SpyGameContext = createContext<SpyGameContextType | undefined>(undefined);
 
 export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [isReconnecting, setIsReconnecting] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
     const [roomCode, setRoomCode] = useState<string | null>(null);
     const [me, setMe] = useState<PlayerDto | null>(null);
     const [players, setPlayers] = useState<PlayerDto[]>([]);
@@ -65,40 +71,124 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [gameResultSpies, setGameResultSpies] = useState<SpyRevealDto[]>([]);
 
     const signalRRef = useRef<SpySignalRService | null>(null);
+    const isInitialized = useRef(false);
 
     const getService = useCallback(() => {
         if (!signalRRef.current) {
             const hubUrl = import.meta.env.VITE_HUB_URL;
-
-            if (!hubUrl) {
-                throw new Error('Missing HUB_URL');
-            }
-            console.log('HUB_URL', hubUrl);
+            if (!hubUrl) throw new Error('Missing HUB_URL');
             signalRRef.current = new SpySignalRService(hubUrl);
         }
         return signalRRef.current;
     }, []);
 
+    const saveSession = useCallback((code: string, pid: string) => {
+        sessionStorage.setItem(SESSION_KEYS.ROOM, code);
+        sessionStorage.setItem(SESSION_KEYS.PLAYER, pid);
+    }, []);
+
+    const clearSession = useCallback(() => {
+        sessionStorage.removeItem(SESSION_KEYS.ROOM);
+        sessionStorage.removeItem(SESSION_KEYS.PLAYER);
+    }, []);
+
+    const resetState = useCallback(() => {
+        setRoomCode(null);
+        setMe(null);
+        setPlayers([]);
+        setSettings(null);
+        setRoomState(RoomState.Lobby);
+        setGameState(null);
+        setGameResultSpies([]);
+    }, []);
+
+    const reconnect = useCallback(async (svc: SpySignalRService) => {
+        if (isReconnecting) {
+            return;
+        }
+
+        const savedRoom = sessionStorage.getItem(SESSION_KEYS.ROOM);
+        const savedPlayer = sessionStorage.getItem(SESSION_KEYS.PLAYER);
+
+        if (savedRoom && savedPlayer) {
+            console.log(`[Context] Attempting logical reconnect to ${savedRoom}`);
+            try {
+                setIsReconnecting(true);
+                const fullState = await svc.reconnect(savedRoom, savedPlayer);
+
+                // Restore State
+                setRoomCode(fullState.roomCode);
+                setRoomState(fullState.state);
+                setSettings(fullState.settings);
+                setPlayers(fullState.players);
+                setGameState(fullState.gameState);
+
+                const myPlayer = fullState.players.find(p => p.id === savedPlayer);
+                if (myPlayer) setMe(myPlayer);
+
+                saveSession(fullState.roomCode, savedPlayer);
+                console.log("[Context] Reconnect success");
+            } catch (e) {
+                console.warn("[Context] Reconnect failed. Clearing session.", e);
+                clearSession();
+                resetState();
+            } finally {
+                setIsReconnecting(false);
+            }
+        }
+    }, [isReconnecting, clearSession, resetState, saveSession]);
+
+    const connect = useCallback(async (svc: SpySignalRService) => {
+        if (isConnected || isConnecting) {
+            return;
+        }
+
+        setIsConnecting(true);
+        svc.onTransportReconnected(async (newId) => {
+            console.log(`[Context] Transport recovered (ID: ${newId}). Triggering logical reconnect...`);
+            await reconnect(svc);
+        });
+        
+        await svc.start();
+        setIsConnected(true);
+        setIsConnecting(false);
+    }, [isConnected, isConnecting, reconnect]);
+    
     useEffect(() => {
+        if (isInitialized.current) return;
+
+        isInitialized.current = true;
+
+        const bootstrap = async () => {
+            const svc = getService();
+
+            try {
+                await connect(svc);
+                await reconnect(svc);
+            } catch (error) {
+                console.error("[Context] Initialization failed", error);
+                setIsConnecting(false);
+            } finally {
+                setIsInitializing(false);
+            }
+        };
+
+        bootstrap();
+    }, [connect, getService, reconnect]);
+    
+    // --- Cleanup on Unmount ---
+/*    useEffect(() => {
         return () => {
-            console.log("SpyGameProvider unmounting. Stopping SignalR...");
+            console.log("SpyGameProvider unmounting.");
             const svc = signalRRef.current;
             if (svc) {
                 svc.stop();
                 signalRRef.current = null;
             }
         };
-    }, []);
+    }, []);*/
 
-    // --- Connection Handling ---
-    const connect = useCallback(async () => {
-        if (isConnected) return;
-        const signalRService = getService();
-        await signalRService.start();
-        setIsConnected(true);
-    }, [isConnected, getService]);
-
-    // --- Event Listeners Setup ---
+    // --- Event Listeners ---
     useEffect(() => {
         if (!isConnected) return;
 
@@ -106,7 +196,10 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const meId = me?.id;
 
         const handlePlayerJoined = (e: PlayerJoinedEventDto) => {
-            setPlayers(prev => [...prev, e.player]);
+            setPlayers(prev => {
+                if (prev.some(p => p.id === e.player.id)) return prev;
+                return [...prev, e.player];
+            });
         };
 
         const handlePlayerLeft = (e: PlayerLeftEventDto) => {
@@ -125,13 +218,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const handlePlayerKicked = (e: PlayerKickedEventDto) => {
             if (meId === e.playerId) {
                 alert("Вас було вигнано з кімнати.");
-                svc.clearSessionInfo();
-                setRoomCode(null);
-                setMe(null);
-                setPlayers([]);
-                setSettings(null);
-                setRoomState(RoomState.Lobby);
-                setGameState(null);
+                clearSession();
+                resetState();
             } else {
                 setPlayers(prev => prev.filter(p => p.id !== e.playerId));
             }
@@ -161,15 +249,9 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 isHost: p.id === e.newHostId
             })));
 
-            // Check if I became host
             setMe(prev => {
                 if (!prev) return null;
-                if (prev.id === e.newHostId) {
-                    return { ...prev, isHost: true };
-                } else if (prev.isHost) {
-                    return { ...prev, isHost: false };
-                }
-                return prev;
+                return { ...prev, isHost: prev.id === e.newHostId };
             });
         };
 
@@ -190,19 +272,28 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 timerVotesCount: 0,
                 recentMessages: []
             });
+            // Reset votes visualization for new game
+            setPlayers(prev => prev.map(p => ({...p, isVotedToStopTimer: false})));
         };
 
         const handleChatMessage = (e: ChatMessageEventDto) => {
             setGameState(prev => {
                 if (!prev) return null;
-                return {
-                    ...prev,
-                    recentMessages: [...prev.recentMessages, e.message]
-                };
+                return { ...prev, recentMessages: [...prev.recentMessages, e.message] };
             });
         };
 
+        const handleConnectionChanged = (e: PlayerConnectionChangedEventDto) => {
+            setPlayers(prev => prev.map(p =>
+                p.id === e.playerId ? { ...p, isConnected: e.isConnected } : p
+            ));
+        };
+
         const handleTimerStopped = (e: TimerStoppedEventDto) => {
+            setPlayers(prev => prev.map(p =>
+                p.id === e.playerId ? { ...p, isVotedToStopTimer: true } : p
+            ));
+
             setGameState(prev => {
                 if (!prev) return null;
                 const isStopped = e.votesCount >= e.requiredVotes;
@@ -224,12 +315,10 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setRoomState(RoomState.Lobby);
             setGameState(null);
             setGameResultSpies([]);
-            // Reset readiness
-            setPlayers(prev => prev.map(p => ({ ...p, isReady: false })));
-            setMe(prev => prev ? { ...prev, isReady: false } : null);
+            setPlayers(prev => prev.map(p => ({ ...p, isReady: false, isVotedToStopTimer: false, isSpy: undefined })));
+            setMe(prev => prev ? { ...prev, isReady: false, isVotedToStopTimer: false, isSpy: undefined } : null);
         };
 
-        // Register all event handlers
         svc.on(SpyHubEvents.PlayerJoined, handlePlayerJoined);
         svc.on(SpyHubEvents.PlayerLeft, handlePlayerLeft);
         svc.on(SpyHubEvents.PlayerChangedName, handleNameChanged);
@@ -240,12 +329,12 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         svc.on(SpyHubEvents.GameSettingsUpdated, handleSettingsUpdated);
         svc.on(SpyHubEvents.GameStarted, handleGameStarted);
         svc.on(SpyHubEvents.ChatMessageReceived, handleChatMessage);
+        svc.on(SpyHubEvents.PlayerConnectionStatusChanged, handleConnectionChanged);
         svc.on(SpyHubEvents.TimerVoteUpdated, handleTimerStopped);
         svc.on(SpyHubEvents.SpiesRevealed, handleSpiesRevealed);
         svc.on(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
 
         return () => {
-            // Cleanup - unsubscribe from all events
             svc.off(SpyHubEvents.PlayerJoined, handlePlayerJoined);
             svc.off(SpyHubEvents.PlayerLeft, handlePlayerLeft);
             svc.off(SpyHubEvents.PlayerChangedName, handleNameChanged);
@@ -256,130 +345,118 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
             svc.off(SpyHubEvents.GameSettingsUpdated, handleSettingsUpdated);
             svc.off(SpyHubEvents.GameStarted, handleGameStarted);
             svc.off(SpyHubEvents.ChatMessageReceived, handleChatMessage);
+            svc.off(SpyHubEvents.PlayerConnectionStatusChanged, handleConnectionChanged);
             svc.off(SpyHubEvents.TimerVoteUpdated, handleTimerStopped);
             svc.off(SpyHubEvents.SpiesRevealed, handleSpiesRevealed);
             svc.off(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
         };
-    }, [isConnected, me?.id, getService]);
-
-    // --- Actions ---
+    }, [isConnected, me?.id, getService, clearSession, resetState]);
+    
     const createRoom = useCallback(async (playerName: string) => {
-        const signalRService = getService();
-        const response = await signalRService.createRoom();
+        const svc = getService();
+        const response = await svc.createRoom();
 
-        // save for reconnect
-        signalRService.setSessionInfo(response.roomCode, response.me.id);
+        // 1. Save Session
+        saveSession(response.roomCode, response.me.id);
 
+        // 2. Update State
         setRoomCode(response.roomCode);
         setMe(response.me);
         setSettings(response.settings);
         setPlayers([response.me]);
         setRoomState(RoomState.Lobby);
 
-        // If the user provided a specific name but Hub created default:
         if (playerName && playerName !== response.me.name) {
-            await signalRService.changeName(response.roomCode, playerName);
+            await svc.changeName(response.roomCode, playerName);
         }
-    }, [getService]);
+    }, [getService, saveSession]);
 
     const joinRoom = useCallback(async (code: string) => {
         const svc = getService();
         const response = await svc.joinRoom(code);
 
-        svc.setSessionInfo(response.roomCode, response.me.id);
+        // 1. Save Session
+        saveSession(response.roomCode, response.me.id);
 
+        // 2. Update State
         setRoomCode(response.roomCode);
         setMe(response.me);
         setSettings(response.settings);
         setPlayers(response.players);
         setRoomState(RoomState.Lobby);
-    }, [getService]);
+    }, [getService, saveSession]);
 
     const leaveRoom = useCallback(async () => {
         if (!roomCode) return;
-
         const svc = getService();
-        await svc.leaveRoom(roomCode);
 
-        svc.clearSessionInfo();
+        // 1. Clear Session
+        clearSession();
 
-        setRoomCode(null);
-        setMe(null);
-        setPlayers([]);
-        setSettings(null);
-        setRoomState(RoomState.Lobby);
-        setGameState(null);
-        setGameResultSpies([]);
-    }, [roomCode, getService]);
+        try {
+            await svc.leaveRoom(roomCode);
+        } catch (e) {
+            console.error("Error leaving room:", e);
+        }
 
+        // 2. Reset State
+        resetState();
+    }, [roomCode, getService, clearSession, resetState]);
+
+    // --- Simple Pass-through Actions ---
     const updateSettings = useCallback(async (newSettings: RoomGameSettingsDto) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.updateSettings(roomCode, newSettings);
+        if (roomCode) await getService().updateSettings(roomCode, newSettings);
     }, [roomCode, getService]);
 
     const changeName = useCallback(async (newName: string) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.changeName(roomCode, newName);
+        if (roomCode) await getService().changeName(roomCode, newName);
     }, [roomCode, getService]);
 
     const changeAvatar = useCallback(async (avatarId: string) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.changeAvatar(roomCode, avatarId);
+        if (roomCode) await getService().changeAvatar(roomCode, avatarId);
     }, [roomCode, getService]);
 
     const toggleReady = useCallback(async () => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.toggleReady(roomCode);
+        if (roomCode) await getService().toggleReady(roomCode);
     }, [roomCode, getService]);
 
     const kickPlayer = useCallback(async (targetId: string) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.kickPlayer(roomCode, targetId);
+        if (roomCode) await getService().kickPlayer(roomCode, targetId);
     }, [roomCode, getService]);
 
     const changeHost = useCallback(async (targetId: string) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.changeHost(roomCode, targetId);
+        if (roomCode) await getService().changeHost(roomCode, targetId);
     }, [roomCode, getService]);
 
     const startGame = useCallback(async () => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.startGame(roomCode);
+        if (roomCode) await getService().startGame(roomCode);
     }, [roomCode, getService]);
 
     const sendMessage = useCallback(async (msg: string) => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.sendMessage(roomCode, msg);
+        if (roomCode) await getService().sendMessage(roomCode, msg);
     }, [roomCode, getService]);
 
     const voteStopTimer = useCallback(async () => {
         if (!roomCode) return;
-        const svc = getService();
-        await svc.voteStopTimer(roomCode);
-    }, [roomCode, getService]);
+        await getService().voteStopTimer(roomCode);
+        // Optimistic update
+        setPlayers(prev => prev.map(p => p.id === me?.id ? {...p, isVotedToStopTimer: true} : p));
+        setMe(prev => prev ? {...prev, isVotedToStopTimer: true} : null);
+    }, [roomCode, getService, me?.id]);
 
     const revealSpies = useCallback(async () => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.revealSpies(roomCode);
+        if (roomCode) await getService().revealSpies(roomCode);
     }, [roomCode, getService]);
 
     const returnToLobby = useCallback(async () => {
-        if (!roomCode) return;
-        const svc = getService();
-        await svc.returnToLobby(roomCode);
+        if (roomCode) await getService().returnToLobby(roomCode);
     }, [roomCode, getService]);
 
     const value: SpyGameContextType = {
         isConnected,
+        isConnecting,
+        isReconnecting,
+        isInitializing,
         roomCode,
         me,
         players,
@@ -387,8 +464,6 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         roomState,
         gameState,
         gameResultSpies,
-
-        connect,
         createRoom,
         joinRoom,
         leaveRoom,
@@ -398,7 +473,6 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         voteStopTimer,
         revealSpies,
         returnToLobby,
-
         updateSettings,
         changeName,
         changeAvatar,

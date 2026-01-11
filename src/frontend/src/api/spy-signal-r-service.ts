@@ -1,11 +1,12 @@
 import * as signalR from "@microsoft/signalr";
-import {type SpyHubEvent, SpyHubMethods, SpyHubEvents} from "../const/spy-game-events";
+import { type SpyHubEvent, SpyHubMethods, SpyHubEvents } from "../const/spy-game-events";
 import type {
     ApiResponse,
     RoomGameSettingsDto,
     CreateRoomResponseDto,
     JoinRoomResponseDto,
-    SpyGameEventMap, RoomStateDto
+    SpyGameEventMap,
+    RoomStateDto
 } from "../models/spy-game";
 
 type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => void;
@@ -13,8 +14,7 @@ type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => voi
 export class SpySignalRService {
     private connection: signalR.HubConnection | null = null;
     private callbacks: Map<string, Set<(data: unknown) => void>> = new Map();
-    private currentRoomCode: string | null = null;
-    private savedPlayerId: string | null = null;
+
     private hubUrl: string;
 
     constructor(hubUrl: string) {
@@ -22,10 +22,7 @@ export class SpySignalRService {
     }
 
     public async start(): Promise<void> {
-        if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-            console.log("SignalR already connected.");
-            return;
-        }
+        if (this.connection?.state === signalR.HubConnectionState.Connected) return;
 
         if (!this.connection) {
             this.connection = new signalR.HubConnectionBuilder()
@@ -33,7 +30,7 @@ export class SpySignalRService {
                     skipNegotiation: true,
                     transport: signalR.HttpTransportType.WebSockets
                 })
-                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                .withAutomaticReconnect([0, 2000, 5000, 10000])
                 .build();
 
             this.registerInternalListeners();
@@ -43,12 +40,7 @@ export class SpySignalRService {
             try {
                 await this.connection.start();
                 console.log("SignalR Connected.");
-                await this.tryAutoReconnect();
             } catch (err: unknown) {
-                if (err instanceof Error && err.message.includes("before stop() was called")) {
-                    console.debug("Connection cancelled by unmount (clean exit).");
-                    return;
-                }
                 console.error("SignalR Connection Error: ", err);
                 throw err;
             }
@@ -60,33 +52,20 @@ export class SpySignalRService {
         this.callbacks.clear();
     }
 
-    public setSessionInfo(roomCode: string, playerId: string) {
-        this.currentRoomCode = roomCode;
-        this.savedPlayerId = playerId;
-        sessionStorage.setItem('hive_room', roomCode);
-        sessionStorage.setItem('hive_player', playerId);
+    public on<K extends SpyHubEvent>(event: K, callback: SpyEventCallback<K>) {
+        if (!this.callbacks.has(event)) {
+            this.callbacks.set(event, new Set());
+        }
+        this.callbacks.get(event)?.add(callback as (data: unknown) => void);
     }
 
-    public clearSessionInfo() {
-        this.currentRoomCode = null;
-        this.savedPlayerId = null;
-        sessionStorage.removeItem('hive_room');
-        sessionStorage.removeItem('hive_player');
+    public off<K extends SpyHubEvent>(event: K, callback: SpyEventCallback<K>) {
+        this.callbacks.get(event)?.delete(callback as (data: unknown) => void);
     }
 
-    private async tryAutoReconnect() {
-        const room = this.currentRoomCode || sessionStorage.getItem('hive_room');
-        const player = this.savedPlayerId || sessionStorage.getItem('hive_player');
-
-        if (room && player && this.connection?.state === signalR.HubConnectionState.Connected) {
-            console.log(`Attempting reconnect to room ${room}...`);
-            try {
-                const result = await this.reconnect(room, player);
-                console.log("Reconnected successfully!", result);
-            } catch (e) {
-                console.warn("Reconnect failed:", e);
-                this.clearSessionInfo();
-            }
+    public onTransportReconnected(callback: (connectionId: string | undefined) => void) {
+        if (this.connection) {
+            this.connection.onreconnected(callback);
         }
     }
 
@@ -118,7 +97,6 @@ export class SpySignalRService {
     }
 
     public async leaveRoom(roomCode: string) {
-        this.clearSessionInfo();
         return this.invoke<void>(SpyHubMethods.LeaveRoom, roomCode);
     }
 
@@ -166,25 +144,7 @@ export class SpySignalRService {
         return this.invoke<void>(SpyHubMethods.RevealSpies, roomCode);
     }
 
-    public on<K extends SpyHubEvent>(event: K, callback: SpyEventCallback<K>) {
-        if (!this.callbacks.has(event)) {
-            this.callbacks.set(event, new Set());
-        }
-        this.callbacks.get(event)?.add(callback as (data: unknown) => void);
-    }
-
-    public off<K extends SpyHubEvent>(event: K, callback: SpyEventCallback<K>) {
-        this.callbacks.get(event)?.delete(callback as (data: unknown) => void);
-    }
-
     private registerInternalListeners() {
-        if (!this.connection) return;
-
-        this.connection.onreconnected(async (connectionId) => {
-            console.log(`Connection reestablished. New ID: ${connectionId}`);
-            await this.tryAutoReconnect();
-        });
-
         Object.values(SpyHubEvents).forEach((event) => {
             this.connection?.on(event, (data: unknown) => {
                 console.log(`[SignalR] ${event}:`, data);

@@ -1,4 +1,4 @@
-import {SpyHubEvents} from "../const/spy-game-events.ts";
+import { SpyHubEvents } from "../const/spy-game-events.ts";
 
 export const RoomState = {
     Lobby: 0,
@@ -8,7 +8,6 @@ export const RoomState = {
 
 export type RoomState = (typeof RoomState)[keyof typeof RoomState];
 
-// --- DTOs ---
 export interface PlayerDto {
     id: string;
     name: string;
@@ -16,6 +15,8 @@ export interface PlayerDto {
     isReady: boolean;
     avatarId: string;
     isConnected: boolean;
+    isSpy?: boolean;
+    isVotedToStopTimer?: boolean;
 }
 
 export interface WordsCategoryDto {
@@ -63,67 +64,7 @@ export interface RoomStateDto {
     version: number;
 }
 
-// --- Basic Entities ---
-/*
-export interface PlayerDto {
-    id: string;
-    name: string;
-    isHost: boolean;
-    isReady: boolean;
-    avatarId: string;
-    connectionId?: string; // Optional, internal use
-}
-
-export interface WordsCategoryDto {
-    name: string;
-    words: string[];
-}
-*/
-
-/*export interface RoomGameSettingsDto {
-    timerMinutes: number;
-    spiesCount: number;
-    spiesKnowEachOther: boolean;
-    showCategoryToSpy: boolean;
-    wordsCategories: WordsCategoryDto[];
-}
-
-export interface ChatMessageDto {
-    playerId: string;
-    playerName: string;
-    message: string;
-    timestamp: string; // DateTime string
-}*/
-
-/*export interface SpyRevealDto {
-    playerId: string;
-    playerName: string;
-}*/
-
-// --- Game State & Room State ---
-
-/*export interface GameStateDto {
-    currentSecretWord: string | null;
-    category: string | null;
-    gameStartTime: string | null;
-    gameEndTime: string | null;
-    isTimerStopped: boolean;
-    timerStoppedAt: string | null;
-    timerVotesCount: number;
-    recentMessages: ChatMessageDto[];
-}
-
-export interface RoomStateDto {
-    roomCode: string;
-    state: RoomState;
-    players: PlayerDto[];
-    settings: RoomGameSettingsDto;
-    gameState: GameStateDto | null;
-    version: number;
-}*/
-
 // --- API Responses (Result of Invoke) ---
-
 export interface ApiResponse<T> {
     success: boolean;
     data?: T;
@@ -144,7 +85,6 @@ export interface JoinRoomResponseDto {
 }
 
 // --- Events DTOs ---
-
 export interface PlayerJoinedEventDto {
     roomCode: string;
     player: PlayerDto;
@@ -194,6 +134,7 @@ export interface ChatMessageEventDto {
 }
 export interface TimerStoppedEventDto {
     roomCode: string;
+    playerId: string;
     votesCount: number;
     requiredVotes: number;
 }

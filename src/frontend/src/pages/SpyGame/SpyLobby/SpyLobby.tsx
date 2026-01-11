@@ -25,7 +25,6 @@ export const SpyLobby = () => {
         changeAvatar
     } = useSpyGame();
 
-    // --- State ---
     const [isCatModalOpen, setCatModalOpen] = useState(false);
     const [isProfileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -45,6 +44,9 @@ export const SpyLobby = () => {
         }
         if (roomState === RoomState.InGame) {
             navigate('/spy/game');
+        }
+        else if (roomState === RoomState.Ended) {
+            navigate('/spy/results');
         }
     }, [roomCode, roomState, navigate]);
 
@@ -203,8 +205,16 @@ export const SpyLobby = () => {
                         </div>
                         <div className="player-grid">
                             {players.map(p => (
-                                <div key={p.id} className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''}`}>
+                                <div key={p.id} className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''}`}
+                                     style={{ opacity: p.isConnected ? 1 : 0.5 }}>
                                     {p.isHost && <div className="host-badge">👑 ХОСТ</div>}
+
+                                    {/* Offline Indicator */}
+                                    {!p.isConnected && (
+                                        <div title="Гравець втратив з'єднання" style={{
+                                            position: 'absolute', top: 10, left: 10, fontSize: 20, zIndex: 10
+                                        }}>🔌</div>
+                                    )}
 
                                     {/* Edit button only for ME */}
                                     {p.id === me.id && (

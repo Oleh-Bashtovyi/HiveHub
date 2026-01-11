@@ -4,10 +4,11 @@ import { useSpyGame } from '../../../context/SpyGameContext';
 import { Button } from '../../../components/ui/Button/Button';
 import { Modal } from '../../../components/ui/Modal/Modal';
 import './SpyEntry.scss';
+import {RoomState} from "../../../models/spy-game.ts";
 
 export const SpyEntry = () => {
     const navigate = useNavigate();
-    const { connect, isConnected, createRoom, joinRoom, roomCode } = useSpyGame();
+    const { isConnected, roomState, createRoom, joinRoom, roomCode } = useSpyGame();
 
     // UI State
     const [isJoinModalOpen, setJoinModalOpen] = useState(false);
@@ -16,31 +17,17 @@ export const SpyEntry = () => {
     // Form Data
     const [joinCode, setJoinCode] = useState('');
 
-    // Ensure connection is established when component mounts
-    useEffect(() => {
-        const establishConnection = async () => {
-            try {
-                await connect();
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Невідома помилка';
-                console.error('Помилка підключення:', message);
-            }
-        };
-
-        establishConnection();
-    }, [connect]);
-
-    // Redirect to lobby if roomCode is set (means we successfully joined/created)
     useEffect(() => {
         if (roomCode) {
-            navigate(`/spy/lobby`);
+            if (roomState === RoomState.InGame) navigate('/spy/game');
+            else navigate('/spy/lobby');
         }
-    }, [roomCode, navigate]);
+    }, [roomCode, roomState, navigate]);
 
     const handleCreateRoom = async () => {
         setIsLoading(true);
         try {
-            await createRoom(''); // Server will assign default name
+            await createRoom('');
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Невідома помилка';
             alert("Помилка створення кімнати: " + message);
@@ -58,8 +45,6 @@ export const SpyEntry = () => {
         setIsLoading(true);
         try {
             await joinRoom(joinCode.toUpperCase());
-            // User will be assigned a default name by server
-            // They can change it in the lobby
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Невідома помилка';
             alert("Помилка входу: " + message);

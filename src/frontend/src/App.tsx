@@ -1,13 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Home } from './pages/Home/Home';
-import { SpyGameProvider } from './context/SpyGameContext';
+import {SpyGameProvider} from './context/SpyGameContext';
 import {SpyEntry} from "./pages/SpyGame/SpyEntry/SpyEntry.tsx";
 import {SpyLobby} from "./pages/SpyGame/SpyLobby/SpyLobby.tsx";
+import {SpyGame} from "./pages/SpyGame/SpyGame/SpyGame.tsx";
+import GlobalLoader from "./layout/GlobalLoader/GlobalLoader.tsx";
 
 const SpyGameLayout = () => {
     return (
         <SpyGameProvider>
-            <Outlet />
+            <GlobalLoader />
         </SpyGameProvider>
     );
 };
@@ -21,12 +23,10 @@ function App() {
 
                 {/* Spy Game Module */}
                 <Route path="/spy" element={<SpyGameLayout />}>
-                    {/*<Route path="game" element={<SpyGame />} />*/}
                     <Route index element={<SpyEntry />} />
                     <Route path="lobby" element={<SpyLobby />} />
-{/*                    <Route index element={<SpyEntry />} />
-                    <Route path="lobby" element={<SpyLobby />} />
-                    <Route path="results" element={<SpyResults />} />*/}
+                    <Route path="game" element={<SpyGame />} />
+                    {/*<Route path="results" element={<SpyResults />} />*/}
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

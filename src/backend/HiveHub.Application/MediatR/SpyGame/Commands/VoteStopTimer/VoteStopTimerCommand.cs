@@ -32,6 +32,7 @@ public class VoteStopTimerHandler(
             return Results.NotFound("Кімната не знайдена.");
         }
 
+        string votedPlayerId = null!;
         bool timerStopped = false;
         int votesCount = 0;
         int requiredVotes = 0;
@@ -63,6 +64,7 @@ public class VoteStopTimerHandler(
                 return Results.ActionFailed("Ви вже проголосували.");
             }
 
+            votedPlayerId = player.IdInRoom;
             player.PlayerState.VotedToStopTimer = true;
             votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
 
@@ -90,7 +92,7 @@ public class VoteStopTimerHandler(
         _logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
             request.RoomCode, votesCount, requiredVotes, timerStopped);
 
-        var eventDto = new TimerStoppedEventDto(request.RoomCode, votesCount, requiredVotes);
+        var eventDto = new TimerStoppedEventDto(request.RoomCode, votedPlayerId, votesCount, requiredVotes);
         await _publisher.PublishTimerVoteAsync(eventDto);
 
         return Result.Ok();

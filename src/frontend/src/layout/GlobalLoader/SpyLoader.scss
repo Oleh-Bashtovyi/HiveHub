@@ -1,0 +1,73 @@
+@use '../../styles/variables' as *;
+
+.spy-loader-container {
+  @include flex-center;
+  flex-direction: column;
+
+  width: 100%;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  background-color: $color-spy-bg;
+  color: $color-text-main;
+  font-family: $font-main;
+  z-index: 9999;
+}
+
+.spy-radar-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 24px;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: $color-spy-primary;
+    opacity: 0.6;
+    animation: spy-pulse 2s infinite ease-out;
+  }
+
+  &::after {
+    animation-delay: 1s;
+  }
+}
+
+.spy-status-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: $color-text-muted;
+  text-align: center;
+
+  animation: spy-fade-in 0.5s ease-in;
+}
+
+.spy-loader-highlight {
+  color: $color-spy-primary;
+  font-weight: bold;
+}
+
+// Анімації
+@keyframes spy-pulse {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes spy-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
