@@ -31,7 +31,8 @@ export const SpyHubEvents = {
     ChatMessageReceived: "ChatMessageReceived",
     TimerVoteUpdated: "TimerVoteUpdated",
     SpiesRevealed: "SpiesRevealed",
-    ReturnedToLobby: "ReturnedToLobby"
+    ReturnedToLobby: "ReturnedToLobby",
+    PlayerConnectionStatusChanged: 'PlayerConnectionStatusChanged',
 } as const;
 
 export type SpyHubMethod = typeof SpyHubMethods[keyof typeof SpyHubMethods];

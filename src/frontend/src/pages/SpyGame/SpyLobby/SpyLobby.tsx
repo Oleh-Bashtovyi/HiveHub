@@ -1,10 +1,11 @@
-/*
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSpyGame } from '../../context/SpyGameContext';
-import { Button } from '../../components/ui/Button/Button';
-import {type RoomGameSettingsDto, RoomState, WordsCategoryDto } from '../../models/spy-game';
+import { useSpyGame } from '../../../context/SpyGameContext';
+import { Button } from '../../../components/ui/Button/Button';
+import { Modal } from '../../../components/ui/Modal/Modal';
+import { type RoomGameSettingsDto, RoomState, type WordsCategoryDto } from '../../../models/spy-game';
 import './SpyLobby.scss';
+import {AVAILABLE_AVATARS, AVATAR_MAP} from "../../../const/avatars.ts";
 
 export const SpyLobby = () => {
     const navigate = useNavigate();
@@ -19,54 +20,74 @@ export const SpyLobby = () => {
         updateSettings,
         startGame,
         kickPlayer,
-        changeHost
+        changeHost,
+        changeName,
+        changeAvatar
     } = useSpyGame();
 
-    // Local state for settings to avoid jitter, though usually direct update is fine with SignalR
-    // We will use direct update for simplicity as SignalR is fast.
+    // --- State ---
+    const [isCatModalOpen, setCatModalOpen] = useState(false);
+    const [isProfileModalOpen, setProfileModalOpen] = useState(false);
+
+    // Edit Category State
+    const [editingCatName, setEditingCatName] = useState('');
+    const [editingCatWords, setEditingCatWords] = useState<string[]>([]);
+    const [editingOriginalName, setEditingOriginalName] = useState<string | null>(null);
+    const [newWordInput, setNewWordInput] = useState('');
+
+    // Edit Profile State
+    const [tempName, setTempName] = useState('');
 
     useEffect(() => {
-        // Guard: if no room code, go back
         if (!roomCode) {
             navigate('/spy');
             return;
         }
-
-        // If game started, navigate to game
         if (roomState === RoomState.InGame) {
             navigate('/spy/game');
         }
     }, [roomCode, roomState, navigate]);
 
+    // --- Error Handling Wrapper ---
+    const safeExecute = async (action: () => Promise<void>) => {
+        try {
+            await action();
+        } catch (error: any) {
+            console.error(error);
+            const msg = error?.message || 'Невідома помилка';
+            alert(`Помилка: ${msg}`);
+        }
+    };
+
     if (!roomCode || !settings || !me) return <div>Loading Lobby...</div>;
 
+    // --- Actions ---
     const copyCode = () => {
         navigator.clipboard.writeText(roomCode);
-        alert('Код скопійовано!');
     };
 
-    const handleLeave = async () => {
+    const handleLeave = () => {
         if (confirm('Вийти з кімнати?')) {
-            await leaveRoom();
-            navigate('/spy');
+            void safeExecute(async () => {
+                await leaveRoom();
+                navigate('/spy');
+            });
         }
     };
 
-    const handleStart = async () => {
-        // Validate
-        const readyCount = players.filter(p => p.isReady).length;
-        if (readyCount < players.length && players.length > 1) {
-            // Usually all must be ready, logic depends on your rules.
-            // Let's assume all must be ready.
-        }
-        await startGame();
+    const handleStart = () => {
+        void safeExecute(async () => await startGame());
     };
 
-    // --- Settings Helpers (Only for Host) ---
-    const updateSetting = (key: keyof RoomGameSettingsDto, value: any) => {
+    const handleToggleReady = () => {
+        void safeExecute(async () => await toggleReady());
+    };
+
+    // --- Settings Helpers ---
+    const updateSetting = (key: keyof RoomGameSettingsDto, value: unknown) => {
         if (!me.isHost) return;
         const newSettings = { ...settings, [key]: value };
-        updateSettings(newSettings);
+        safeExecute(async () => await updateSettings(newSettings));
     };
 
     const modifyNumber = (key: 'timerMinutes' | 'spiesCount', delta: number, min: number, max: number) => {
@@ -78,20 +99,90 @@ export const SpyLobby = () => {
         }
     };
 
-    const removeCategory = (nameToRemove: string) => {
-        if (!me.isHost) return;
+    // --- Profile Management ---
+    const openProfileModal = () => {
+        setTempName(me.name);
+        setProfileModalOpen(true);
+    };
+
+    const handleSaveName = () => {
+        if (!tempName.trim()) return alert("Ім'я не може бути порожнім");
+        if (tempName === me.name) return;
+
+        void safeExecute(async () => {
+            await changeName(tempName.trim());
+        });
+    };
+
+    const handleSelectAvatar = (avatarId: string) => {
+        if (avatarId === me.avatarId) return;
+
+        void safeExecute(async () => {
+            await changeAvatar(avatarId);
+        });
+    };
+
+    // --- Category Logic ---
+    const openAddCategory = () => {
+        setEditingOriginalName(null);
+        setEditingCatName('');
+        setEditingCatWords([]);
+        setCatModalOpen(true);
+    };
+
+    const openEditCategory = (cat: WordsCategoryDto) => {
+        setEditingOriginalName(cat.name);
+        setEditingCatName(cat.name);
+        setEditingCatWords([...cat.words]);
+        setCatModalOpen(true);
+    };
+
+    const handleDeleteCategory = (nameToRemove: string) => {
+        if (!me.isHost || !confirm(`Видалити категорію "${nameToRemove}"?`)) return;
         const newCats = settings.wordsCategories.filter(c => c.name !== nameToRemove);
         updateSetting('wordsCategories', newCats);
     };
 
-    // Check readiness for start button
+    const handleAddWordToBuffer = () => {
+        if (!newWordInput.trim()) return;
+        if (editingCatWords.includes(newWordInput.trim())) return;
+        setEditingCatWords([...editingCatWords, newWordInput.trim()]);
+        setNewWordInput('');
+    };
+
+    const handleRemoveWordFromBuffer = (word: string) => {
+        setEditingCatWords(editingCatWords.filter(w => w !== word));
+    };
+
+    const handleSaveCategory = () => {
+        if (!editingCatName.trim()) return alert("Назва категорії не може бути порожньою");
+        if (editingCatWords.length < 3) return alert("Додайте мінімум 3 слова");
+
+        let newCategories = [...settings.wordsCategories];
+
+        if (editingOriginalName) {
+            newCategories = newCategories.map(c =>
+                c.name === editingOriginalName
+                    ? { name: editingCatName, words: editingCatWords }
+                    : c
+            );
+        } else {
+            if (newCategories.some(c => c.name.toLowerCase() === editingCatName.toLowerCase())) {
+                return alert("Категорія з такою назвою вже існує");
+            }
+            newCategories.push({ name: editingCatName, words: editingCatWords });
+        }
+
+        updateSetting('wordsCategories', newCategories);
+        setCatModalOpen(false);
+    };
+
     const allReady = players.length >= 3 && players.every(p => p.isReady);
-    // Logic: usually min 3 players for Spy
 
     return (
         <div className="spy-lobby-page theme-spy">
             <div className="lobby-container">
-                {/!* Header *!/}
+                {/* Header */}
                 <div className="lobby-header">
                     <div className="room-code-group">
                         <h2>Кімната</h2>
@@ -105,7 +196,7 @@ export const SpyLobby = () => {
                 </div>
 
                 <div className="lobby-content">
-                    {/!* Players Section *!/}
+                    {/* Players Grid */}
                     <div className="section-panel">
                         <div className="section-title">
                             👥 Гравці ({players.length})
@@ -114,9 +205,17 @@ export const SpyLobby = () => {
                             {players.map(p => (
                                 <div key={p.id} className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''}`}>
                                     {p.isHost && <div className="host-badge">👑 ХОСТ</div>}
+
+                                    {/* Edit button only for ME */}
+                                    {p.id === me.id && (
+                                        <button className="edit-profile-btn" onClick={openProfileModal} title="Редагувати профіль">
+                                            ✏️
+                                        </button>
+                                    )}
+
                                     <div className="player-avatar">
-                                        {/!* Avatar placeholder - maybe map avatarId to emoji later *!/}
-                                        {p.avatarId || '😎'}
+                                        {/* Відображаємо емодзі з мапи або дефолтний */}
+                                        {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
                                     </div>
                                     <div className="player-name">
                                         {p.name} {p.id === me.id && '(Ви)'}
@@ -128,27 +227,35 @@ export const SpyLobby = () => {
                                         <span className="not-ready-text">Не готовий</span>
                                     )}
 
-                                    {/!* Host Actions against other players *!/}
+                                    {/* Host Actions (Kick/Promote) - Safe execution */}
                                     {me.isHost && p.id !== me.id && (
                                         <div className="player-actions">
-                                            <button className="icon-btn" title="Вигнати" onClick={() => kickPlayer(p.id)}>🚫</button>
-                                            <button className="icon-btn" title="Передати права" onClick={() => changeHost(p.id)}>👑</button>
+                                            <button
+                                                className="icon-btn"
+                                                title="Вигнати"
+                                                onClick={() => safeExecute(async () => await kickPlayer(p.id))}
+                                            >🚫</button>
+                                            <button
+                                                className="icon-btn"
+                                                title="Передати права"
+                                                onClick={() => safeExecute(async () => await changeHost(p.id))}
+                                            >👑</button>
                                         </div>
                                     )}
                                 </div>
                             ))}
 
-                            {/!* Empty slots visual fillers (optional) *!/}
+                            {/* Empty slots filler */}
                             {Array.from({ length: Math.max(0, 8 - players.length) }).map((_, i) => (
-                                <div key={`empty-${i}`} className="player-card" style={{ opacity: 0.3, border: '2px dashed #444', background: 'transparent' }}>
-                                    <div className="player-avatar" style={{background: '#333'}}>❓</div>
+                                <div key={`empty-${i}`} className="player-card empty-slot">
+                                    <div className="player-avatar avatar-placeholder">❓</div>
                                     <div className="player-name">Очікування...</div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/!* Settings Section *!/}
+                    {/* Settings Panel */}
                     <div className="section-panel">
                         <div className="section-title">⚙️ Налаштування</div>
 
@@ -197,31 +304,37 @@ export const SpyLobby = () => {
                                 </label>
                             </div>
 
-                            <div style={{marginTop: 10}}>
-                                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                            {/* Category Management */}
+                            <div className="categories-section">
+                                <div className="categories-header">
                                     <span>📚 Категорії слів</span>
                                 </div>
                                 <div className="category-list">
                                     {settings.wordsCategories.map((cat, idx) => (
                                         <div key={idx} className="category-item">
-                                            <span>{cat.name} ({cat.words.length})</span>
+                                            <div>
+                                                <span className="cat-name">{cat.name}</span>
+                                                <span className="cat-count">({cat.words.length})</span>
+                                            </div>
                                             {me.isHost && (
-                                                <button
-                                                    style={{background:'none', border:'none', color:'#E53935', cursor:'pointer'}}
-                                                    onClick={() => removeCategory(cat.name)}
-                                                >✕</button>
+                                                <div className="cat-actions">
+                                                    <button className="category-edit-btn" onClick={() => openEditCategory(cat)}>✏️</button>
+                                                    <button className="category-remove-btn" onClick={() => handleDeleteCategory(cat.name)}>✕</button>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
                                     {settings.wordsCategories.length === 0 && (
-                                        <div style={{color:'#666', fontStyle:'italic', padding: 5}}>Немає категорій</div>
+                                        <div className="empty-categories-msg">Немає категорій</div>
                                     )}
                                 </div>
-                                {/!* Add Category Button Placeholder *!/}
+
                                 {me.isHost && (
-                                    <Button size="small" variant="secondary" fullWidth style={{marginTop: 10, borderStyle: 'dashed'}}>
-                                        + Додати категорію
-                                    </Button>
+                                    <div className="add-category-btn-wrapper">
+                                        <Button size="small" variant="secondary" fullWidth onClick={openAddCategory}>
+                                            + Додати категорію
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -230,7 +343,7 @@ export const SpyLobby = () => {
                             <Button
                                 fullWidth
                                 variant={me.isReady ? "danger" : "secondary"}
-                                onClick={toggleReady}
+                                onClick={handleToggleReady}
                             >
                                 {me.isReady ? "⏸️ Не готовий" : "✓ Я готовий"}
                             </Button>
@@ -245,14 +358,113 @@ export const SpyLobby = () => {
                                 </Button>
                             )}
                             {me.isHost && !allReady && (
-                                <div style={{textAlign: 'center', fontSize: 12, color: '#666'}}>
+                                <div className="lobby-footer-msg">
                                     Всі гравці (мін. 3) мають бути готові
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
+
+                {/* --- Profile Edit Modal --- */}
+                <Modal
+                    isOpen={isProfileModalOpen}
+                    onClose={() => setProfileModalOpen(false)}
+                    title="Мій Профіль"
+                >
+                    <div className="profile-modal-content">
+                        {/* Name Section */}
+                        <div className="form-group">
+                            <label>Ваше ім'я</label>
+                            <div className="name-edit-row">
+                                <div className="input-wrapper">
+                                    <input
+                                        value={tempName}
+                                        onChange={(e) => setTempName(e.target.value)}
+                                        placeholder="Введіть ім'я"
+                                        maxLength={15}
+                                    />
+                                </div>
+                                <Button size="small" onClick={handleSaveName}>
+                                    Зберегти
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Avatar Section */}
+                        <div className="avatar-selection-section">
+                            <h4>Оберіть аватар</h4>
+                            <div className="avatar-grid-select">
+                                {AVAILABLE_AVATARS.map(avatarKey => (
+                                    <div
+                                        key={avatarKey}
+                                        className={`avatar-option ${me.avatarId === avatarKey ? 'selected' : ''}`}
+                                        onClick={() => handleSelectAvatar(avatarKey)}
+                                    >
+                                        {AVATAR_MAP[avatarKey]}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <Button variant="secondary" fullWidth onClick={() => setProfileModalOpen(false)}>
+                                Закрити
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* --- Edit Category Modal --- */}
+                <Modal
+                    isOpen={isCatModalOpen}
+                    onClose={() => setCatModalOpen(false)}
+                    title={editingOriginalName ? "Редагувати категорію" : "Нова категорія"}
+                >
+                    <div className="category-modal-content">
+                        <div className="form-group">
+                            <label>Назва категорії</label>
+                            <input
+                                value={editingCatName}
+                                onChange={(e) => setEditingCatName(e.target.value)}
+                                placeholder="Наприклад: Тварини"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>Слова ({editingCatWords.length})</label>
+                            <div className="words-input-group">
+                                <input
+                                    value={newWordInput}
+                                    onChange={(e) => setNewWordInput(e.target.value)}
+                                    placeholder="Нове слово..."
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddWordToBuffer()}
+                                />
+                                <Button size="small" onClick={handleAddWordToBuffer}>+</Button>
+                            </div>
+
+                            <div className="words-manager">
+                                <div className="word-chips">
+                                    {editingCatWords.map((word, idx) => (
+                                        <div key={idx} className="word-chip">
+                                            {word}
+                                            <button onClick={() => handleRemoveWordFromBuffer(word)}>×</button>
+                                        </div>
+                                    ))}
+                                    {editingCatWords.length === 0 && (
+                                        <span style={{color: '#666', fontSize: 13, padding: 5}}>Список порожній</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="modal-actions">
+                            <Button variant="secondary" onClick={() => setCatModalOpen(false)}>Скасувати</Button>
+                            <Button onClick={handleSaveCategory}>Зберегти</Button>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </div>
     );
-};*/
+};

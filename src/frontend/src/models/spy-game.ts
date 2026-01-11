@@ -8,15 +8,14 @@ export const RoomState = {
 
 export type RoomState = (typeof RoomState)[keyof typeof RoomState];
 
-// --- Basic Entities ---
-
+// --- DTOs ---
 export interface PlayerDto {
     id: string;
     name: string;
     isHost: boolean;
     isReady: boolean;
     avatarId: string;
-    connectionId?: string; // Optional, internal use
+    isConnected: boolean;
 }
 
 export interface WordsCategoryDto {
@@ -36,7 +35,7 @@ export interface ChatMessageDto {
     playerId: string;
     playerName: string;
     message: string;
-    timestamp: string; // DateTime string
+    timestamp: string;
 }
 
 export interface SpyRevealDto {
@@ -44,9 +43,66 @@ export interface SpyRevealDto {
     playerName: string;
 }
 
+export interface GameStateDto {
+    currentSecretWord: string | null;
+    category: string | null;
+    gameStartTime: string;
+    gameEndTime: string | null;
+    isTimerStopped: boolean;
+    timerStoppedAt: string | null;
+    timerVotesCount: number;
+    recentMessages: ChatMessageDto[];
+}
+
+export interface RoomStateDto {
+    roomCode: string;
+    state: RoomState;
+    players: PlayerDto[];
+    settings: RoomGameSettingsDto;
+    gameState: GameStateDto | null;
+    version: number;
+}
+
+// --- Basic Entities ---
+/*
+export interface PlayerDto {
+    id: string;
+    name: string;
+    isHost: boolean;
+    isReady: boolean;
+    avatarId: string;
+    connectionId?: string; // Optional, internal use
+}
+
+export interface WordsCategoryDto {
+    name: string;
+    words: string[];
+}
+*/
+
+/*export interface RoomGameSettingsDto {
+    timerMinutes: number;
+    spiesCount: number;
+    spiesKnowEachOther: boolean;
+    showCategoryToSpy: boolean;
+    wordsCategories: WordsCategoryDto[];
+}
+
+export interface ChatMessageDto {
+    playerId: string;
+    playerName: string;
+    message: string;
+    timestamp: string; // DateTime string
+}*/
+
+/*export interface SpyRevealDto {
+    playerId: string;
+    playerName: string;
+}*/
+
 // --- Game State & Room State ---
 
-export interface GameStateDto {
+/*export interface GameStateDto {
     currentSecretWord: string | null;
     category: string | null;
     gameStartTime: string | null;
@@ -64,7 +120,7 @@ export interface RoomStateDto {
     settings: RoomGameSettingsDto;
     gameState: GameStateDto | null;
     version: number;
-}
+}*/
 
 // --- API Responses (Result of Invoke) ---
 
@@ -87,52 +143,44 @@ export interface JoinRoomResponseDto {
     settings: RoomGameSettingsDto;
 }
 
-// --- SignalR Events (Server -> Client) ---
+// --- Events DTOs ---
 
 export interface PlayerJoinedEventDto {
     roomCode: string;
     player: PlayerDto;
 }
-
 export interface PlayerLeftEventDto {
     roomCode: string;
     playerId: string;
 }
-
 export interface PlayerChangedNameEventDto {
     roomCode: string;
     playerId: string;
     newName: string;
 }
-
 export interface PlayerKickedEventDto {
     roomCode: string;
     playerId: string;
     kickedByPlayerId: string;
 }
-
 export interface PlayerReadyStatusChangedEventDto {
     roomCode: string;
     playerId: string;
     isReady: boolean;
 }
-
 export interface PlayerChangedAvatarEventDto {
     roomCode: string;
     playerId: string;
     newAvatarId: string;
 }
-
 export interface HostChangedEventDto {
     roomCode: string;
     newHostId: string;
 }
-
 export interface GameSettingsUpdatedEventDto {
     roomCode: string;
     settings: RoomGameSettingsDto;
 }
-
 export interface GameStartedEventDto {
     roomCode: string;
     isSpy: boolean;
@@ -140,29 +188,30 @@ export interface GameStartedEventDto {
     category: string;
     gameEndTime: string;
 }
-
 export interface ChatMessageEventDto {
     roomCode: string;
     message: ChatMessageDto;
 }
-
 export interface TimerStoppedEventDto {
     roomCode: string;
     votesCount: number;
     requiredVotes: number;
 }
-
 export interface SpiesRevealedEventDto {
     roomCode: string;
     spies: SpyRevealDto[];
 }
-
 export interface GameEndedEventDto {
     roomCode: string;
 }
-
 export interface ReturnToLobbyEventDto {
     roomCode: string;
+}
+
+export interface PlayerConnectionChangedEventDto {
+    roomCode: string;
+    playerId: string;
+    isConnected: boolean;
 }
 
 export interface SpyGameEventMap {
@@ -179,4 +228,5 @@ export interface SpyGameEventMap {
     [SpyHubEvents.TimerVoteUpdated]: TimerStoppedEventDto;
     [SpyHubEvents.SpiesRevealed]: SpiesRevealedEventDto;
     [SpyHubEvents.ReturnedToLobby]: ReturnToLobbyEventDto;
+    [SpyHubEvents.PlayerConnectionStatusChanged]: PlayerConnectionChangedEventDto;
 }

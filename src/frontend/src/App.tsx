@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { Home } from './pages/Home/Home';
 import { SpyGameProvider } from './context/SpyGameContext';
 import {SpyEntry} from "./pages/SpyGame/SpyEntry/SpyEntry.tsx";
+import {SpyLobby} from "./pages/SpyGame/SpyLobby/SpyLobby.tsx";
 
 const SpyGameLayout = () => {
     return (
@@ -22,6 +23,7 @@ function App() {
                 <Route path="/spy" element={<SpyGameLayout />}>
                     {/*<Route path="game" element={<SpyGame />} />*/}
                     <Route index element={<SpyEntry />} />
+                    <Route path="lobby" element={<SpyLobby />} />
 {/*                    <Route index element={<SpyEntry />} />
                     <Route path="lobby" element={<SpyLobby />} />
                     <Route path="results" element={<SpyResults />} />*/}

@@ -44,6 +44,7 @@
   letter-spacing: 2px;
   cursor: pointer;
   transition: transform 0.2s;
+  user-select: none;
 
   &:hover { transform: scale(1.05); }
   &:active { transform: scale(0.95); }
@@ -92,6 +93,11 @@
   transition: all 0.3s;
   border: 2px solid transparent;
   position: relative;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 
   &.ready {
     border-color: $color-spy-success;
@@ -100,6 +106,13 @@
 
   &.host {
     background: linear-gradient(135deg, rgba($color-spy-primary, 0.1) 0%, rgba($color-spy-dark, 0.1) 100%);
+  }
+
+  &.empty-slot {
+    opacity: 0.3;
+    border: 2px dashed #444;
+    background: transparent;
+    cursor: default;
   }
 
   .host-badge {
@@ -112,15 +125,42 @@
     font-size: 10px;
     font-weight: 700;
   }
+
+  .edit-profile-btn {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    color: white;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: all 0.2s;
+
+    &:hover {
+      opacity: 1;
+      background: $color-spy-primary;
+      transform: scale(1.1);
+    }
+  }
 }
 
 .player-avatar {
   width: 80px; height: 80px;
   border-radius: 50%;
   background: linear-gradient(135deg, $color-spy-primary, $color-spy-dark);
-  margin: 0 auto 15px;
+  margin-bottom: 15px;
   display: flex; align-items: center; justify-content: center;
   font-size: 40px;
+
+  &.avatar-placeholder {
+    background: #333;
+  }
 }
 
 .player-name {
@@ -129,6 +169,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .ready-badge {
@@ -163,6 +204,11 @@
   background: rgba(255,255,255,0.1);
   color: white;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+
   &:hover { background: $color-spy-primary; }
 }
 
@@ -204,7 +250,12 @@
   color: white;
   font-weight: bold;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   &:hover { background: $color-spy-dark; }
+  &:disabled { background: #444; cursor: not-allowed; }
 }
 
 // Switch
@@ -240,29 +291,242 @@
 }
 
 // Categories
+.categories-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .category-list {
-  margin-top: 10px;
+  margin-top: 5px;
   max-height: 200px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // Scrollbar styling
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+  &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 }
 
 .category-item {
   background: rgba(0,0,0,0.2);
-  padding: 10px;
+  padding: 10px 15px;
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 0.9rem;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(0,0,0,0.4);
+  }
+
+  .cat-name {
+    font-weight: 500;
+  }
+
+  .cat-count {
+    color: $color-text-muted;
+    font-size: 0.8rem;
+    margin-left: 8px;
+  }
+
+  .cat-actions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
+.category-edit-btn {
+  background: none;
+  border: none;
+  color: $color-text-muted;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0;
+
+  &:hover { color: #fff; }
+}
+
+.category-remove-btn {
+  background: none;
+  border: none;
+  color: $color-spy-primary;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0;
+
+  &:hover { color: $color-spy-dark; }
+}
+
+.empty-categories-msg {
+  color: #666;
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+.add-category-btn-wrapper {
+  margin-top: 15px;
+}
+
+// Footer
 .lobby-footer {
   margin-top: auto;
   padding-top: 20px;
   display: flex;
   flex-direction: column;
+  gap: 15px;
+}
+
+.lobby-footer-msg {
+  text-align: center;
+  font-size: 12px;
+  color: $color-text-muted;
+}
+
+// --- Modal Content Styles ---
+.category-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+
+  input {
+    background: $color-spy-panel-light;
+    border: 1px solid #444;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    outline: none;
+
+    &:focus {
+      border-color: $color-spy-primary;
+    }
+  }
+}
+
+.words-manager {
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  min-height: 150px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.words-input-group {
+  display: flex;
   gap: 10px;
+  margin-bottom: 10px;
+}
+
+.word-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.word-chip {
+  background: $color-spy-panel;
+  border: 1px solid #444;
+  border-radius: 15px;
+  padding: 4px 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  button {
+    background: none;
+    border: none;
+    color: $color-spy-primary;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0;
+    line-height: 1;
+
+    &:hover { color: $color-spy-dark; }
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+// --- Profile Modal Styles ---
+.profile-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.avatar-selection-section {
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+}
+
+.avatar-grid-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  gap: 10px;
+}
+
+.avatar-option {
+  aspect-ratio: 1;
+  background: $color-spy-panel-light;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba($color-spy-primary, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    border-color: $color-spy-success;
+    background: rgba($color-spy-success, 0.1);
+    box-shadow: 0 0 10px rgba($color-spy-success, 0.3);
+  }
+}
+
+.name-edit-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+
+  .input-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
 }

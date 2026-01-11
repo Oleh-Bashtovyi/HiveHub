@@ -5,7 +5,7 @@ import type {
     RoomGameSettingsDto,
     CreateRoomResponseDto,
     JoinRoomResponseDto,
-    SpyGameEventMap
+    SpyGameEventMap, RoomStateDto
 } from "../models/spy-game";
 
 type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => void;
@@ -22,25 +22,36 @@ export class SpySignalRService {
     }
 
     public async start(): Promise<void> {
-        this.connection = new signalR.HubConnectionBuilder()
-            .withUrl(this.hubUrl, {
-                skipNegotiation: true,
-                transport: signalR.HttpTransportType.WebSockets
-            })
-            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-            .build();
+        if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
+            console.log("SignalR already connected.");
+            return;
+        }
 
-        this.registerInternalListeners();
+        if (!this.connection) {
+            this.connection = new signalR.HubConnectionBuilder()
+                .withUrl(this.hubUrl, {
+                    skipNegotiation: true,
+                    transport: signalR.HttpTransportType.WebSockets
+                })
+                .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                .build();
 
-        try {
-            await this.connection.start();
-            console.log("SignalR Connected.");
+            this.registerInternalListeners();
+        }
 
-            await this.tryAutoReconnect();
-
-        } catch (err) {
-            console.error("SignalR Connection Error: ", err);
-            throw err;
+        if (this.connection.state === signalR.HubConnectionState.Disconnected) {
+            try {
+                await this.connection.start();
+                console.log("SignalR Connected.");
+                await this.tryAutoReconnect();
+            } catch (err: unknown) {
+                if (err instanceof Error && err.message.includes("before stop() was called")) {
+                    console.debug("Connection cancelled by unmount (clean exit).");
+                    return;
+                }
+                console.error("SignalR Connection Error: ", err);
+                throw err;
+            }
         }
     }
 
@@ -103,7 +114,7 @@ export class SpySignalRService {
     }
 
     public async reconnect(roomCode: string, oldPlayerId: string) {
-        return this.invoke<JoinRoomResponseDto>(SpyHubMethods.Reconnect, roomCode, oldPlayerId);
+        return this.invoke<RoomStateDto>(SpyHubMethods.Reconnect, roomCode, oldPlayerId);
     }
 
     public async leaveRoom(roomCode: string) {

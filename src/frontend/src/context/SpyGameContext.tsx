@@ -18,6 +18,7 @@ import {
     type ChatMessageEventDto,
     type TimerStoppedEventDto,
     type SpiesRevealedEventDto,
+    type PlayerConnectionChangedEventDto
 } from '../models/spy-game';
 import {SpySignalRService} from "../api/spy-signal-r-service.ts";
 
@@ -63,10 +64,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [gameState, setGameState] = useState<GameStateDto | null>(null);
     const [gameResultSpies, setGameResultSpies] = useState<SpyRevealDto[]>([]);
 
-    // useRef для збереження singleton інстансу SignalR сервісу
     const signalRRef = useRef<SpySignalRService | null>(null);
 
-    // Функція для отримання інстансу (Singleton в межах провайдера)
     const getService = useCallback(() => {
         if (!signalRRef.current) {
             const hubUrl = import.meta.env.VITE_HUB_URL;
@@ -78,6 +77,17 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
             signalRRef.current = new SpySignalRService(hubUrl);
         }
         return signalRRef.current;
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            console.log("SpyGameProvider unmounting. Stopping SignalR...");
+            const svc = signalRRef.current;
+            if (svc) {
+                svc.stop();
+                signalRRef.current = null;
+            }
+        };
     }, []);
 
     // --- Connection Handling ---
