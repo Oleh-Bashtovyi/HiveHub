@@ -19,7 +19,10 @@ public record PlayerDto(
     string Name,
     bool IsHost,
     bool IsReady,
-    string AvatarId);
+    string AvatarId,
+    bool IsConnected,
+    bool? IsSpy,
+    bool? IsVotedToStopTimer);
 
 public record RoomGameSettingsDto(
     int TimerMinutes,

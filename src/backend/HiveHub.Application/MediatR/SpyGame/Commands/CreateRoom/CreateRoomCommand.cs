@@ -30,7 +30,8 @@ public class CreateRoomHandler(
             Name = "Player 1",
             IsHost = true,
             AvatarId = "default",
-            IsReady = false
+            IsReady = false,
+            IsConnected = true
         };
 
         room.GameSettings.Categories = CreateDefaultCategories();
@@ -44,7 +45,16 @@ public class CreateRoomHandler(
 
         mappingService.Map(request.ConnectionId, roomCode);
 
-        var myDto = new PlayerDto(hostPlayer.IdInRoom, hostPlayer.Name, true, false, "default");
+        var myDto = new PlayerDto(
+            hostPlayer.IdInRoom, 
+            hostPlayer.Name,
+            IsHost: true,
+            IsReady: false,
+            AvatarId: "default",
+            IsConnected: true,
+            IsSpy: null,
+            IsVotedToStopTimer: null);
+
         var settingsDto = new RoomGameSettingsDto(
             room.GameSettings.TimerMinutes,
             room.GameSettings.SpiesCount,

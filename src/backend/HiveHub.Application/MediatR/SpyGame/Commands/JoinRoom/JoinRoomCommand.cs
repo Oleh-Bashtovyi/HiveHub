@@ -64,7 +64,8 @@ public class JoinRoomHandler(
                 Name = playerName,
                 IsHost = isHost,
                 AvatarId = "default",
-                IsReady = false
+                IsReady = false,
+                IsConnected = true,
             };
 
             room.Players.Add(newPlayer);
@@ -74,15 +75,21 @@ public class JoinRoomHandler(
                 newPlayer.Name,
                 newPlayer.IsHost,
                 newPlayer.IsReady,
-                newPlayer.AvatarId);
+                newPlayer.AvatarId,
+                newPlayer.IsConnected,
+                newPlayer.PlayerState.IsSpy,
+                newPlayer.PlayerState.VotedToStopTimer);
 
             var allPlayersDto = room.Players
                 .Select(p => new PlayerDto(
-                    p.IdInRoom, 
-                    p.Name, 
-                    p.IsHost, 
-                    p.IsReady, 
-                    p.AvatarId))
+                    Id: p.IdInRoom, 
+                    Name: p.Name, 
+                    IsHost: p.IsHost, 
+                    IsReady: p.IsReady, 
+                    AvatarId: p.AvatarId,
+                    IsConnected: p.IsConnected,
+                    IsSpy: null,
+                    IsVotedToStopTimer: null))
                 .ToList();
 
             var settingsDto = new RoomGameSettingsDto(
