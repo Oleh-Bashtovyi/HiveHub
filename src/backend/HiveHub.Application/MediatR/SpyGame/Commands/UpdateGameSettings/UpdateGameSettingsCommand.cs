@@ -56,10 +56,10 @@ public class UpdateGameSettingsHandler(
                 return Results.ActionFailed("Кількість шпигунів повинна бути мінімум 1.");
             }
 
-            if (request.NewSettings.SpiesCount >= room.Players.Count && room.Players.Count > 0)
+/*            if (request.NewSettings.SpiesCount >= room.Players.Count && room.Players.Count > 0)
             {
                 return Results.ActionFailed("Кількість шпигунів повинна бути менше кількості гравців.");
-            }
+            }*/
 
             room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;
             room.GameSettings.SpiesCount = request.NewSettings.SpiesCount;

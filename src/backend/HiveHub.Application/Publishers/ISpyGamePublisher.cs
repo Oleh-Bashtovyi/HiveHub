@@ -22,5 +22,6 @@ public interface ISpyGamePublisher
     Task PublishTimerVoteAsync(TimerStoppedEventDto eventDto);
     Task PublishSpiesRevealedAsync(SpiesRevealedEventDto eventDto);
     Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
+    Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
 }
 

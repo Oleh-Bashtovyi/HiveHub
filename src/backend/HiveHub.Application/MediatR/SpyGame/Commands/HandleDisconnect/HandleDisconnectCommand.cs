@@ -2,6 +2,7 @@
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
+using HiveHub.Application.Utils;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -28,9 +29,13 @@ public class HandleDisconnectHandler(
         mappingService.Unmap(request.ConnectionId);
 
         var roomAccessor = gameManager.GetRoom(roomCode);
-        if (roomAccessor == null) return Result.Ok();
+        if (roomAccessor == null)
+        {
+            return Results.NotFound("Кімната не знайдена");
+        }
 
         string? playerId = null;
+        bool wasConnected = false;
 
         await roomAccessor.ExecuteAsync(async (room) =>
         {
@@ -39,8 +44,9 @@ public class HandleDisconnectHandler(
                 return;
             }
 
-            player.IsConnected = false;
             playerId = player.IdInRoom;
+            wasConnected = player.IsConnected;
+            player.IsConnected = false;
 
             logger.LogInformation("Player {PlayerId} disconnected from room {RoomCode}", player.IdInRoom, roomCode);
 
@@ -68,6 +74,12 @@ public class HandleDisconnectHandler(
 
         if (!string.IsNullOrEmpty(playerId))
         {
+            if (wasConnected)
+            {
+                var eventDto = new PlayerConnectionChangedEventDto(roomCode, playerId, false);
+                await publisher.PublishPlayerConnectionChangedAsync(eventDto);
+            }
+
             _ = Task.Run(async () =>
             {
                 await Task.Delay(TimeSpan.FromSeconds(30));

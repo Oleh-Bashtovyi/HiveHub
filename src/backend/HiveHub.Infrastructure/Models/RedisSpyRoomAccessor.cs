@@ -38,7 +38,7 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
             WaitTime,
             RetryTime))
         {
-            if (!redLock.IsAcquired) return Result.Fail("Server busy.");
+            if (!redLock.IsAcquired) return Result.Fail("Server busy. Could not acquire lock.");
 
             var room = await _storage.LoadAsync(_roomCode);
             if (room == null) return Result.Fail(new NotFound("Room not found"));
@@ -90,11 +90,20 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         }, saveChanges: false);
     }
 
+    public async Task<Result<T>> ReadAsync<T>(Func<SpyRoom, Result<T>> action)
+    {
+        return await RunInLockAsync(room =>
+        {
+            return Task.FromResult(action(room));
+        }, saveChanges: false);
+    }
+
     public async Task<bool> IsInactiveAsync(TimeSpan expirationThreshold)
     {
-        // Читаємо без лока (це допустимо для перевірки очищення)
         var room = await _storage.LoadAsync(_roomCode);
         if (room == null) return true;
-        return room.Players.Count == 0 && (DateTime.UtcNow - room.CreatedAt) > expirationThreshold;
+
+        var now = DateTime.UtcNow;
+        return room.Players.Count == 0 && (now - room.CreatedAt) > expirationThreshold;
     }
 }

@@ -15,3 +15,11 @@ public class NotFound : Error
     {
     }
 }
+
+public class Forbidden : Error
+{
+    public Forbidden(string message) : base(message)
+    {
+    }
+}
+

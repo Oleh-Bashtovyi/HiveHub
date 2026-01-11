@@ -10,5 +10,6 @@ public interface ISpyRoomAccessor
     Task<Result> ExecuteAsync(Func<SpyRoom, Result> action);
     Task<Result> ExecuteAsync(Action<SpyRoom> action);
     Task<Result<T>> ReadAsync<T>(Func<SpyRoom, T> selector);
+    Task<Result<T>> ReadAsync<T>(Func<SpyRoom, Result<T>> action);
     Task<bool> IsInactiveAsync(TimeSpan expirationThreshold);
 }

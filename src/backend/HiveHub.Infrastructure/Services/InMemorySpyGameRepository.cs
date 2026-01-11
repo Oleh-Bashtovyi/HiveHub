@@ -9,15 +9,15 @@ namespace HiveHub.Infrastructure.Services;
 
 public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGameRepository
 {
-    private readonly ConcurrentDictionary<string, RamSpyRoomAccessor> _rooms = new();
+    private readonly ConcurrentDictionary<string, RamSpyRoomAccessor> _rooms = new(StringComparer.OrdinalIgnoreCase);
     private readonly IIdGenerator _idGenerator = idGenerator;
 
     public Task<string> GenerateUniqueRoomCodeAsync()
     {
-        var code = _idGenerator.GenerateId(8);
+        var code = _idGenerator.GenerateId(8).ToUpperInvariant();
         while (_rooms.ContainsKey(code))
         {
-            code = _idGenerator.GenerateId(8);
+            code = _idGenerator.GenerateId(8).ToUpperInvariant();
         }
         return Task.FromResult(code);
     }

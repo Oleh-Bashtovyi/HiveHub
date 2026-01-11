@@ -90,6 +90,12 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .TimerVoteUpdated(eventDto);
     }
 
+    public Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .PlayerConnectionStatusChanged(eventDto);
+    }
+
     public Task PublishSpiesRevealedAsync(SpiesRevealedEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)

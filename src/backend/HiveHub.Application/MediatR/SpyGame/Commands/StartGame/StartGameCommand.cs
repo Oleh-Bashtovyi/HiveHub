@@ -106,7 +106,6 @@ public class StartGameHandler(
 
             room.State = RoomState.InGame;
             room.ChatMessages.Clear();
-            room.IncrementVersion();
 
             foreach (var player in room.Players)
             {

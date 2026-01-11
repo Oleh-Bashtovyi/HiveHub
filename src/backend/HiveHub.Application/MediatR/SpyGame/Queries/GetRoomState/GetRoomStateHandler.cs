@@ -10,8 +10,7 @@ namespace HiveHub.Application.MediatR.SpyGame.Queries.GetRoomState;
 
 public record GetRoomStateQuery(
     string RoomCode,
-    string ConnectionId,
-    long? ClientVersion
+    string ConnectionId
 ) : IRequest<Result<RoomStateDto>>;
 
 public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<RoomStateDto>>
@@ -36,11 +35,11 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
             return Results.NotFound("Кімната не знайдена.");
         }
 
-        return await roomAccessor.ExecuteAsync<RoomStateDto>((room) =>
+        return await roomAccessor.ReadAsync((room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var currentPlayer))
             {
-                return Results.NotFound<RoomStateDto>("Гравця не знайдено в кімнаті.");
+                return Results.NotFound<RoomStateDto>("Гравця не знайдено в кімнаті за цим з'єднанням.");
             }
 
             var playersDto = room.Players
@@ -61,21 +60,36 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
             );
 
             GameStateDto? gameState = null;
+
             if (room.State == RoomState.InGame || room.State == RoomState.Ended)
             {
                 var isSpy = currentPlayer.PlayerState.IsSpy;
-                var secretWord = isSpy ? null : room.CurrentSecretWord;
-                var showCategory = room.GameSettings.ShowCategoryToSpy || !isSpy;
-                var votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
+
+                string? secretWord;
+                string? category;
+
+                if (room.State == RoomState.Ended)
+                {
+                    secretWord = room.CurrentSecretWord;
+                    category = room.CurrentCategory;
+                }
+                else
+                {
+                    secretWord = isSpy ? null : room.CurrentSecretWord;
+                    var canSeeCategory = !isSpy || room.GameSettings.ShowCategoryToSpy;
+                    category = canSeeCategory ? room.CurrentCategory : null;
+                }
+                
+                var activeVotesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer && p.IsConnected);
 
                 gameState = new GameStateDto(
                     CurrentSecretWord: secretWord,
-                    Category: showCategory ? room.CurrentCategory : null,
+                    Category: category,
                     GameStartTime: room.TimerState.GameStartTime ?? DateTime.UtcNow,
                     GameEndTime: room.TimerState.PlannedGameEndTime,
                     IsTimerStopped: room.TimerState.IsTimerStopped,
                     TimerStoppedAt: room.TimerState.TimerStoppedAt,
-                    TimerVotesCount: votesCount,
+                    TimerVotesCount: activeVotesCount,
                     RecentMessages: room.ChatMessages
                         .TakeLast(50)
                         .Select(m => new ChatMessageDto(m.PlayerId, m.PlayerName, m.Message, m.Timestamp))

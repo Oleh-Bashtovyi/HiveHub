@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -24,16 +25,20 @@ public class ReconnectHandler(
     public async Task<Result<JoinRoomResponseDto>> Handle(ReconnectCommand request, CancellationToken cancellationToken)
     {
         var roomAccessor = gameManager.GetRoom(request.RoomCode);
-        if (roomAccessor == null) return Results.NotFound("Room not found.");
+        if (roomAccessor == null)
+        {
+            return Results.NotFound("Room not found.");
+        } 
 
-        JoinRoomResponseDto? response = null;
         string? oldConnectionId = null;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             var player = room.Players.FirstOrDefault(x => x.IdInRoom == request.OldPlayerId);
             if (player == null)
+            {
                 return Results.NotFound<JoinRoomResponseDto>("Player not found.");
+            }
 
             oldConnectionId = player.ConnectionId;
             player.ConnectionId = request.NewConnectionId;
@@ -52,8 +57,8 @@ public class ReconnectHandler(
                 room.GameSettings.ShowCategoryToSpy,
                 room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList());
 
-            response = new JoinRoomResponseDto(myDto, room.RoomCode, allPlayersDto, settingsDto);
-            return Result.Ok();
+            var response = new JoinRoomResponseDto(myDto, room.RoomCode, allPlayersDto, settingsDto);
+            return response;
         });
 
         if (result.IsFailed) return result;
@@ -64,6 +69,7 @@ public class ReconnectHandler(
         }
         mappingService.Map(request.NewConnectionId, request.RoomCode);
 
+
         if (!string.IsNullOrEmpty(oldConnectionId))
         {
             await publisher.RemovePlayerFromRoomGroupAsync(oldConnectionId, request.RoomCode);
@@ -71,8 +77,12 @@ public class ReconnectHandler(
 
         await publisher.AddPlayerToRoomGroupAsync(request.NewConnectionId, request.RoomCode);
 
-        logger.LogInformation("Reconnect: {Old} -> {New} in {Room}", oldConnectionId, request.NewConnectionId, request.RoomCode);
+        logger.LogInformation("Reconnect: {Old} -> {New} in {Room}", 
+            oldConnectionId, request.NewConnectionId, request.RoomCode);
 
-        return Result.Ok(response!);
+        var connectionEvent = new PlayerConnectionChangedEventDto(request.RoomCode, request.OldPlayerId, true);
+        await publisher.PublishPlayerConnectionChangedAsync(connectionEvent);
+
+        return result;
     }
 }

@@ -17,7 +17,14 @@ public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDispos
         await _semaphore.WaitAsync();
         try
         {
-            return action(_room);
+            var result = action(_room);
+
+            if (result.IsSuccess)
+            {
+                _room.IncrementVersion();
+            }
+
+            return result;
         }
         finally 
         { 
@@ -39,12 +46,32 @@ public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDispos
         }
     }
 
-    public async Task<Result> ExecuteAsync(Func<SpyRoom, Result> action)
+    public async Task<Result<T>> ReadAsync<T>(Func<SpyRoom, Result<T>> action)
     {
         await _semaphore.WaitAsync();
         try
         {
             return action(_room);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<Result> ExecuteAsync(Func<SpyRoom, Result> action)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            var result = action(_room);
+
+            if (result.IsSuccess)
+            {
+                _room.IncrementVersion();
+            }
+
+            return result;
         }
         finally
         {
@@ -58,6 +85,7 @@ public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDispos
         try
         {
             action(_room);
+            _room.IncrementVersion();
             return Result.Ok();
         }
         finally 

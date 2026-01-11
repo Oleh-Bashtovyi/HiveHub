@@ -46,10 +46,6 @@ public record SpyRevealDto(
     string PlayerId,
     string PlayerName);
 
-
-
-
-
 public record RoomStateDto(
     string RoomCode,
     RoomState State,
@@ -59,15 +55,14 @@ public record RoomStateDto(
     long Version
 );
 
-
 public record GameStateDto(
-    string? CurrentSecretWord, // Null для шпигуна
-    string? Category,          // Null для шпигуна (якщо налаштування ShowCategoryToSpy == false)
+    string? CurrentSecretWord,
+    string? Category,
     DateTime GameStartTime,
-    DateTime? GameEndTime,     // Розрахунковий час завершення (для таймера на клієнті)
-    bool IsTimerStopped,       // Чи стоїть гра на паузі (обговорення)
-    DateTime? TimerStoppedAt,  // Коли зупинили таймер
-    int TimerVotesCount,       // Скільки гравців проголосувало за зупинку
-    List<ChatMessageDto> RecentMessages // Останні повідомлення чату
+    DateTime? GameEndTime,
+    bool IsTimerStopped,
+    DateTime? TimerStoppedAt,
+    int TimerVotesCount,
+    List<ChatMessageDto> RecentMessages
 );
 

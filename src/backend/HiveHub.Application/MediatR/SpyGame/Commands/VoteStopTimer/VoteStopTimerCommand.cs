@@ -34,6 +34,7 @@ public class VoteStopTimerHandler(
 
         bool timerStopped = false;
         int votesCount = 0;
+        int requiredVotes = 0;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
@@ -65,8 +66,13 @@ public class VoteStopTimerHandler(
             player.PlayerState.VotedToStopTimer = true;
             votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
 
-            // Потрібно 2 голоси для зупинки таймера
-            if (votesCount >= 2)
+            var activePlayers = room.Players.Count(p => p.IsConnected);
+            requiredVotes = (int)Math.Ceiling(activePlayers / 2.0);
+
+            if (requiredVotes < 1) 
+                requiredVotes = 1;
+
+            if (votesCount >= requiredVotes)
             {
                 room.TimerState.IsTimerStopped = true;
                 room.TimerState.TimerStoppedAt = DateTime.UtcNow;
@@ -81,10 +87,10 @@ public class VoteStopTimerHandler(
             return result;
         }
 
-        _logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/2. Stopped: {IsStopped}",
-            request.RoomCode, votesCount, timerStopped);
+        _logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
+            request.RoomCode, votesCount, requiredVotes, timerStopped);
 
-        var eventDto = new TimerStoppedEventDto(request.RoomCode, votesCount, 2);
+        var eventDto = new TimerStoppedEventDto(request.RoomCode, votesCount, requiredVotes);
         await _publisher.PublishTimerVoteAsync(eventDto);
 
         return Result.Ok();

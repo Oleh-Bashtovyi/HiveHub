@@ -61,6 +61,12 @@ public record SpiesRevealedEventDto(
     string RoomCode, 
     List<SpyRevealDto> Spies);
 
+public record PlayerConnectionChangedEventDto(
+    string RoomCode,
+    string PlayerId,
+    bool IsConnected
+);
+
 public record GameEndedEventDto(string RoomCode);
 
 public record ReturnToLobbyEventDto(string RoomCode);

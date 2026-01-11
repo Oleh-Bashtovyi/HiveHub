@@ -24,4 +24,14 @@ public static class Results
     {
         return Result.Fail<T>(new ActionFailedError(message));
     }
+
+    public static Result Forbidden(string message)
+    {
+        return Result.Fail(new ActionFailedError(message));
+    }
+
+    public static Result<T> Forbidden<T>(string message)
+    {
+        return Result.Fail<T>(new ActionFailedError(message));
+    }
 }

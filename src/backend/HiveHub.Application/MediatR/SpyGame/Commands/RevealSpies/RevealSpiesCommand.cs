@@ -47,9 +47,14 @@ public class RevealSpiesHandler(
                 return Results.ActionFailed("Спочатку потрібно зупинити таймер.");
             }
 
-            if (!room.Players.Any(x => x.ConnectionId == request.ConnectionId))
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound("Гравця не знайдено.");
+            }
+
+            if (!player.IsHost)
+            {
+                return Results.Forbidden("Тільки хост може розкрити шпигунів.");
             }
 
             spies = room.Players
