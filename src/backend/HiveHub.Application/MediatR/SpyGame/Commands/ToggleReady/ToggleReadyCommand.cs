@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -15,21 +16,21 @@ public record ToggleReadyCommand(
 ) : IRequest<Result>;
 
 public class ToggleReadyHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<ToggleReadyHandler> logger)
     : IRequestHandler<ToggleReadyCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _repository = repository;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ToggleReadyHandler> _logger = logger;
 
     public async Task<Result> Handle(ToggleReadyCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string playerId = string.Empty;
@@ -39,12 +40,12 @@ public class ToggleReadyHandler(
         {
             if (room.State != RoomState.Lobby)
             {
-                return Results.ActionFailed("Не можна змінювати статус готовності під час гри.");
+                return Results.ActionFailed(ProjectMessages.ToggleReady.CanNotReadyStatusMidGame);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
             player.IsReady = !player.IsReady;

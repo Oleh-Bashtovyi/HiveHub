@@ -25,4 +25,8 @@
     <PackageReference Include="RedLock.net" Version="2.3.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Mappers\" />
+  </ItemGroup>
+
 </Project>

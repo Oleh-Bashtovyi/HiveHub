@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -30,7 +31,7 @@ public class RenamePlayerHandler(
         var roomAccessor = _gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string publicId = string.Empty;
@@ -39,23 +40,23 @@ public class RenamePlayerHandler(
         {
             if (room.State != RoomState.Lobby)
             {
-                return Results.ActionFailed("Не можна змінювати ім'я під час гри.");
+                return Results.ActionFailed(ProjectMessages.Rename.CanNotChangeGameMidGame);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            if (string.IsNullOrWhiteSpace(request.NewName) || request.NewName.Length > 20)
+            if (string.IsNullOrWhiteSpace(request.NewName) || request.NewName.Length > ProjectConstants.PlayerNameMaxLength)
             {
-                return Results.ActionFailed("Некоректне ім'я.");
+                return Results.ValidationFailed(ProjectMessages.Rename.PlayerNameMustHaveLength);
             }
 
             if (room.Players.Any(p => p.ConnectionId != request.ConnectionId &&
                                   p.Name.Equals(request.NewName, StringComparison.OrdinalIgnoreCase)))
             {
-                return Results.ActionFailed("Гравець з таким ім'ям вже існує в кімнаті.");
+                return Results.ActionFailed(ProjectMessages.Rename.PlayerWithThisNameAlreadyExistsInRoom);
             }
 
             player.Name = request.NewName;

@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -29,19 +30,14 @@ public class ReturnToLobbyHandler(
         var roomAccessor = _gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Ended)
-            {
-                return Results.ActionFailed("Гра ще не завершена.");
-            }
-
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
-                return Results.ActionFailed("Тільки хост може повернутися в лобі.");
+                return Results.Forbidden(ProjectMessages.ReturnToLobby.OnlyHostCanReturnToLobby);
             }
 
             room.State = RoomState.Lobby;

@@ -1,5 +1,7 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -31,7 +33,7 @@ public class HandleDisconnectHandler(
         var roomAccessor = gameManager.GetRoom(roomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string? playerId = null;
@@ -87,55 +89,33 @@ public class HandleDisconnectHandler(
                 var accessor = gameManager.GetRoom(roomCode);
                 if (accessor == null) return;
 
-                string? removedPlayerId = null;
-                string? newHostId = null;
-                bool roomShouldBeDeleted = false;
+                PlayerRemovalResult removalResult = null!;
 
                 await accessor.ExecuteAsync((room) =>
                 {
                     var playerToDelete = room.Players.FirstOrDefault(p => p.IdInRoom == playerId);
-                    if (playerToDelete == null) return;
 
-                    if (!playerToDelete.IsConnected)
-                    {
-                        var wasHost = playerToDelete.IsHost;
-                        removedPlayerId = playerToDelete.IdInRoom;
+                    if (playerToDelete == null || playerToDelete.IsConnected) return;
 
-                        room.Players.Remove(playerToDelete);
+                    removalResult = SpyGamePlayerRemover.Remove(room, playerId);
 
-                        if (room.Players.Count == 0)
-                        {
-                            roomShouldBeDeleted = true;
-                        }
-                        else if (wasHost)
-                        {
-                            var newHost = room.Players.FirstOrDefault(x => x.IsConnected == true);
-
-                            if (newHost != null)
-                            {
-                                newHost.IsHost = true;
-                                newHostId = newHost.IdInRoom;
-                            }
-                        }
-
-                        logger.LogInformation("Player {PlayerId} removed from room {RoomCode} due to prolonged disconnect",
-                            removedPlayerId, roomCode);
-                    }
+                    logger.LogInformation("Player {PlayerId} removed from room {RoomCode} due to prolonged disconnect",
+                        removalResult.RemovedPlayerId, roomCode);
                 });
 
-                if (roomShouldBeDeleted)
+                if (removalResult.ShouldDeleteRoom)
                 {
                     await gameManager.RemoveRoomAsync(roomCode);
                     logger.LogInformation("Room {RoomCode} deleted - no players left", roomCode);
                 }
-                else if (!string.IsNullOrEmpty(removedPlayerId))
+                else if (!string.IsNullOrEmpty(removalResult.RemovedPlayerId))
                 {
-                    var leftEvent = new PlayerLeftEventDto(roomCode, removedPlayerId);
+                    var leftEvent = new PlayerLeftEventDto(roomCode, removalResult.RemovedPlayerId);
                     await publisher.PublishPlayerLeftAsync(leftEvent);
 
-                    if (!string.IsNullOrEmpty(newHostId))
+                    if (!string.IsNullOrEmpty(removalResult.NewHostId))
                     {
-                        var hostChangedEvent = new HostChangedEventDto(roomCode, newHostId);
+                        var hostChangedEvent = new HostChangedEventDto(roomCode, removalResult.NewHostId);
                         await publisher.PublishHostChangedAsync(hostChangedEvent);
                     }
                 }

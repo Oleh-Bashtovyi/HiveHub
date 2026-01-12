@@ -34,4 +34,14 @@ public static class Results
     {
         return Result.Fail<T>(new ActionFailedError(message));
     }
+
+    public static Result ValidationFailed(string message)
+    {
+        return Result.Fail(new ValidationFailedError(message));
+    }
+
+    public static Result<T> ValidationFailed<T>(string message)
+    {
+        return Result.Fail<T>(new ValidationFailedError(message));
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
@@ -17,49 +18,45 @@ public record UpdateGameSettingsCommand(
 ) : IRequest<Result>;
 
 public class UpdateGameSettingsHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<UpdateGameSettingsHandler> logger)
     : IRequestHandler<UpdateGameSettingsCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _repository = repository;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<UpdateGameSettingsHandler> _logger = logger;
 
     public async Task<Result> Handle(UpdateGameSettingsCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             if (room.State != RoomState.Lobby)
             {
-                return Results.ActionFailed("Не можна змінювати налаштування під час гри.");
+                return Results.ActionFailed(ProjectMessages.UpdateSettings.CanNotChangeGameSettingsMidGame);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
-                return Results.ActionFailed("Тільки хост може змінювати налаштування.");
+                return Results.Forbidden(ProjectMessages.UpdateSettings.OnlyHostCanChangeGameSettings);
             }
 
-            if (request.NewSettings.TimerMinutes < 1 || request.NewSettings.TimerMinutes > 30)
+            if (request.NewSettings.TimerMinutes < ProjectConstants.SpyGameMinGameDurationMinutes || 
+                request.NewSettings.TimerMinutes > ProjectConstants.SpyGameMaxGameDurationMinutes)
             {
-                return Results.ActionFailed("Час гри повинен бути від 1 до 30 хвилин.");
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.GameTimeMustBeInRange);
             }
 
             if (request.NewSettings.SpiesCount < 1)
             {
-                return Results.ActionFailed("Кількість шпигунів повинна бути мінімум 1.");
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.SpiesCountMustBeMinimumOne);
             }
-
-/*            if (request.NewSettings.SpiesCount >= room.Players.Count && room.Players.Count > 0)
-            {
-                return Results.ActionFailed("Кількість шпигунів повинна бути менше кількості гравців.");
-            }*/
 
             room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;
             room.GameSettings.SpiesCount = request.NewSettings.SpiesCount;

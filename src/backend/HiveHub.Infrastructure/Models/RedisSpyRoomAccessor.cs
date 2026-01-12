@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Errors;
 using HiveHub.Application.Interfaces;
 using HiveHub.Application.Models;
@@ -41,7 +42,7 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
             if (!redLock.IsAcquired) return Result.Fail("Server busy. Could not acquire lock.");
 
             var room = await _storage.LoadAsync(_roomCode);
-            if (room == null) return Result.Fail(new NotFound("Room not found"));
+            if (room == null) return Result.Fail(new NotFound(ProjectMessages.RoomNotFound));
 
             var result = await logic(room);
 

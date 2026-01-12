@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
@@ -17,45 +18,45 @@ public record SendMessageCommand(
 ) : IRequest<Result>;
 
 public class SendMessageHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<SendMessageHandler> logger)
     : IRequestHandler<SendMessageCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _repository = repository;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<SendMessageHandler> _logger = logger;
 
     public async Task<Result> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        ChatMessageDto messageDto = null;
+        ChatMessageDto messageDto = null!;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             if (room.State != RoomState.InGame)
             {
-                return Results.ActionFailed("Чат доступний тільки під час гри.");
+                return Results.ActionFailed(ProjectMessages.SendMessage.ChatAvailableOnlyMidGame);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            if (string.IsNullOrWhiteSpace(request.Message) || request.Message.Length > 500)
+            if (string.IsNullOrWhiteSpace(request.Message) || request.Message.Length > ProjectConstants.MessageMaxLength)
             {
-                return Results.ActionFailed("Повідомлення повинно бути від 1 до 500 символів.");
+                return Results.ValidationFailed(ProjectMessages.SendMessage.BadMessageFormat);
             }
 
             var chatMessage = new ChatMessage(player.IdInRoom, player.Name, request.Message.Trim(), DateTime.UtcNow);
 
-            if (room.ChatMessages.Count >= 100)
+            if (room.ChatMessages.Count >= ProjectConstants.MessagesMaxCount)
             {
                 room.ChatMessages.RemoveAt(0);
             }

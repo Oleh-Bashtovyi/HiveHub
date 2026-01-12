@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -29,7 +30,7 @@ public class VoteStopTimerHandler(
         var roomAccessor = _gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string votedPlayerId = null!;
@@ -41,27 +42,27 @@ public class VoteStopTimerHandler(
         {
             if (room.State != RoomState.InGame)
             {
-                return Results.ActionFailed("Гра не йде.");
+                return Results.ActionFailed(ProjectMessages.VoteToStopTimer.VoteToStopTimerAvailvableOnlyMidGame);
             }
 
             if (room.TimerState.IsTimerStopped)
             {
-                return Results.ActionFailed("Таймер вже зупинено.");
+                return Results.ActionFailed(ProjectMessages.VoteToStopTimer.TimerHasAlreadyStoped);
             }
 
             if (room.TimerState.GetRemainingSeconds() <= 0.02)
             {
-                return Results.ActionFailed("Час вийшов.");
+                return Results.ActionFailed(ProjectMessages.VoteToStopTimer.TimeHasPassed);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
             if (player.PlayerState.VotedToStopTimer)
             {
-                return Results.ActionFailed("Ви вже проголосували.");
+                return Results.ActionFailed(ProjectMessages.VoteToStopTimer.YouHaveAlreadyVoted);
             }
 
             votedPlayerId = player.IdInRoom;

@@ -40,11 +40,11 @@ public abstract class PlayerBase<TPlayerState>
 public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code)
     where TPlayer : PlayerBase<TPlayerState>
 {
-    public string RoomCode { get; init; } = code;
+    public string RoomCode { get; } = code;
     public List<TPlayer> Players { get; } = new();
     public RoomState State { get; set; } = RoomState.Lobby;
     public long StateVersion { get; private set; } = 0;
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; } = DateTime.UtcNow;
 
     public TGameSettings GameSettings { get; init; } = default!;
     public TimerState TimerState { get; init; } = default!;
@@ -57,6 +57,12 @@ public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code
     public bool TryGetPlayerByConnectionId(string connectionId, [NotNullWhen(true)] out TPlayer? player)
     {
         player = Players.FirstOrDefault(x => x.ConnectionId == connectionId);
+        return player != null;
+    }
+
+    public bool TryGetPlayerByIdInRoom(string idInRoom, [NotNullWhen(true)] out TPlayer? player)
+    {
+        player = Players.FirstOrDefault(x => x.IdInRoom == idInRoom);
         return player != null;
     }
 }
@@ -107,7 +113,7 @@ public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerStat
 }
 
 public class SpyGameWordsCategory {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     public List<string> Words { get; set; } = new();
 }
 

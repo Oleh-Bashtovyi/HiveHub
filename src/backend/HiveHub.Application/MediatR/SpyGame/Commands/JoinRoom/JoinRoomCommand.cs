@@ -8,6 +8,7 @@ using HiveHub.Domain;
 using MediatR;
 using HiveHub.Application.Utils;
 using Microsoft.Extensions.Logging;
+using HiveHub.Application.Constants;
 
 namespace HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 
@@ -35,24 +36,24 @@ public class JoinRoomHandler(
         var roomAccessor = _spyGameRepository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             if (room.State != RoomState.Lobby)
             {
-                return Results.ActionFailed("Гра вже почалась.");
+                return Results.ActionFailed(ProjectMessages.JoinRoom.CanNotJoinMidGame);
             }
 
-            if (room.Players.Count >= 8)
+            if (room.Players.Count >= ProjectConstants.SpyGameMaxPlayersCount)
             {
-                return Results.ActionFailed("Кімната заповнена. Максимум 8 гравців.");
+                return Results.ActionFailed(ProjectMessages.JoinRoom.SpyGameExceedingMaxPlayersCount);
             }
 
             if (room.Players.Any(x => x.ConnectionId == request.ConnectionId))
             {
-                return Result.Fail(new ActionFailedError("Ви вже в кімнаті."));
+                return Results.ActionFailed(ProjectMessages.JoinRoom.YouAreAlreadyInRoom);
             }
 
             var publicId = _idGenerator.GenerateId(length: 16);

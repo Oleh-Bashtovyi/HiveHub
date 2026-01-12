@@ -1,7 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Application.Mappers;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;

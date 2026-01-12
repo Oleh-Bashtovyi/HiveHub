@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -25,7 +26,10 @@ public class KickPlayerHandler(
     public async Task<Result> Handle(KickPlayerCommand request, CancellationToken cancellationToken)
     {
         var roomAccessor = gameManager.GetRoom(request.RoomCode);
-        if (roomAccessor == null) return Results.NotFound("Кімната не знайдена.");
+        if (roomAccessor == null)
+        {
+            return Results.NotFound(ProjectMessages.RoomNotFound);
+        }
 
         string kickedPlayerConnectionId = string.Empty;
         string kickedPlayerName = string.Empty;
@@ -33,16 +37,26 @@ public class KickPlayerHandler(
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             if (room.State != RoomState.Lobby)
-                return Results.ActionFailed("Не можна виганяти гравців під час гри.");
+            {
+                return Results.ActionFailed(ProjectMessages.Kick.CanNotKickPlayersMidGame);
+            }
 
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
-                return Results.ActionFailed("Тільки хост може виганяти гравців.");
+            {
+                return Results.ActionFailed(ProjectMessages.Kick.OnlyHostCanKickPlayers);
+            }
 
             var target = room.Players.FirstOrDefault(p => p.IdInRoom == request.TargetPlayerId);
-            if (target == null) return Results.NotFound("Гравця не знайдено.");
+            
+            if (target == null)
+            {
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
+            }
 
             if (target.IsHost)
-                return Results.ActionFailed("Хост не може вигнати сам себе.");
+            {
+                return Results.ActionFailed(ProjectMessages.Kick.HostCanNotKickItself);
+            }
 
             kickedPlayerConnectionId = target.ConnectionId;
             kickedPlayerName = target.Name;

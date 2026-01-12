@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
@@ -16,21 +17,21 @@ public record RevealSpiesCommand(
 ) : IRequest<Result>;
 
 public class RevealSpiesHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repostiroty,
     ISpyGamePublisher publisher,
     ILogger<RevealSpiesHandler> logger)
     : IRequestHandler<RevealSpiesCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _repository = repostiroty;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<RevealSpiesHandler> _logger = logger;
 
     public async Task<Result> Handle(RevealSpiesCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         List<SpyRevealDto> spies = new();
@@ -39,22 +40,22 @@ public class RevealSpiesHandler(
         {
             if (room.State != RoomState.InGame)
             {
-                return Results.ActionFailed("Гра не йде.");
+                return Results.ActionFailed(ProjectMessages.SpyGameRevealSpies.RevealSpiesCanBeDoneOnlyMidGame);
             }
 
             if (!room.TimerState.IsTimerStopped)
             {
-                return Results.ActionFailed("Спочатку потрібно зупинити таймер.");
+                return Results.ActionFailed(ProjectMessages.SpyGameRevealSpies.TimerMustBeStoppedToRevealSpies);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
             if (!player.IsHost)
             {
-                return Results.Forbidden("Тільки хост може розкрити шпигунів.");
+                return Results.Forbidden(ProjectMessages.SpyGameRevealSpies.OnlyHostCanRevealSpies);
             }
 
             spies = room.Players

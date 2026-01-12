@@ -1,5 +1,7 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -16,21 +18,20 @@ public record ChangeHostCommand(
 ) : IRequest<Result>;
 
 public class ChangeHostHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository spyRepository,
     ISpyGamePublisher publisher,
     ILogger<ChangeHostHandler> logger)
     : IRequestHandler<ChangeHostCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _spyRepository = spyRepository;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<ChangeHostHandler> _logger = logger;
 
     public async Task<Result> Handle(ChangeHostCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!_spyRepository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string newHostId = string.Empty;
@@ -39,18 +40,17 @@ public class ChangeHostHandler(
         {
             if (room.State != RoomState.Lobby)
             {
-                return Results.ActionFailed("Не можна змінювати хоста під час гри.");
+                return Results.ActionFailed(ProjectMessages.ChangeHost.CanNotChangeHostMidGame);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.CurrentHostConnectionId, out var currentHost) || !currentHost.IsHost)
             {
-                return Results.ActionFailed("Тільки хост може передавати права.");
+                return Results.Forbidden(ProjectMessages.ChangeHost.OnlyHostCanChangePermission);
             }
 
-            var newHost = room.Players.FirstOrDefault(p => p.IdInRoom == request.NewHostPlayerId);
-            if (newHost == null)
+            if (!room.TryGetPlayerByIdInRoom(request.NewHostPlayerId, out var newHost))
             {
-                return Results.NotFound("Нового хоста не знайдено.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
             currentHost.IsHost = false;

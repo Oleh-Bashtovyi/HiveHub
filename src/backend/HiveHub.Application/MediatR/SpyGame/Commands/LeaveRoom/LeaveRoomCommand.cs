@@ -1,5 +1,7 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -28,42 +30,19 @@ public class LeaveRoomHandler(
         var roomAccessor = _gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string leavingPlayerId = string.Empty;
-        bool wasHost = false;
-        string newHostId = string.Empty;
-        bool roomShouldBeDeleted = false;
+        PlayerRemovalResult removalResult = null!;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return Results.NotFound("Гравця не знайдено в кімнаті.");
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            leavingPlayerId = player.IdInRoom;
-            wasHost = player.IsHost;
-
-            room.Players.Remove(player);
-
-            if (room.Players.Count == 0)
-            {
-                roomShouldBeDeleted = true;
-                return Result.Ok();
-            }
-
-            if (wasHost)
-            {
-                var newHost = room.Players.FirstOrDefault(x => x.IsConnected);
-
-                if (newHost != null)
-                {
-                    newHost.IsHost = true;
-                    newHostId = newHost.IdInRoom;
-                }
-            }
+            var removalResult = SpyGamePlayerRemover.Remove(room, player.IdInRoom);
 
             return Result.Ok();
         });
@@ -73,25 +52,25 @@ public class LeaveRoomHandler(
             return result;
         }
 
-        _logger.LogInformation("Player {PlayerId} left room {RoomCode}", leavingPlayerId, request.RoomCode);
+        _logger.LogInformation("Player {PlayerId} left room {RoomCode}", removalResult.RemovedPlayerId, request.RoomCode);
 
         await _publisher.RemovePlayerFromRoomGroupAsync(request.ConnectionId, request.RoomCode);
 
-        if (roomShouldBeDeleted)
+        if (removalResult.ShouldDeleteRoom)
         {
             await _gameManager.RemoveRoomAsync(request.RoomCode);
             _logger.LogInformation("Room {RoomCode} deleted - no players left", request.RoomCode);
         }
         else
         {
-            var leftEvent = new PlayerLeftEventDto(request.RoomCode, leavingPlayerId);
+            var leftEvent = new PlayerLeftEventDto(request.RoomCode, removalResult.RemovedPlayerId);
             await _publisher.PublishPlayerLeftAsync(leftEvent);
 
-            if (!string.IsNullOrEmpty(newHostId))
+            if (!string.IsNullOrEmpty(removalResult.NewHostId))
             {
-                var hostChangedEvent = new HostChangedEventDto(request.RoomCode, newHostId);
+                var hostChangedEvent = new HostChangedEventDto(request.RoomCode, removalResult.NewHostId);
                 await _publisher.PublishHostChangedAsync(hostChangedEvent);
-                _logger.LogInformation("New host {HostId} assigned in room {RoomCode}", newHostId, request.RoomCode);
+                _logger.LogInformation("New host {HostId} assigned in room {RoomCode}", removalResult.NewHostId, request.RoomCode);
             }
         }
 

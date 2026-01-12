@@ -23,3 +23,10 @@ public class Forbidden : Error
     }
 }
 
+public class ValidationFailedError : Error
+{
+    public ValidationFailedError(string message) : base(message)
+    {
+    }
+}
+

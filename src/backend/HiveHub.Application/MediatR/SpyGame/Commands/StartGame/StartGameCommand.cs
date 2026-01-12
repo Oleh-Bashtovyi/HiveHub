@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -29,7 +30,7 @@ public class StartGameHandler(
         var roomAccessor = _gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Кімната не знайдена.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         List<(string ConnectionId, GameStartedEventDto Payload)> notifications = new();
@@ -38,32 +39,32 @@ public class StartGameHandler(
         {
             if (room.State == RoomState.InGame)
             {
-                return Results.ActionFailed("Гра вже йде. Спочатку завершіть поточну.");
+                return Results.ActionFailed(ProjectMessages.StartGame.GameIsAlreadyStarted);
             }
 
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
-                return Results.ActionFailed("Тільки хост може почати гру.");
+                return Results.Forbidden(ProjectMessages.StartGame.OnlyHostCanStartGame);
             }
 
             if (room.Players.Count < 3)
             {
-                return Results.ActionFailed("Недостатньо гравців (мінімум 3).");
+                return Results.ActionFailed(ProjectMessages.SpyGameStartGame.MinimumThreePlayersRequiredToStart);
             }
 
             if (room.Players.Any(p => !p.IsReady))
             {
-                return Results.ActionFailed("Не всі гравці готові. Всі повинні натиснути 'Готовий'.");
+                return Results.ActionFailed(ProjectMessages.StartGame.NotAllPlayersIsReady);
             }
 
             if (room.GameSettings.Categories.Count == 0)
             {
-                return Results.ActionFailed("Немає категорій слів для гри.");
+                return Results.ActionFailed(ProjectMessages.SpyGameStartGame.NoCategoriesWasSet);
             }
 
             if (room.GameSettings.Categories.All(x => x.Words.Count == 0))
             {
-                return Results.ActionFailed("Немає категорій що містять хоча б одне слово.");
+                return Results.ActionFailed(ProjectMessages.SpyGameStartGame.NoCategoriesWithAtLeastOneWord);
             }
 
             var random = Random.Shared;

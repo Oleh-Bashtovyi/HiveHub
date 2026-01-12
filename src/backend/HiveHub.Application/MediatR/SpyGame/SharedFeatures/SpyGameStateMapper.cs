@@ -1,7 +1,7 @@
 ﻿using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Domain;
 
-namespace HiveHub.Application.Mappers;
+namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
 public static class SpyGameStateMapper
 {

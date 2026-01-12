@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -40,7 +41,7 @@ public class CreateRoomHandler(
 
         if (!await spyGameRepository.TryAddRoomAsync(room))
         {
-            return Results.ActionFailed("Не вдалося зареєструвати кімнату.");
+            return Results.ActionFailed(ProjectMessages.CreateRoom.UnableToCreateRoom);
         }
 
         mappingService.Map(request.ConnectionId, roomCode);
