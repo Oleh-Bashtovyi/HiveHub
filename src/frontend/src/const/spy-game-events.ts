@@ -33,6 +33,7 @@ export const SpyHubEvents = {
     SpiesRevealed: "SpiesRevealed",
     ReturnedToLobby: "ReturnedToLobby",
     PlayerConnectionStatusChanged: 'PlayerConnectionStatusChanged',
+    GameEnded: "GameEnded",
 } as const;
 
 export type SpyHubMethod = typeof SpyHubMethods[keyof typeof SpyHubMethods];

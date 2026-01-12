@@ -1,19 +1,27 @@
 @use '../../../styles/variables' as *;
 
+// --- PAGE RESET ---
 .spy-game-page {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   padding: 20px;
   background: linear-gradient(135deg, #1a0000 0%, $color-spy-bg 50%, #1a0000 100%);
   color: $color-text-main;
+  overflow: hidden; // Забороняємо скрол всієї сторінки
+  box-sizing: border-box;
 }
 
 .game-container {
-  max-width: 1400px;
+  max-width: 1600px; // Трохи збільшив, щоб влазило на широких екранах
+  height: 100%;      // Займає всю висоту .spy-game-page
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
-// --- Header ---
+// --- HEADER (Fixed Height) ---
 .game-header {
+  flex-shrink: 0; // Header не стискається
   background: $color-spy-panel;
   border-radius: 15px;
   padding: 15px 30px;
@@ -22,7 +30,6 @@
   justify-content: space-between;
   align-items: center;
   border: 1px solid rgba($color-spy-primary, 0.2);
-  flex-wrap: wrap;
   gap: 15px;
 }
 
@@ -32,9 +39,7 @@
   gap: 20px;
 }
 
-.timer-wrapper {
-  text-align: center;
-}
+.timer-wrapper { text-align: center; }
 
 .timer-display {
   font-size: 36px;
@@ -77,19 +82,61 @@
   color: $color-text-muted;
 }
 
-// --- Layout ---
+// --- LAYOUT GRID ---
 .game-layout {
   display: grid;
   grid-template-columns: 350px 1fr 350px;
   gap: 20px;
+  flex: 1;          // Займає весь простір, що залишився після хедера
+  min-height: 0;    // Магія: дозволяє вкладеним флексам скролитись
+  height: 100%;
+  overflow: hidden;
 
   @media (max-width: 1200px) {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto 500px; // Stack vertical
+    grid-template-rows: auto auto 1fr;
+    overflow-y: auto; // На мобільних дозволяємо скрол сторінки
   }
 }
 
-// --- Common Panel ---
+// --- COLUMNS (Unified Logic) ---
+.game-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;     // Колонка на всю висоту лейаута
+  min-height: 0;    // Запобігає вилазіню контенту
+  gap: 20px;
+
+  // Left Column Specifics
+  &.left-col {
+    .panel {
+      // Панель гравців має розтягуватись на решту місця
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+  }
+
+  // Center Column Specifics
+  &.center-col {
+    overflow-y: auto; // Центр скролиться, якщо контент довгий
+    padding-right: 5px; // Щоб скрол не налізав
+
+    // Кнопки знизу притискаються до низу
+    > div:last-child {
+      margin-top: auto;
+    }
+
+    &::-webkit-scrollbar { width: 6px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+  }
+
+  // Right Column Specifics (Chat) handled mostly by .chat-panel styles below
+}
+
+// --- PANELS & CARDS ---
 .panel {
   background: $color-spy-panel;
   padding: 20px;
@@ -102,24 +149,21 @@
     font-size: 18px;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     padding-bottom: 10px;
+    flex-shrink: 0;
   }
 }
 
-// --- Role Card ---
 .role-card {
+  flex-shrink: 0; // Картка ролі фіксована
   border-radius: 15px;
   padding: 30px;
   text-align: center;
   color: white;
-  margin-bottom: 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
   position: relative;
   overflow: hidden;
-
-  // Spy Theme
   background: linear-gradient(135deg, $color-spy-primary 0%, $color-spy-dark 100%);
 
-  // Civilian Theme
   &.civilian {
     background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
   }
@@ -127,12 +171,7 @@
 
 .role-icon { font-size: 60px; margin-bottom: 10px; }
 .role-title { font-size: 24px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
-
-.role-desc {
-  font-size: 14px;
-  opacity: 0.9;
-  line-height: 1.4;
-}
+.role-desc { font-size: 14px; opacity: 0.9; line-height: 1.4; }
 
 .secret-word-box {
   background: rgba(0,0,0,0.3);
@@ -154,14 +193,23 @@
   margin-top: 10px;
 }
 
-// --- Player List ---
+// --- PLAYERS LIST (Scrollable) ---
 .player-list-game {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;            // Займає весь доступний простір у панелі
+  overflow-y: auto;   // Скрол тільки тут
+  min-height: 0;      // Важливо для FF/Chrome
+  padding-right: 5px;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 }
 
 .player-row {
+  flex-shrink: 0; // Елемент списку не стискається
   background: $color-spy-panel-light;
   padding: 10px;
   border-radius: 10px;
@@ -183,25 +231,16 @@
   .player-info {
     display: flex;
     flex-direction: column;
-
     .p-name { font-weight: 600; font-size: 14px; }
-    .p-status { font-size: 11px; color: $color-text-muted; }
   }
 }
 
-// --- Center Column ---
-.center-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+// --- CENTER CONTENT ---
 .tips-list {
   padding-left: 20px;
   color: #B0B0B0;
   line-height: 1.6;
   font-size: 14px;
-
   li { margin-bottom: 5px; }
 }
 
@@ -213,43 +252,38 @@
   text-align: center;
   animation: fadeIn 0.5s;
 
-  h3 {
-    color: $color-spy-success;
-    border-bottom: none;
-    margin-bottom: 10px;
-  }
-
+  h3 { color: $color-spy-success; border-bottom: none; margin-bottom: 10px; }
   p { margin-bottom: 20px; font-size: 14px; }
 }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-// --- Chat ---
-.chat-panel {
-  display: flex;
-  flex-direction: column;
-  height: 600px; // Fixed height for desktop
-
-  @media (max-width: 1200px) {
-    height: 500px;
-  }
-}
-
+// --- CHAT (Right Column) ---
+// .chat-panel вже має клас .game-col, тому успадковує флекс-поведінку
 .chat-messages {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1;            // Розтягується
+  overflow-y: auto;   // Скролиться
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 15px;
   padding-right: 5px;
+  min-height: 0;
 
   &::-webkit-scrollbar { width: 6px; }
   &::-webkit-scrollbar-track { background: transparent; }
   &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 }
 
+.empty-chat-msg {
+  color: $color-text-muted;
+  text-align: center;
+  margin-top: 20px;
+  font-style: italic;
+}
+
 .chat-msg {
+  flex-shrink: 0;
   background: rgba(255,255,255,0.05);
   padding: 8px 12px;
   border-radius: 10px;
@@ -277,11 +311,11 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-
   .msg-author { font-weight: 700; color: #ddd; }
 }
 
 .chat-input-area {
+  flex-shrink: 0;
   display: flex;
   gap: 10px;
 
@@ -293,7 +327,6 @@
     background: #222;
     color: white;
     font-family: inherit;
-
     &:focus { outline: none; border-color: $color-spy-primary; }
   }
 }

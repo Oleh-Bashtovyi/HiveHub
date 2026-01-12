@@ -260,20 +260,19 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         };
 
         const handleGameStarted = (e: GameStartedEventDto) => {
-            setRoomState(RoomState.InGame);
+            const newState = e.state;
+
+            setRoomState(newState.state);
+            setGameState(newState.gameState);
+            setPlayers(newState.players);
+            setSettings(newState.settings);
+
+            const myNewState = newState.players.find(p => p.id === me?.id);
+            if (myNewState) {
+                setMe(myNewState);
+            }
+
             setGameResultSpies([]);
-            setGameState({
-                currentSecretWord: e.secretWord,
-                category: e.category,
-                gameStartTime: new Date().toISOString(),
-                gameEndTime: e.gameEndTime,
-                isTimerStopped: false,
-                timerStoppedAt: null,
-                timerVotesCount: 0,
-                recentMessages: []
-            });
-            // Reset votes visualization for new game
-            setPlayers(prev => prev.map(p => ({...p, isVotedToStopTimer: false})));
         };
 
         const handleChatMessage = (e: ChatMessageEventDto) => {
@@ -311,12 +310,34 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setGameResultSpies(e.spies);
         };
 
+        const handleGameEnded = () => {
+            setGameResultSpies([]);
+            setGameState(prev => {
+                if (!prev) return null;
+
+                return {
+                    ...prev,
+                    isTimerStopped: true
+                };
+            });
+        };
+
         const handleReturnToLobby = () => {
             setRoomState(RoomState.Lobby);
             setGameState(null);
             setGameResultSpies([]);
-            setPlayers(prev => prev.map(p => ({ ...p, isReady: false, isVotedToStopTimer: false, isSpy: undefined })));
-            setMe(prev => prev ? { ...prev, isReady: false, isVotedToStopTimer: false, isSpy: undefined } : null);
+            setPlayers(prev => prev.map(p => ({
+                ...p,
+                isReady: false,
+                isVotedToStopTimer: false,
+                isSpy: undefined
+            })));
+            setMe(prev => prev ? {
+                ...prev,
+                isReady: false,
+                isVotedToStopTimer: false,
+                isSpy: undefined
+            } : null);
         };
 
         svc.on(SpyHubEvents.PlayerJoined, handlePlayerJoined);
@@ -333,6 +354,7 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         svc.on(SpyHubEvents.TimerVoteUpdated, handleTimerStopped);
         svc.on(SpyHubEvents.SpiesRevealed, handleSpiesRevealed);
         svc.on(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
+        svc.on(SpyHubEvents.GameEnded, handleGameEnded);
 
         return () => {
             svc.off(SpyHubEvents.PlayerJoined, handlePlayerJoined);
@@ -349,6 +371,7 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
             svc.off(SpyHubEvents.TimerVoteUpdated, handleTimerStopped);
             svc.off(SpyHubEvents.SpiesRevealed, handleSpiesRevealed);
             svc.off(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
+            svc.off(SpyHubEvents.GameEnded, handleGameEnded);
         };
     }, [isConnected, me?.id, getService, clearSession, resetState]);
     

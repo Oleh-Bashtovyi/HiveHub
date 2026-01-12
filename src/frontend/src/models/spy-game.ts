@@ -122,11 +122,7 @@ export interface GameSettingsUpdatedEventDto {
     settings: RoomGameSettingsDto;
 }
 export interface GameStartedEventDto {
-    roomCode: string;
-    isSpy: boolean;
-    secretWord: string | null;
-    category: string;
-    gameEndTime: string;
+    state: RoomStateDto;
 }
 export interface ChatMessageEventDto {
     roomCode: string;
@@ -170,4 +166,5 @@ export interface SpyGameEventMap {
     [SpyHubEvents.SpiesRevealed]: SpiesRevealedEventDto;
     [SpyHubEvents.ReturnedToLobby]: ReturnToLobbyEventDto;
     [SpyHubEvents.PlayerConnectionStatusChanged]: PlayerConnectionChangedEventDto;
+    [SpyHubEvents.GameEnded]: GameEndedEventDto;
 }

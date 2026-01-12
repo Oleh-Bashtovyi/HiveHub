@@ -14,7 +14,7 @@ export const SpyGame = () => {
         me,
         gameState,
         roomState,
-        isInitializing, // Check loading state
+        isInitializing,
         sendMessage,
         voteStopTimer,
         revealSpies,
@@ -37,16 +37,22 @@ export const SpyGame = () => {
     };
 
     useEffect(() => {
-        // Wait for initialization to finish before redirecting
         if (isInitializing) return;
 
         if (!roomCode) {
             navigate('/spy');
             return;
         }
-        if (roomState === RoomState.Lobby) navigate('/spy/lobby');
-        // If Ended, we stay here to show results/overlay or redirect to results page if exists
-        // Assuming Logic handles result display within SpyGame or SpyResults
+
+        if (roomState === RoomState.Lobby) {
+            navigate('/spy/lobby');
+            return;
+        }
+
+        if (roomState === RoomState.Ended) {
+            navigate('/spy/results');
+            return;
+        }
     }, [roomCode, roomState, navigate, isInitializing]);
 
     useEffect(() => {
@@ -64,14 +70,16 @@ export const SpyGame = () => {
         return () => clearInterval(interval);
     }, [gameState?.gameEndTime, gameState?.isTimerStopped]);
 
+    // --- Chat Auto-Scroll ---
     useEffect(() => {
         if (gameState?.recentMessages.length) {
             chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
     }, [gameState?.recentMessages]);
 
+    // --- Rendering ---
     if (isInitializing || !gameState || !me) {
-        return <div className="spy-game-page theme-spy center-msg">🔄 Відновлення з'єднання...</div>;
+        return null;
     }
 
     const formatTime = (seconds: number) => {
@@ -98,17 +106,31 @@ export const SpyGame = () => {
         if (confirm('Ви впевнені? Це завершить гру для вас.')) {
             void safeExecute(async () => {
                 await leaveRoom();
-                navigate('/spy');
+                navigate('/spy'); // Force redirect
             });
         }
     };
 
+    const handleAbortGame = () => {
+        if (confirm('УВАГА: Це примусово завершить гру для всіх і поверне всіх в лобі. Продовжити?')) {
+            void safeExecute(async () => await returnToLobby());
+        }
+    };
+
     const isSpyRole = !gameState.currentSecretWord;
-    const isGameEnded = roomState === RoomState.Ended;
+
+    const getVoteString = () => {
+        if (!gameState) return "";
+        const activePlayers = players.filter(p => p.isConnected).length;
+        const required = Math.max(1, Math.ceil(activePlayers / 2.0));
+        return `${gameState.timerVotesCount} / ${required}`;
+    }
 
     return (
         <div className="spy-game-page theme-spy">
             <div className="game-container">
+
+                {/* --- HEADER --- */}
                 <div className="game-header">
                     <div className="timer-section">
                         <div className="timer-wrapper">
@@ -120,7 +142,7 @@ export const SpyGame = () => {
                             </div>
                         </div>
 
-                        {!gameState.isTimerStopped && !isGameEnded && (
+                        {!gameState.isTimerStopped && (
                             <div className="vote-controls">
                                 <Button
                                     size="small"
@@ -132,10 +154,11 @@ export const SpyGame = () => {
                                     {me.isVotedToStopTimer ? "Ви проголосували" : "⏸️ Стоп"}
                                 </Button>
                                 <div className="vote-info">
-                                    Голосів: {gameState.timerVotesCount}
+                                    Голосів: {getVoteString()}
                                 </div>
                             </div>
                         )}
+
                     </div>
                     <div className="room-code-display">
                         КІМНАТА: {roomCode}
@@ -143,16 +166,22 @@ export const SpyGame = () => {
                 </div>
 
                 <div className="game-layout">
-                    {/* Left Column */}
-                    <div>
+                    {/* --- LEFT COLUMN: Role & Players --- */}
+                    <div className="game-col left-col">
                         <div className={`role-card ${isSpyRole ? '' : 'civilian'}`}>
                             <div className="role-icon">{isSpyRole ? '🥷' : '🕵️'}</div>
                             <div className="role-title">
                                 {isSpyRole ? "ВИ ШПИГУН" : "Мирний Житель"}
                             </div>
+
                             <div className="role-desc">
-                                {isSpyRole ? "Не видайте себе та вгадайте слово." : "Знайдіть шпигуна."}
+                                {isSpyRole ? (
+                                    <>Ваша ціль: дізнатися слово з розмов інших або протриматися до кінця і не видати себе.</>
+                                ) : (
+                                    <>Ваша ціль: знайти шпигуна серед гравців, задаючи навідні питання.</>
+                                )}
                             </div>
+
                             {isSpyRole ? (
                                 gameState.category && <div className="category-badge">Категорія: {gameState.category}</div>
                             ) : (
@@ -166,77 +195,88 @@ export const SpyGame = () => {
                         <div className="panel">
                             <h3>Гравці</h3>
                             <div className="player-list-game">
-                                {players.map(p => {
-                                    // Show Spy icon if game ended OR explicitly set (e.g. spy teammates)
-                                    const showSpyIcon = (isGameEnded || p.isSpy === true) && p.isSpy;
-
-                                    return (
-                                        <div key={p.id} className="player-row" style={{ opacity: p.isConnected ? 1 : 0.5 }}>
-                                            <div className="mini-avatar">
-                                                {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
-                                            </div>
-                                            <div className="player-info">
-                                                <div className="p-name-row">
-                                                    <span className="p-name">{p.name} {p.id === me.id && '(Ви)'}</span>
-                                                    {/* DISPLAY ICONS */}
-                                                    {showSpyIcon && <span title="Шпигун">🥷</span>}
-                                                    {p.isHost && <span title="Хост">👑</span>}
-                                                    {/* Vote Hand Icon */}
-                                                    {!isGameEnded && !gameState.isTimerStopped && p.isVotedToStopTimer && (
-                                                        <span title="Голосував за стоп" className="vote-hand">✋</span>
-                                                    )}
-                                                </div>
-                                                {!p.isConnected && <span className="offline-status">🔌 Офлайн</span>}
-                                            </div>
+                                {players.map(p => (
+                                    <div key={p.id} className="player-row" style={{ opacity: p.isConnected ? 1 : 0.5 }}>
+                                        <div className="mini-avatar">
+                                            {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
                                         </div>
-                                    );
-                                })}
+                                        <div className="player-info">
+                                            <div className="p-name-row">
+                                                <span className="p-name">{p.name} {p.id === me.id && '(Ви)'}</span>
+                                                {/* Status Icons */}
+                                                {p.isHost && <span title="Хост">👑</span>}
+                                                {/* Show voted hand if timer running */}
+                                                {!gameState.isTimerStopped && p.isVotedToStopTimer && (
+                                                    <span title="Голосував за стоп" className="vote-hand">✋</span>
+                                                )}
+                                                {/* Show spy icon ONLY if it's me (or teammate if implemented later) */}
+                                                {p.isSpy && <span title="Шпигун">🥷</span>}
+                                            </div>
+                                            {!p.isConnected && <span className="offline-status">🔌 Офлайн</span>}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* Center Column */}
-                    <div className="center-column">
-                        {gameState.isTimerStopped && !isGameEnded && (
+                    {/* --- CENTER COLUMN: Tips & Actions --- */}
+                    <div className="game-col center-col">
+                        <div className="panel">
+                            <h3>💡 Як грати?</h3>
+                            <ul className="tips-list">
+                                <li><strong>По черзі</strong> задавайте один одному питання про секретне слово.</li>
+                                <li>Питання мають бути <strong>не надто прямими</strong>, щоб шпигун не здогадався.</li>
+                                <li>Але й <strong>не надто абстрактними</strong>, щоб інші зрозуміли, що ви "свій".</li>
+                                <li>Якщо підозрюєте когось — тисніть "Стоп" і голосуйте!</li>
+                            </ul>
+                        </div>
+
+                        {/* Discussion / Host Actions Panel */}
+                        {gameState.isTimerStopped && (
                             <div className="discussion-panel">
                                 <h3>📢 Час обговорення!</h3>
-                                <p>Таймер зупинено. Хост може розкрити карти.</p>
+                                <p>Таймер зупинено. Обговоріть свої підозри.</p>
+
                                 {me.isHost ? (
-                                    <Button fullWidth onClick={() => void safeExecute(async () => await revealSpies())} style={{ marginTop: 10 }}>
+                                    <Button
+                                        fullWidth
+                                        onClick={() => void safeExecute(async () => await revealSpies())}
+                                        style={{ marginTop: 10 }}
+                                    >
                                         🎭 РОЗКРИТИ ШПИГУНІВ
                                     </Button>
                                 ) : (
-                                    <div className="host-waiting-msg">Чекаємо на Хоста...</div>
+                                    <div className="host-waiting-msg">Чекаємо рішення Хоста...</div>
                                 )}
                             </div>
                         )}
 
-                        {isGameEnded && (
-                            <div className="discussion-panel ended">
-                                <h3>🏁 Гра завершена!</h3>
-                                <p>Шпигунами були:</p>
-                                <ul style={{listStyle:'none', padding:0}}>
-                                    {players.filter(p => p.isSpy).map(s => (
-                                        <li key={s.id}>🥷 {s.name}</li>
-                                    ))}
-                                </ul>
-                                {me.isHost && (
-                                    <Button fullWidth onClick={() => void safeExecute(async () => await returnToLobby())} style={{ marginTop: 10 }}>
-                                        ↩️ До лобі
-                                    </Button>
-                                )}
-                            </div>
-                        )}
+                        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {me.isHost && (
+                                <Button
+                                    variant="secondary" // Або інший стиль, щоб відрізнявся
+                                    fullWidth
+                                    onClick={handleAbortGame}
+                                    title="Повернути всіх в лобі та скинути гру"
+                                >
+                                    🛑 Перервати гру (В Лобі)
+                                </Button>
+                            )}
 
-                        <div style={{ marginTop: 'auto' }}>
-                            <Button variant="danger" fullWidth onClick={handleLeave}>🚪 Покинути гру</Button>
+                            <Button variant="danger" fullWidth onClick={handleLeave}>
+                                🚪 Покинути гру
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Right Column: Chat */}
-                    <div className="chat-panel panel">
+                    {/* --- RIGHT COLUMN: Chat --- */}
+                    <div className="chat-panel panel game-col">
                         <h3>💬 Чат</h3>
                         <div className="chat-messages">
+                            {gameState.recentMessages.length === 0 && (
+                                <div className="empty-chat-msg">Повідомлень ще немає...</div>
+                            )}
                             {gameState.recentMessages.map((msg, idx) => (
                                 <div key={idx} className={`chat-msg ${msg.playerId === me.id ? 'mine' : ''}`}>
                                     <div className="msg-header">

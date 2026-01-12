@@ -42,7 +42,7 @@ public class LeaveRoomHandler(
                 return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            var removalResult = SpyGamePlayerRemover.Remove(room, player.IdInRoom);
+            removalResult = SpyGamePlayerRemover.Remove(room, player.IdInRoom);
 
             return Result.Ok();
         });

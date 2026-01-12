@@ -34,7 +34,7 @@ public class HandleGameTimeUpHandler(
                 // Add a small buffer (2 seconds) to avoid race conditions
                 if (room.TimerState.PlannedGameEndTime <= DateTime.UtcNow.AddSeconds(2))
                 {
-                    room.State = RoomState.Ended;
+                    room.TimerState.IsTimerStopped = true;
                     timeIsUp = true;
                 }
             }

@@ -5,6 +5,7 @@ import {SpyEntry} from "./pages/SpyGame/SpyEntry/SpyEntry.tsx";
 import {SpyLobby} from "./pages/SpyGame/SpyLobby/SpyLobby.tsx";
 import {SpyGame} from "./pages/SpyGame/SpyGame/SpyGame.tsx";
 import GlobalLoader from "./layout/GlobalLoader/GlobalLoader.tsx";
+import { SpyResults } from "./pages/SpyGame/SpyResults/SpyResults.tsx";
 
 const SpyGameLayout = () => {
     return (
@@ -26,7 +27,7 @@ function App() {
                     <Route index element={<SpyEntry />} />
                     <Route path="lobby" element={<SpyLobby />} />
                     <Route path="game" element={<SpyGame />} />
-                    {/*<Route path="results" element={<SpyResults />} />*/}
+                    <Route path="results" element={<SpyResults />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

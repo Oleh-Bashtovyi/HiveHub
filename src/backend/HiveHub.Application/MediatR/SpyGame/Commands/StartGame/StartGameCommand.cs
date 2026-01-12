@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -114,15 +115,9 @@ public class StartGameHandler(
 
             foreach (var player in room.Players)
             {
-                var isSpy = player.PlayerState.IsSpy;
+                var personalState = SpyGameStateMapper.GetRoomStateForPlayer(room, player.IdInRoom);
 
-                var dto = new GameStartedEventDto(
-                    RoomCode: room.RoomCode,
-                    IsSpy: isSpy,
-                    SecretWord: isSpy ? null : randomWord,
-                    Category: room.GameSettings.ShowCategoryToSpy || !isSpy ? randomCategory.Name : null,
-                    GameEndTime: room.TimerState.PlannedGameEndTime.Value
-                );
+                var dto = new GameStartedEventDto(personalState);
 
                 notifications.Add((player.ConnectionId, dto));
             }

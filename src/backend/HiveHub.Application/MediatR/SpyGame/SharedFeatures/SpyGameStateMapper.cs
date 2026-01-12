@@ -1,4 +1,5 @@
-﻿using HiveHub.Application.Dtos.SpyGame;
+﻿using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Domain;
 
 namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
@@ -11,7 +12,7 @@ public static class SpyGameStateMapper
 
         if (targetPlayer == null)
         {
-            throw new Exception("Player not in room");
+            throw new Exception(ProjectMessages.RoomNotFound);
         }
 
         var isTargetPlayerSpy = targetPlayer.PlayerState.IsSpy;

@@ -8,11 +8,7 @@ public record PlayerJoinedEventDto(
 );
 
 public record GameStartedEventDto(
-    string RoomCode,
-    bool IsSpy,
-    string? SecretWord,
-    string Category,
-    DateTime GameEndTime
+    RoomStateDto State
 );
 
 public record GameSettingsUpdatedEventDto(
