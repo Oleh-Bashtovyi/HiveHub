@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -16,18 +17,20 @@ public record VoteStopTimerCommand(
 ) : IRequest<Result>;
 
 public class VoteStopTimerHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<VoteStopTimerHandler> logger)
     : IRequestHandler<VoteStopTimerCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _repository = repository;
     private readonly ISpyGamePublisher _publisher = publisher;
+    private readonly ITaskScheduler _scheduler = scheduler;
     private readonly ILogger<VoteStopTimerHandler> _logger = logger;
 
     public async Task<Result> Handle(VoteStopTimerCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -38,7 +41,7 @@ public class VoteStopTimerHandler(
         int votesCount = 0;
         int requiredVotes = 0;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAsync(async (room) =>
         {
             if (room.State != RoomState.InGame)
             {
@@ -80,6 +83,9 @@ public class VoteStopTimerHandler(
                 room.TimerState.IsTimerStopped = true;
                 room.TimerState.TimerStoppedAt = DateTime.UtcNow;
                 timerStopped = true;
+
+                var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
+                await _scheduler.CancelAsync(timerTask);
             }
 
             return Result.Ok();

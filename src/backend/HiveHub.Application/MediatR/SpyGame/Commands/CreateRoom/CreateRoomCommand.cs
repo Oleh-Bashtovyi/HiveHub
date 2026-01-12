@@ -13,8 +13,7 @@ namespace HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
 public record CreateRoomCommand(string ConnectionId) : IRequest<Result<CreateRoomResponseDto>>;
 
 public class CreateRoomHandler(
-    ISpyGameRepository spyGameRepository,
-    IConnectionMappingService mappingService,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<CreateRoomHandler> logger,
     IIdGenerator idGenerator)
@@ -22,7 +21,7 @@ public class CreateRoomHandler(
 {
     public async Task<Result<CreateRoomResponseDto>> Handle(CreateRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomCode = await spyGameRepository.GenerateUniqueRoomCodeAsync();
+        var roomCode = await repository.GenerateUniqueRoomCodeAsync();
         var room = new SpyRoom(roomCode);
         var hostPublicId = idGenerator.GenerateId(length: 16);
 
@@ -39,12 +38,10 @@ public class CreateRoomHandler(
 
         room.Players.Add(hostPlayer);
 
-        if (!await spyGameRepository.TryAddRoomAsync(room))
+        if (!await repository.TryAddRoomAsync(room))
         {
             return Results.ActionFailed(ProjectMessages.CreateRoom.UnableToCreateRoom);
         }
-
-        mappingService.Map(request.ConnectionId, roomCode);
 
         var myDto = new PlayerDto(
             hostPlayer.IdInRoom, 

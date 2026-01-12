@@ -4,7 +4,7 @@ using HiveHub.Domain;
 
 namespace HiveHub.Infrastructure.Models;
 
-public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDisposable
+public sealed class InMemorySpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDisposable
 {
     private readonly SpyRoom _room = room;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -91,6 +91,46 @@ public sealed class RamSpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDispos
         finally 
         { 
             _semaphore.Release(); 
+        }
+    }
+
+    public async Task<Result<T>> ExecuteAsync<T>(Func<SpyRoom, Task<Result<T>>> action)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            var result = await action(_room);
+
+            if (result.IsSuccess)
+            {
+                _room.IncrementVersion();
+            }
+
+            return result;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<Result> ExecuteAsync(Func<SpyRoom, Task<Result>> action)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            var result = await action(_room);
+
+            if (result.IsSuccess)
+            {
+                _room.IncrementVersion();
+            }
+
+            return result;
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 

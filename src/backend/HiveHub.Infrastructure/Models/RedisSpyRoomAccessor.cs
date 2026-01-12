@@ -82,6 +82,23 @@ public class RedisSpyRoomAccessor : ISpyRoomAccessor
         return result.ToResult();
     }
 
+    public async Task<Result<T>> ExecuteAsync<T>(Func<SpyRoom, Task<Result<T>>> action)
+    {
+        return await RunInLockAsync(room => action(room), saveChanges: true);
+    }
+
+    public async Task<Result> ExecuteAsync(Func<SpyRoom, Task<Result>> action)
+    {
+        var result = await RunInLockAsync(async room =>
+        {
+            var r = await action(room);
+
+            return r.IsSuccess ? Result.Ok(true) : Result.Fail<bool>(r.Errors);
+        }, saveChanges: true);
+
+        return result.ToResult();
+    }
+
     public async Task<Result<T>> ReadAsync<T>(Func<SpyRoom, T> selector)
     {
         return await RunInLockAsync(room =>

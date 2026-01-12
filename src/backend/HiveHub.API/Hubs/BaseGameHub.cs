@@ -1,4 +1,6 @@
 ﻿using FluentResults;
+using HiveHub.API.Dtos;
+using HiveHub.Application.Extensions;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 
@@ -13,27 +15,16 @@ public abstract class BaseGameHub<TClient> : Hub<TClient> where TClient : class
         _mediator = mediator;
     }
 
-    protected async Task<object> HandleCommand<TResponse>(IRequest<Result<TResponse>> command)
+    protected async Task<ApiResponse<TResponse>> HandleCommand<TResponse>(IRequest<Result<TResponse>> command)
+            where TResponse : class
     {
         var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-        {
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message ?? "Unknown error" };
-        }
-
-        return new { success = true, data = result.Value };
+        return result.ToApiResponse();
     }
 
-    protected async Task<object> HandleCommand(IRequest<Result> command)
+    protected async Task<ApiResponse> HandleCommand(IRequest<Result> command)
     {
         var result = await _mediator.Send(command);
-
-        if (result.IsFailed)
-        {
-            return new { success = false, error = result.Errors.FirstOrDefault()?.Message ?? "Unknown error" };
-        }
-
-        return new { success = true };
+        return result.ToApiResponse();
     }
 }

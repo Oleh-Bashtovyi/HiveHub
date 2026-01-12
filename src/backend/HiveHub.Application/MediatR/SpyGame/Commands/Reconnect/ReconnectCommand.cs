@@ -1,7 +1,9 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
+using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -17,29 +19,32 @@ public record ReconnectCommand(
 ) : IRequest<Result<RoomStateDto>>;
 
 public class ReconnectHandler(
-    ISpyGameRepository gameManager,
-    IConnectionMappingService mappingService,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<ReconnectHandler> logger)
     : IRequestHandler<ReconnectCommand, Result<RoomStateDto>>
 {
     public async Task<Result<RoomStateDto>> Handle(ReconnectCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
-            return Results.NotFound("Room not found.");
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         string? oldConnectionId = null;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAsync(async (room) =>
         {
             var player = room.Players.FirstOrDefault(x => x.IdInRoom == request.OldPlayerId);
             if (player == null)
             {
-                return Results.NotFound<RoomStateDto>("Player not found.");
+                return Results.NotFound<RoomStateDto>(ProjectMessages.PlayerNotFound);
             }
+
+            var task = new ScheduledTask(TaskType.SpyPlayerDisconnectTimeout, request.RoomCode, request.OldPlayerId);
+            await scheduler.CancelAsync(task);
 
             oldConnectionId = player.ConnectionId;
             player.ConnectionId = request.NewConnectionId;
@@ -54,11 +59,9 @@ public class ReconnectHandler(
 
         if (!string.IsNullOrEmpty(oldConnectionId))
         {
-            mappingService.Unmap(oldConnectionId);
             await publisher.RemovePlayerFromRoomGroupAsync(oldConnectionId, request.RoomCode);
         }
 
-        mappingService.Map(request.NewConnectionId, request.RoomCode);
         await publisher.AddPlayerToRoomGroupAsync(request.NewConnectionId, request.RoomCode);
 
         logger.LogInformation("Reconnect: {Old} -> {New} in {Room}",

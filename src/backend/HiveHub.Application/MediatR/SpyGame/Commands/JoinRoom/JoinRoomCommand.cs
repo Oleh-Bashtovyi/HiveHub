@@ -1,14 +1,13 @@
 ﻿using FluentResults;
-using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
-using HiveHub.Application.Errors;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
+using HiveHub.Application.Utils;
 using HiveHub.Domain;
 using MediatR;
-using HiveHub.Application.Utils;
 using Microsoft.Extensions.Logging;
-using HiveHub.Application.Constants;
 
 namespace HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 
@@ -18,22 +17,20 @@ public record JoinRoomCommand(
 ) : IRequest<Result<JoinRoomResponseDto>>;
 
 public class JoinRoomHandler(
-    ISpyGameRepository spyGameRepository,
-    IConnectionMappingService mappingService,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<JoinRoomHandler> logger,
     IIdGenerator idGenerator)
     : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto>>
 {
-    private readonly ISpyGameRepository _spyGameRepository = spyGameRepository;
-    private readonly IConnectionMappingService _mappingService = mappingService;
+    private readonly ISpyGameRepository _repository = repository;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<JoinRoomHandler> _logger = logger;
     private readonly IIdGenerator _idGenerator = idGenerator;
 
     public async Task<Result<JoinRoomResponseDto>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _spyGameRepository.GetRoom(request.RoomCode);
+        var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -127,8 +124,6 @@ public class JoinRoomHandler(
             request.ConnectionId,
             response.Me.Id,
             response.RoomCode);
-
-        _mappingService.Map(request.ConnectionId, request.RoomCode);
 
         await _publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
 

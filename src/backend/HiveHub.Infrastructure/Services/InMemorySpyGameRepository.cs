@@ -9,7 +9,7 @@ namespace HiveHub.Infrastructure.Services;
 
 public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGameRepository
 {
-    private readonly ConcurrentDictionary<string, RamSpyRoomAccessor> _rooms = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, InMemorySpyRoomAccessor> _rooms = new(StringComparer.OrdinalIgnoreCase);
     private readonly IIdGenerator _idGenerator = idGenerator;
 
     public Task<string> GenerateUniqueRoomCodeAsync()
@@ -31,7 +31,7 @@ public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGa
 
     public Task<bool> TryAddRoomAsync(SpyRoom room)
     {
-        var accessor = new RamSpyRoomAccessor(room);
+        var accessor = new InMemorySpyRoomAccessor(room);
         var result = _rooms.TryAdd(room.RoomCode, accessor);
         return Task.FromResult(result);
     }

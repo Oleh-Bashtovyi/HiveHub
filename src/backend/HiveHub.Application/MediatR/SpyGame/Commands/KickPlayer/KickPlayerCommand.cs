@@ -17,15 +17,14 @@ public record KickPlayerCommand(
 ) : IRequest<Result>;
 
 public class KickPlayerHandler(
-    ISpyGameRepository gameManager,
-    IConnectionMappingService mappingService,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<KickPlayerHandler> logger)
     : IRequestHandler<KickPlayerCommand, Result>
 {
     public async Task<Result> Handle(KickPlayerCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -67,11 +66,6 @@ public class KickPlayerHandler(
         });
 
         if (result.IsFailed) return result;
-
-        if (!string.IsNullOrEmpty(kickedPlayerConnectionId))
-        {
-            mappingService.Unmap(kickedPlayerConnectionId);
-        }
 
         logger.LogInformation("Player {PlayerId} kicked from {RoomCode}", request.TargetPlayerId, request.RoomCode);
 

@@ -107,4 +107,10 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
         return _hub.Clients.Group(eventDto.RoomCode)
             .ReturnedToLobby(eventDto);
     }
+
+    public Task PublishGameEndedAsync(GameEndedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .GameEnded(eventDto);
+    }
 }

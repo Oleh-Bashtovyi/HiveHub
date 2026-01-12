@@ -17,5 +17,6 @@ public interface ISpyGameClient
     Task TimerVoteUpdated(TimerStoppedEventDto eventDto);
     Task SpiesRevealed(SpiesRevealedEventDto eventDto);
     Task ReturnedToLobby(ReturnToLobbyEventDto eventDto);
+    Task GameEnded(GameEndedEventDto eventDto);
     Task PlayerConnectionStatusChanged(PlayerConnectionChangedEventDto eventDto);
 }

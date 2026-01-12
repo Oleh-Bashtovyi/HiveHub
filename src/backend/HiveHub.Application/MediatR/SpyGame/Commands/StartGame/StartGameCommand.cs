@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -16,12 +17,14 @@ public record StartGameCommand(
 ) : IRequest<Result>;
 
 public class StartGameHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<StartGameHandler> logger)
     : IRequestHandler<StartGameCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
+    private readonly ISpyGameRepository _gameManager = repository;
+    private readonly ITaskScheduler _scheduler = scheduler;
     private readonly ISpyGamePublisher _publisher = publisher;
     private readonly ILogger<StartGameHandler> _logger = logger;
 
@@ -34,6 +37,7 @@ public class StartGameHandler(
         }
 
         List<(string ConnectionId, GameStartedEventDto Payload)> notifications = new();
+        TimeSpan? timerDuration = null!;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
@@ -123,12 +127,19 @@ public class StartGameHandler(
                 notifications.Add((player.ConnectionId, dto));
             }
 
+            timerDuration = duration;
             return Result.Ok();
         });
 
         if (result.IsFailed)
         {
             return result;
+        }
+
+        if (timerDuration.HasValue)
+        {
+            var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
+            await _scheduler.ScheduleAsync(timerTask, timerDuration.Value);
         }
 
         _logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, "HIDDEN_IN_LOGS");

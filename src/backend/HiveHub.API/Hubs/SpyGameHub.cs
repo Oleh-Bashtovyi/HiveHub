@@ -1,4 +1,6 @@
-﻿using HiveHub.Application.Dtos.SpyGame;
+﻿using HiveHub.API.Dtos;
+using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeAvatar;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeHost;
 using HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
@@ -22,6 +24,7 @@ namespace HiveHub.API.Hubs;
 public class SpyGameHub : BaseGameHub<ISpyGameClient>
 {
     private readonly ILogger<SpyGameHub> _logger;
+    private const string RoomCodeKey = "SpyRoomCode";
 
     public SpyGameHub(IMediator mediator, ILogger<SpyGameHub> logger) : base(mediator)
     {
@@ -39,57 +42,96 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
         _logger.LogInformation("Client disconnected: {ConnectionId}. Reason: {Message}",
             Context.ConnectionId, exception?.Message ?? "Normal closure");
 
-        await _mediator.Send(new HandleDisconnectCommand(Context.ConnectionId));
+        if (Context.Items.TryGetValue(RoomCodeKey, out var roomCodeObj) && roomCodeObj is string roomCode)
+        {
+            await _mediator.Send(new HandleDisconnectCommand(Context.ConnectionId, roomCode));
+        }
 
         await base.OnDisconnectedAsync(exception);
     }
 
     // --- Connection Management ---
-    public Task<object> CreateRoom()
-        => HandleCommand(new CreateRoomCommand(Context.ConnectionId));
+    public async Task<ApiResponse<CreateRoomResponseDto>> CreateRoom()
+    {
+        var result = await _mediator.Send(new CreateRoomCommand(Context.ConnectionId));
 
-    public Task<object> JoinRoom(string roomCode)
-        => HandleCommand(new JoinRoomCommand(Context.ConnectionId, roomCode));
+        if (result.IsSuccess)
+        {
+            Context.Items[RoomCodeKey] = result.Value.RoomCode;
+        }
 
-    public Task<object> Reconnect(string roomCode, string lastPlayerId)
-        => HandleCommand(new ReconnectCommand(roomCode, lastPlayerId, Context.ConnectionId));
+        return result.ToApiResponse();
+    }
 
-    public Task<object> LeaveRoom(string roomCode)
-        => HandleCommand(new LeaveRoomCommand(roomCode, Context.ConnectionId));
+    public async Task<ApiResponse<JoinRoomResponseDto>> JoinRoom(string roomCode)
+    {
+        var result = await _mediator.Send(new JoinRoomCommand(Context.ConnectionId, roomCode));
+
+        if (result.IsSuccess)
+        {
+            Context.Items[RoomCodeKey] = roomCode;
+        }
+
+        return result.ToApiResponse();
+    }
+
+    public async Task<ApiResponse<RoomStateDto>> Reconnect(string roomCode, string lastPlayerId)
+    {
+        var result = await _mediator.Send(new ReconnectCommand(roomCode, lastPlayerId, Context.ConnectionId));
+
+        if (result.IsSuccess)
+        {
+            Context.Items[RoomCodeKey] = roomCode;
+        }
+
+        return result.ToApiResponse();
+    }
+
+    public async Task<ApiResponse> LeaveRoom(string roomCode)
+    {
+        var result = await _mediator.Send(new LeaveRoomCommand(roomCode, Context.ConnectionId));
+
+        if (result.IsSuccess)
+        {
+            Context.Items.Remove(RoomCodeKey);
+        }
+
+        return result.ToApiResponse();
+    }
 
     // --- Profile ---
-    public Task<object> ChangeName(string roomCode, string newName)
+    public Task<ApiResponse> ChangeName(string roomCode, string newName)
         => HandleCommand(new RenamePlayerCommand(roomCode, Context.ConnectionId, newName));
 
-    public Task<object> ChangeAvatar(string roomCode, string avatarId)
+    public Task<ApiResponse> ChangeAvatar(string roomCode, string avatarId)
         => HandleCommand(new ChangeAvatarCommand(roomCode, Context.ConnectionId, avatarId));
 
-    public Task<object> ToggleReady(string roomCode)
+    public Task<ApiResponse> ToggleReady(string roomCode)
         => HandleCommand(new ToggleReadyCommand(roomCode, Context.ConnectionId));
 
     // --- Host Actions ---
-    public Task<object> ChangeHost(string roomCode, string newHostPlayerId)
+    public Task<ApiResponse> ChangeHost(string roomCode, string newHostPlayerId)
         => HandleCommand(new ChangeHostCommand(roomCode, Context.ConnectionId, newHostPlayerId));
 
-    public Task<object> KickPlayer(string roomCode, string targetPlayerId)
+    public Task<ApiResponse> KickPlayer(string roomCode, string targetPlayerId)
         => HandleCommand(new KickPlayerCommand(roomCode, Context.ConnectionId, targetPlayerId));
 
-    public Task<object> UpdateSettings(string roomCode, RoomGameSettingsDto settings)
+    public Task<ApiResponse> UpdateSettings(string roomCode, RoomGameSettingsDto settings)
         => HandleCommand(new UpdateGameSettingsCommand(roomCode, Context.ConnectionId, settings));
 
-    public Task<object> ReturnToLobby(string roomCode)
+    public Task<ApiResponse> ReturnToLobby(string roomCode)
         => HandleCommand(new ReturnToLobbyCommand(roomCode, Context.ConnectionId));
 
     // --- Gameplay ---
-    public Task<object> StartGame(string roomCode)
+    public Task<ApiResponse> StartGame(string roomCode)
         => HandleCommand(new StartGameCommand(roomCode, Context.ConnectionId));
 
-    public Task<object> SendMessage(string roomCode, string message)
+    public Task<ApiResponse> SendMessage(string roomCode, string message)
         => HandleCommand(new SendMessageCommand(roomCode, Context.ConnectionId, message));
 
-    public Task<object> VoteStopTimer(string roomCode)
+    public Task<ApiResponse> VoteStopTimer(string roomCode)
         => HandleCommand(new VoteStopTimerCommand(roomCode, Context.ConnectionId));
 
-    public Task<object> RevealSpies(string roomCode)
+    public Task<ApiResponse> RevealSpies(string roomCode)
         => HandleCommand(new RevealSpiesCommand(roomCode, Context.ConnectionId));
 }

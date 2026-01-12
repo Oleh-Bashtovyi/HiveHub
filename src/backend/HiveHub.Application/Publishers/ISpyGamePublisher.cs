@@ -23,5 +23,6 @@ public interface ISpyGamePublisher
     Task PublishSpiesRevealedAsync(SpiesRevealedEventDto eventDto);
     Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
     Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
+    Task PublishGameEndedAsync(GameEndedEventDto eventDto);
 }
 
