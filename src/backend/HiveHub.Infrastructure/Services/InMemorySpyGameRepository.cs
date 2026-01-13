@@ -1,7 +1,8 @@
-﻿using HiveHub.Application.Models;
+﻿using HiveHub.Application.Constants;
+using HiveHub.Application.Models;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using HiveHub.Infrastructure.Models;
 using System.Collections.Concurrent;
 
@@ -14,10 +15,10 @@ public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGa
 
     public Task<string> GenerateUniqueRoomCodeAsync()
     {
-        var code = _idGenerator.GenerateId(8).ToUpperInvariant();
+        var code = _idGenerator.GenerateId(ProjectConstants.RoomCodeLength).ToUpperInvariant();
         while (_rooms.ContainsKey(code))
         {
-            code = _idGenerator.GenerateId(8).ToUpperInvariant();
+            code = _idGenerator.GenerateId(ProjectConstants.RoomCodeLength).ToUpperInvariant();
         }
         return Task.FromResult(code);
     }

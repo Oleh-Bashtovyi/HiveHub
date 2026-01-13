@@ -1,61 +1,52 @@
-﻿using HiveHub.Domain;
+﻿using HiveHub.Domain.Models;
 
 namespace HiveHub.Application.Dtos.SpyGame;
 
 public record JoinRoomResponseDto(
     PlayerDto Me,
-    string RoomCode,
-    List<PlayerDto> Players,
-    RoomGameSettingsDto Settings);
+    RoomStateDto RoomState
+);
 
 public record CreateRoomResponseDto(
-    string RoomCode,
     PlayerDto Me,
-    RoomGameSettingsDto Settings
+    RoomStateDto RoomState
+);
+
+public record RoomStateDto(
+    string RoomCode,
+    RoomStatus Status,
+    List<PlayerDto> Players,
+    List<ChatMessageDto> Messages,
+    RoomGameSettingsDto Settings,
+    GameStateDto? GameState,
+    long Version
 );
 
 public record PlayerDto(
     string Id,
     string Name,
+    string AvatarId,
     bool IsHost,
     bool IsReady,
-    string AvatarId,
     bool IsConnected,
     bool? IsSpy,
-    bool? IsVotedToStopTimer);
-
-public record RoomGameSettingsDto(
-    int TimerMinutes,
-    int SpiesCount,
-    bool SpiesKnowEachOther,
-    bool ShowCategoryToSpy,
-    List<WordsCategoryDto> WordsCategories);
-
-public record WordsCategoryDto(
-    string Name,
-    List<string> Words);
+    bool? IsVotedToStopTimer
+);
 
 public record ChatMessageDto(
     string PlayerId,
     string PlayerName,
     string Message,
-    DateTime Timestamp);
+    DateTime Timestamp
+);
 
-public record RevealSpiesDto(
-    string RoomCode,
-    List<SpyRevealDto> Spies);
-
-public record SpyRevealDto(
-    string PlayerId,
-    string PlayerName);
-
-public record RoomStateDto(
-    string RoomCode,
-    RoomState State,
-    List<PlayerDto> Players,
-    RoomGameSettingsDto Settings,
-    GameStateDto? GameState,
-    long Version
+public record RoomGameSettingsDto(
+    int TimerMinutes,
+    int MinSpiesCount,
+    int MaxSpiesCount,
+    bool SpiesKnowEachOther,
+    bool ShowCategoryToSpy,
+    List<WordsCategoryDto> CustomCategories
 );
 
 public record GameStateDto(
@@ -65,7 +56,16 @@ public record GameStateDto(
     DateTime? GameEndTime,
     bool IsTimerStopped,
     DateTime? TimerStoppedAt,
-    int TimerVotesCount,
-    List<ChatMessageDto> RecentMessages
+    int TimerVotesCount
 );
+
+public record WordsCategoryDto(
+    string Name,
+    List<string> Words
+);
+
+public record SpyRevealDto(
+    string PlayerId,
+    string PlayerName);
+
 

@@ -5,7 +5,6 @@ using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -18,18 +17,14 @@ public record ChangeHostCommand(
 ) : IRequest<Result>;
 
 public class ChangeHostHandler(
-    ISpyGameRepository spyRepository,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<ChangeHostHandler> logger)
     : IRequestHandler<ChangeHostCommand, Result>
 {
-    private readonly ISpyGameRepository _spyRepository = spyRepository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<ChangeHostHandler> _logger = logger;
-
     public async Task<Result> Handle(ChangeHostCommand request, CancellationToken cancellationToken)
     {
-        if (!_spyRepository.TryGetRoom(request.RoomCode, out var roomAccessor))
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
@@ -38,7 +33,7 @@ public class ChangeHostHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.ChangeHost.CanNotChangeHostMidGame);
             }
@@ -65,10 +60,10 @@ public class ChangeHostHandler(
             return result;
         }
 
-        _logger.LogInformation("Host changed to {NewHostId} in room {RoomCode}", newHostId, request.RoomCode);
+        logger.LogInformation("Host changed to {NewHostId} in room {RoomCode}", newHostId, request.RoomCode);
 
         var eventDto = new HostChangedEventDto(request.RoomCode, newHostId);
-        await _publisher.PublishHostChangedAsync(eventDto);
+        await publisher.PublishHostChangedAsync(eventDto);
 
         return Result.Ok();
     }

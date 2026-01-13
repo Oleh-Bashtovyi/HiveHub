@@ -1,10 +1,11 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -23,17 +24,20 @@ public class CreateRoomHandler(
     {
         var roomCode = await repository.GenerateUniqueRoomCodeAsync();
         var room = new SpyRoom(roomCode);
-        var hostPublicId = idGenerator.GenerateId(length: 16);
 
+        var hostPublicId = idGenerator.GenerateId(length: ProjectConstants.PlayerIdLength);
         var hostPlayer = new SpyPlayer(request.ConnectionId, hostPublicId)
         {
             Name = "Player 1",
             IsHost = true,
-            AvatarId = "default",
+            AvatarId = ProjectConstants.DefaultAvatarId,
             IsReady = false,
             IsConnected = true
         };
 
+        room.GameSettings.MaxSpiesCount = 1;
+        room.GameSettings.MinSpiesCount = 1;
+        room.GameSettings.SpiesKnowEachOther = true;
         room.GameSettings.Categories = CreateDefaultCategories();
 
         room.Players.Add(hostPlayer);
@@ -43,25 +47,10 @@ public class CreateRoomHandler(
             return Results.ActionFailed(ProjectMessages.CreateRoom.UnableToCreateRoom);
         }
 
-        var myDto = new PlayerDto(
-            hostPlayer.IdInRoom, 
-            hostPlayer.Name,
-            IsHost: true,
-            IsReady: false,
-            AvatarId: "default",
-            IsConnected: true,
-            IsSpy: null,
-            IsVotedToStopTimer: null);
+        var roomStateDto = SpyGameStateMapper.GetRoomStateForPlayer(room, hostPublicId);
+        var meDto = roomStateDto.Players.First(x => x.Id == hostPublicId);
 
-        var settingsDto = new RoomGameSettingsDto(
-            room.GameSettings.TimerMinutes,
-            room.GameSettings.SpiesCount,
-            room.GameSettings.SpiesKnowEachOther,
-            room.GameSettings.ShowCategoryToSpy,
-            room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
-        );
-
-        var response = new CreateRoomResponseDto(roomCode, myDto, settingsDto);
+        var response = new CreateRoomResponseDto(meDto, roomStateDto);
 
         logger.LogInformation("Room created: {RoomCode}", roomCode);
         await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);

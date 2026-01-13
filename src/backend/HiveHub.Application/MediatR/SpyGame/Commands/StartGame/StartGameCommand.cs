@@ -1,12 +1,14 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
 using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -24,15 +26,9 @@ public class StartGameHandler(
     ILogger<StartGameHandler> logger)
     : IRequestHandler<StartGameCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = repository;
-    private readonly ITaskScheduler _scheduler = scheduler;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<StartGameHandler> _logger = logger;
-
     public async Task<Result> Handle(StartGameCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
@@ -42,7 +38,7 @@ public class StartGameHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State == RoomState.InGame)
+            if (room.IsInGame())
             {
                 return Results.ActionFailed(ProjectMessages.StartGame.GameIsAlreadyStarted);
             }
@@ -67,40 +63,38 @@ public class StartGameHandler(
                 return Results.ActionFailed(ProjectMessages.SpyGameStartGame.NoCategoriesWasSet);
             }
 
-            if (room.GameSettings.Categories.All(x => x.Words.Count == 0))
+            if (room.GameSettings.Categories.Any(x => x.Words.Count == 0))
             {
-                return Results.ActionFailed(ProjectMessages.SpyGameStartGame.NoCategoriesWithAtLeastOneWord);
+                return Results.ActionFailed(ProjectMessages.SpyGameStartGame.SomeCategoryIsEmpty);
             }
 
             var random = Random.Shared;
+            
+            // Assign category and word
             var randomCategory = room.GameSettings.Categories[random.Next(room.GameSettings.Categories.Count)];
             var randomWord = randomCategory.Words[random.Next(randomCategory.Words.Count)];
+            room.CurrentSecretWord = randomWord;
+            room.CurrentCategory = randomCategory.Name;
 
+            // Cleanup players states
             foreach (var player in room.Players)
             {
                 player.PlayerState.IsSpy = false;
                 player.PlayerState.VotedToStopTimer = false;
             }
 
-            int spiesCount = Math.Min(room.GameSettings.SpiesCount, room.Players.Count - 1);
-            var playerConnectionIds = room.Players.Select(x => x.ConnectionId).ToList();
+            // Assigning spy roles
+            int targetSpyCount = random.Next(room.GameSettings.MinSpiesCount, room.GameSettings.MaxSpiesCount + 1);
+            int spiesCount = Math.Clamp(value: targetSpyCount, min: 0, max: room.Players.Count);
 
-            for (int i = 0; i < spiesCount; i++)
+            var spies = room.Players
+                .OrderBy(_ => random.Next())
+                .Take(spiesCount);
+
+            foreach (var spy in spies)
             {
-                int index = random.Next(playerConnectionIds.Count);
-                var spyConnectionId = playerConnectionIds[index];
-
-                while (room.Players.First(x => x.ConnectionId == spyConnectionId).PlayerState.IsSpy)
-                {
-                    index = random.Next(playerConnectionIds.Count);
-                    spyConnectionId = playerConnectionIds[index];
-                }
-
-                room.Players.First(x => x.ConnectionId == spyConnectionId).PlayerState.IsSpy = true;
+                spy.PlayerState.IsSpy = true;
             }
-
-            room.CurrentSecretWord = randomWord;
-            room.CurrentCategory = randomCategory.Name;
 
             // Setup Timer
             var now = DateTime.UtcNow;
@@ -110,7 +104,7 @@ public class StartGameHandler(
             room.TimerState.IsTimerStopped = false;
             room.TimerState.TimerStoppedAt = null;
 
-            room.State = RoomState.InGame;
+            room.Status = RoomStatus.InGame;
             room.ChatMessages.Clear();
 
             foreach (var player in room.Players)
@@ -134,14 +128,14 @@ public class StartGameHandler(
         if (timerDuration.HasValue)
         {
             var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
-            await _scheduler.ScheduleAsync(timerTask, timerDuration.Value);
+            await scheduler.ScheduleAsync(timerTask, timerDuration.Value);
         }
 
-        _logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, "HIDDEN_IN_LOGS");
+        logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, "HIDDEN_IN_LOGS");
 
         foreach (var notification in notifications)
         {
-            await _publisher.PublishGameStartedAsync(notification.ConnectionId, notification.Payload);
+            await publisher.PublishGameStartedAsync(notification.ConnectionId, notification.Payload);
         }
 
         return Result.Ok();

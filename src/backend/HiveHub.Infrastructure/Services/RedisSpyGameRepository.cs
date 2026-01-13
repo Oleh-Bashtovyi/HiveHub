@@ -1,8 +1,9 @@
-﻿using HiveHub.Application.Interfaces;
+﻿using HiveHub.Application.Constants;
+using HiveHub.Application.Interfaces;
 using HiveHub.Application.Models;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using HiveHub.Infrastructure.Models;
 using RedLockNet;
 using StackExchange.Redis;
@@ -11,7 +12,6 @@ namespace HiveHub.Infrastructure.Services;
 
 public class RedisSpyGameRepository : ISpyGameRepository
 {
-    private readonly IConnectionMultiplexer _redis;
     private readonly IDatabase _db;
     private readonly IIdGenerator _idGenerator;
     private readonly IRoomStorage _storage;
@@ -23,7 +23,6 @@ public class RedisSpyGameRepository : ISpyGameRepository
         IRoomStorage storage,
         IDistributedLockFactory lockFactory)
     {
-        _redis = redis;
         _db = redis.GetDatabase();
         _idGenerator = idGenerator;
         _storage = storage;
@@ -32,11 +31,11 @@ public class RedisSpyGameRepository : ISpyGameRepository
 
     public async Task<string> GenerateUniqueRoomCodeAsync()
     {
-        var code = _idGenerator.GenerateId(8);
+        var code = _idGenerator.GenerateId(ProjectConstants.RoomCodeLength);
 
         while (await _db.KeyExistsAsync($"room:{code}"))
         {
-            code = _idGenerator.GenerateId(8);
+            code = _idGenerator.GenerateId(ProjectConstants.RoomCodeLength);
         }
 
         return code;

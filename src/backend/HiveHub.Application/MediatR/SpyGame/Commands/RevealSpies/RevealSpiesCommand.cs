@@ -5,7 +5,7 @@ using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -22,13 +22,9 @@ public class RevealSpiesHandler(
     ILogger<RevealSpiesHandler> logger)
     : IRequestHandler<RevealSpiesCommand, Result>
 {
-    private readonly ISpyGameRepository _repository = repostiroty;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<RevealSpiesHandler> _logger = logger;
-
     public async Task<Result> Handle(RevealSpiesCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repostiroty.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -38,7 +34,7 @@ public class RevealSpiesHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.InGame)
+            if (!room.IsInGame())
             {
                 return Results.ActionFailed(ProjectMessages.SpyGameRevealSpies.RevealSpiesCanBeDoneOnlyMidGame);
             }
@@ -63,7 +59,7 @@ public class RevealSpiesHandler(
                 .Select(p => new SpyRevealDto(p.IdInRoom, p.Name))
                 .ToList();
 
-            room.State = RoomState.Ended;
+            room.Status = RoomStatus.Ended;
 
             return Result.Ok();
         });
@@ -73,11 +69,11 @@ public class RevealSpiesHandler(
             return result;
         }
 
-        _logger.LogInformation("Spies revealed in room {RoomCode}. Count: {SpiesCount}",
+        logger.LogInformation("Spies revealed in room {RoomCode}. Count: {SpiesCount}",
             request.RoomCode, spies.Count);
 
         var eventDto = new SpiesRevealedEventDto(request.RoomCode, spies);
-        await _publisher.PublishSpiesRevealedAsync(eventDto);
+        await publisher.PublishSpiesRevealedAsync(eventDto);
 
         return Result.Ok();
     }

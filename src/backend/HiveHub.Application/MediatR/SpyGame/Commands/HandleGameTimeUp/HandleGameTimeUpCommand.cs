@@ -2,7 +2,6 @@
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -28,7 +27,7 @@ public class HandleGameTimeUpHandler(
 
         await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State == RoomState.InGame && !room.TimerState.IsTimerStopped)
+            if (room.IsInGame() && !room.TimerState.IsTimerStopped)
             {
                 // Check if the time has actually expired (in case of lags or outdated scheduled tasks)
                 // Add a small buffer (2 seconds) to avoid race conditions

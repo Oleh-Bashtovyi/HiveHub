@@ -1,5 +1,4 @@
 ﻿using FluentResults;
-using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -45,23 +44,7 @@ public class HandlePlayerTimeoutHandler(
 
         logger.LogInformation("Timeout: Player {PlayerId} removed from room {RoomCode}", request.PlayerId, request.RoomCode);
 
-        if (removalResult.ShouldDeleteRoom)
-        {
-            await repository.RemoveRoomAsync(request.RoomCode);
-            logger.LogInformation("Room {RoomCode} deleted after timeout - no players left", request.RoomCode);
-        }
-        else
-        {
-            if (removalResult.RemovedPlayerId != null)
-            {
-                await publisher.PublishPlayerLeftAsync(new PlayerLeftEventDto(request.RoomCode, removalResult.RemovedPlayerId));
-            }
-
-            if (removalResult.NewHostId != null)
-            {
-                await publisher.PublishHostChangedAsync(new HostChangedEventDto(request.RoomCode, removalResult.NewHostId));
-            }
-        }
+        await SpyGamePlayerRemover.PublishSideEffectAfterRemove(removalResult, publisher, repository, logger);
 
         return Result.Ok();
     }

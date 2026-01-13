@@ -3,7 +3,7 @@ using HiveHub.Application.Constants;
 using HiveHub.Application.Errors;
 using HiveHub.Application.Interfaces;
 using HiveHub.Application.Models;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using RedLockNet;
 
 namespace HiveHub.Infrastructure.Models;

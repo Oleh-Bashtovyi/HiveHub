@@ -5,7 +5,7 @@ using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -23,13 +23,9 @@ public class SendMessageHandler(
     ILogger<SendMessageHandler> logger)
     : IRequestHandler<SendMessageCommand, Result>
 {
-    private readonly ISpyGameRepository _repository = repository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<SendMessageHandler> _logger = logger;
-
     public async Task<Result> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -39,11 +35,6 @@ public class SendMessageHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.InGame)
-            {
-                return Results.ActionFailed(ProjectMessages.SendMessage.ChatAvailableOnlyMidGame);
-            }
-
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound(ProjectMessages.PlayerNotFound);
@@ -78,12 +69,12 @@ public class SendMessageHandler(
             return result;
         }
 
-        _logger.LogInformation("Chat message sent in room {RoomCode} by player {PlayerId}",
+        logger.LogInformation("Chat message sent in room {RoomCode} by player {PlayerId}",
             request.RoomCode, 
             messageDto.PlayerId);
 
         var eventDto = new ChatMessageEventDto(request.RoomCode, messageDto);
-        await _publisher.PublishChatMessageAsync(eventDto);
+        await publisher.PublishChatMessageAsync(eventDto);
 
         return Result.Ok();
     }

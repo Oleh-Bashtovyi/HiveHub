@@ -4,7 +4,6 @@ using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -21,13 +20,9 @@ public class ToggleReadyHandler(
     ILogger<ToggleReadyHandler> logger)
     : IRequestHandler<ToggleReadyCommand, Result>
 {
-    private readonly ISpyGameRepository _repository = repository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<ToggleReadyHandler> _logger = logger;
-
     public async Task<Result> Handle(ToggleReadyCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -38,7 +33,7 @@ public class ToggleReadyHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.ToggleReady.CanNotReadyStatusMidGame);
             }
@@ -60,11 +55,11 @@ public class ToggleReadyHandler(
             return result;
         }
 
-        _logger.LogInformation("Player {PlayerId} ready status changed to {IsReady} in room {RoomCode}",
+        logger.LogInformation("Player {PlayerId} ready status changed to {IsReady} in room {RoomCode}",
             playerId, newReadyStatus, request.RoomCode);
 
         var eventDto = new PlayerReadyStatusChangedEventDto(request.RoomCode, playerId, newReadyStatus);
-        await _publisher.PublishPlayerReadyStatusChangedAsync(eventDto);
+        await publisher.PublishPlayerReadyStatusChangedAsync(eventDto);
 
         return Result.Ok();
     }

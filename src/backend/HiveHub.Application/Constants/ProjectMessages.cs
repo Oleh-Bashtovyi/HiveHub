@@ -1,7 +1,4 @@
-﻿using Microsoft.Win32;
-using System.Runtime.InteropServices;
-
-namespace HiveHub.Application.Constants;
+﻿namespace HiveHub.Application.Constants;
 
 public static class ProjectMessages
 {
@@ -16,100 +13,111 @@ public static class ProjectMessages
 
     public static class ChangeHost
     {
-        public static readonly string CanNotChangeHostMidGame = "Не можна змінювати хоста під час гри.";
-        public static readonly string OnlyHostCanChangePermission = "Тільки хост може передавати права.";
+        public static readonly string CanNotChangeHostMidGame = "Cannot change host during the game.";
+        public static readonly string OnlyHostCanChangePermission = "Only host can transfer permissions.";
     }
 
     public static class ChangeAvatar
     {
-        public static readonly string CanNotChangeAvatarMidGame = "Не можна змінювати аватар під час гри.";
-        public static readonly string AvatarHasBadFormat = "Некоректний ідентифікатор аватара.";
-
+        public static readonly string CanNotChangeAvatarMidGame = "Cannot change avatar during the game.";
+        public static readonly string AvatarHasBadFormat = "Invalid avatar identifier.";
     }
 
     public static class JoinRoom
     {
-        public static readonly string YouAreAlreadyInRoom = "You are already in room";
-        public static readonly string CanNotJoinMidGame = "Can not join mid game";
-        public static readonly string SpyGameExceedingMaxPlayersCount =
-            $"Max players count reached. Only {ProjectConstants.SpyGameMaxPlayersCount} can join game simulteniously";
-
+        public static readonly string YouAreAlreadyInRoom = "You are already in the room.";
+        public static readonly string CanNotJoinMidGame = "Cannot join mid-game.";
     }
 
     public static class Kick
     {
-        public static readonly string HostCanNotKickItself = "Хост не може вигнати сам себе.";
-        public static readonly string OnlyHostCanKickPlayers = "Тільки хост може виганяти гравців.";
-        public static readonly string CanNotKickPlayersMidGame = "Не можна виганяти гравців під час гри.";
+        public static readonly string HostCanNotKickItself = "Host cannot kick themselves.";
+        public static readonly string OnlyHostCanKickPlayers = "Only host can kick players.";
+        public static readonly string CanNotKickPlayersMidGame = "Cannot kick players during the game.";
     }
 
     public static class Rename
     {
-        public static readonly string CanNotChangeGameMidGame = "Не можна змінювати ім'я під час гри.";
-        public static readonly string PlayerWithThisNameAlreadyExistsInRoom = "Гравець з таким ім'ям вже існує в кімнаті.";
-        public static readonly string PlayerNameMustHaveLength = $"Name must have at least 1 character and be less than {ProjectConstants.PlayerNameMaxLength}";
+        public static readonly string CanNotChangeGameMidGame = "Cannot change name during the game.";
+        public static readonly string PlayerWithThisNameAlreadyExistsInRoom = "Player with this name already exists in the room.";
+        public static readonly string PlayerNameMustHaveLength = $"Name must have at least 1 character and be less than {ProjectConstants.PlayerNameMaxLength}.";
     }
 
     public static class ReturnToLobby
     {
-        public static readonly string OnlyHostCanReturnToLobby = "Тільки хост може повернутися в лобі.";
+        public static readonly string OnlyHostCanReturnToLobby = "Only host can return to lobby.";
     }
 
     public static class SendMessage
     {
-        public static readonly string ChatAvailableOnlyMidGame = "Чат доступний тільки під час гри.";
-        public static readonly string BadMessageFormat = $"Повідомлення повинно бути від 1 до {ProjectConstants.MessageMaxLength} символів.";
+        public static readonly string BadMessageFormat = $"Message must be between 1 and {ProjectConstants.MessageMaxLength} characters.";
     }
 
     public static class VoteToStopTimer
     {
-        public static readonly string YouHaveAlreadyVoted = "Ви вже проголосували.";
-        public static readonly string TimerHasAlreadyStoped = "Таймер вже зупинено.";
-        public static readonly string TimeHasPassed = "Час вийшов.";
-        public static readonly string VoteToStopTimerAvailvableOnlyMidGame = "You can stop timer only during game";
+        public static readonly string YouHaveAlreadyVoted = "You have already voted.";
+        public static readonly string TimerHasAlreadyStoped = "Timer is already stopped.";
+        public static readonly string TimeHasPassed = "Time is up.";
+        public static readonly string VoteToStopTimerAvailvableOnlyMidGame = "You can stop timer only during game.";
     }
 
     public static class ToggleReady
     {
-        public static readonly string CanNotReadyStatusMidGame = "Не можна змінювати статус готовності під час гри.";
+        public static readonly string CanNotReadyStatusMidGame = "Cannot change ready status during the game.";
     }
 
     public static class GetRoomState
     {
-        public static readonly string HaveNotFoundPlayerWithThisConnectionIdInRoom = "Гравця не знайдено в кімнаті за цим з'єднанням.";
+        public static readonly string HaveNotFoundPlayerWithThisConnectionIdInRoom = "Player not found in the room by this connection.";
     }
 
     public static class UpdateSettings
     {
-        public static readonly string OnlyHostCanChangeGameSettings = "Тільки хост може змінювати налаштування.";
-        public static readonly string CanNotChangeGameSettingsMidGame = "Не можна змінювати налаштування під час гри.";
+        public static readonly string OnlyHostCanChangeGameSettings = "Only host can change settings.";
+        public static readonly string CanNotChangeGameSettingsMidGame = "Cannot change settings during the game.";
     }
 
     public static class StartGame
     {
-        public static readonly string GameIsAlreadyStarted = "Гра вже йде. Спочатку завершіть поточну.";
-        public static readonly string OnlyHostCanStartGame = "Тільки хост може почати гру.";
-        public static readonly string NotAllPlayersIsReady = "Не всі гравці готові. Всі повинні натиснути 'Готовий'.";
+        public static readonly string GameIsAlreadyStarted = "Game is already in progress. Finish current game first.";
+        public static readonly string OnlyHostCanStartGame = "Only host can start the game.";
+        public static readonly string NotAllPlayersIsReady = "Not all players are ready. Everyone must press 'Ready'.";
+    }
+
+    public static class SpyGameJoinRoom
+    {
+        public static readonly string ExceedingMaxPlayersCount = 
+            $"Max players count reached. Only {ProjectConstants.SpyGame.MaxPlayersCount} can join game simultaneously.";
     }
 
     public static class SpyGameStartGame
     {
-        public static readonly string NoCategoriesWasSet = "Немає категорій слів для гри.";
-        public static readonly string MinimumThreePlayersRequiredToStart = "Недостатньо гравців (мінімум 3).";
-        public static readonly string NoCategoriesWithAtLeastOneWord = "Немає категорій що містять хоча б одне слово.";
+        public static readonly string NoCategoriesWasSet = "No word categories selected for the game.";
+        public static readonly string MinimumThreePlayersRequiredToStart = "Not enough players (minimum 3).";
+        public static readonly string NoCategoriesWithAtLeastOneWord = "Selected categories do not contain any words.";
+        public static readonly string SomeCategoryIsEmpty = "Some category contain no words.";
     }
 
     public static class SpyGameRevealSpies
     {
-        public static readonly string OnlyHostCanRevealSpies = "Тільки хост може розкрити шпигунів.";
-        public static readonly string TimerMustBeStoppedToRevealSpies = "Спочатку потрібно зупинити таймер.";
-        public static readonly string RevealSpiesCanBeDoneOnlyMidGame = "Гра не йде.";
+        public static readonly string OnlyHostCanRevealSpies = "Only host can reveal spies.";
+        public static readonly string TimerMustBeStoppedToRevealSpies = "Timer must be stopped first.";
+        public static readonly string RevealSpiesCanBeDoneOnlyMidGame = "Game is not in progress.";
     }
 
     public static class SpyGameUpdateSettings
     {
-        public static readonly string SpiesCountMustBeMinimumOne = "Кількість шпигунів повинна бути мінімум 1.";
-        public static readonly string GameTimeMustBeInRange = 
-            $"Час гри повинен бути від {ProjectConstants.SpyGameMinGameDurationMinutes} до {ProjectConstants.SpyGameMaxGameDurationMinutes} хвилин.";
+        public static readonly string MinSpiesMustBeNonNegative = "Minimum spies count must be 0 or more.";
+        public static readonly string MaxSpiesMustBeAtLeastOne = "Maximum spies count must be at least 1.";
+        public static readonly string MinSpiesCannotExceedMax = "Minimum spies count cannot be greater than maximum.";
+
+        public static readonly string MaxSpiesCannotBeGraterThan = 
+            $"Maximum spies count cannont be grater than {ProjectConstants.SpyGame.MaxPlayersCount}.";
+
+        public static readonly string MaxCustomCategoriesCountCannotBeGraterThan =
+            $"Maximum custom categories count cannont be grater than {ProjectConstants.SpyGame.MaxCustomCategoriesCount}.";
+
+        public static readonly string GameTimeMustBeInRange =
+            $"Game time must be between {ProjectConstants.SpyGame.MinGameDurationMinutes} and {ProjectConstants.SpyGame.MaxGameDurationMinutes} minutes.";
     }
 }

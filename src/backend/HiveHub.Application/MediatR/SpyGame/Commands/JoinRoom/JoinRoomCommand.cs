@@ -2,10 +2,11 @@
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -23,14 +24,9 @@ public class JoinRoomHandler(
     IIdGenerator idGenerator)
     : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto>>
 {
-    private readonly ISpyGameRepository _repository = repository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<JoinRoomHandler> _logger = logger;
-    private readonly IIdGenerator _idGenerator = idGenerator;
-
     public async Task<Result<JoinRoomResponseDto>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -38,14 +34,14 @@ public class JoinRoomHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.JoinRoom.CanNotJoinMidGame);
             }
 
-            if (room.Players.Count >= ProjectConstants.SpyGameMaxPlayersCount)
+            if (room.Players.Count >= ProjectConstants.SpyGame.MaxPlayersCount)
             {
-                return Results.ActionFailed(ProjectMessages.JoinRoom.SpyGameExceedingMaxPlayersCount);
+                return Results.ActionFailed(ProjectMessages.SpyGameJoinRoom.ExceedingMaxPlayersCount);
             }
 
             if (room.Players.Any(x => x.ConnectionId == request.ConnectionId))
@@ -53,57 +49,24 @@ public class JoinRoomHandler(
                 return Results.ActionFailed(ProjectMessages.JoinRoom.YouAreAlreadyInRoom);
             }
 
-            var publicId = _idGenerator.GenerateId(length: 16);
-            bool isHost = room.Players.Count == 0;
-            var playerName = $"Player {room.Players.Count + 1}";
+            var publicId = idGenerator.GenerateId(length: ProjectConstants.PlayerIdLength);
+            var isHost = room.Players.Count == 0;
 
             var newPlayer = new SpyPlayer(request.ConnectionId, publicId)
             {
-                Name = playerName,
+                Name = $"Player {room.Players.Count + 1}",
                 IsHost = isHost,
-                AvatarId = "default",
+                AvatarId = ProjectConstants.DefaultAvatarId,
                 IsReady = false,
                 IsConnected = true,
             };
 
             room.Players.Add(newPlayer);
 
-            var myDto = new PlayerDto(
-                newPlayer.IdInRoom,
-                newPlayer.Name,
-                newPlayer.IsHost,
-                newPlayer.IsReady,
-                newPlayer.AvatarId,
-                newPlayer.IsConnected,
-                newPlayer.PlayerState.IsSpy,
-                newPlayer.PlayerState.VotedToStopTimer);
+            var roomStateDto = SpyGameStateMapper.GetRoomStateForPlayer(room, publicId);
+            var meDto = roomStateDto.Players.First(x => x.Id == publicId);
 
-            var allPlayersDto = room.Players
-                .Select(p => new PlayerDto(
-                    Id: p.IdInRoom, 
-                    Name: p.Name, 
-                    IsHost: p.IsHost, 
-                    IsReady: p.IsReady, 
-                    AvatarId: p.AvatarId,
-                    IsConnected: p.IsConnected,
-                    IsSpy: null,
-                    IsVotedToStopTimer: null))
-                .ToList();
-
-            var settingsDto = new RoomGameSettingsDto(
-                room.GameSettings.TimerMinutes,
-                room.GameSettings.SpiesCount,
-                room.GameSettings.SpiesKnowEachOther,
-                room.GameSettings.ShowCategoryToSpy,
-                room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
-            );
-
-            var responseDto = new JoinRoomResponseDto(
-                    Me: myDto,
-                    RoomCode: room.RoomCode,
-                    Players: allPlayersDto,
-                    Settings: settingsDto
-                );
+            var responseDto = new JoinRoomResponseDto(meDto, roomStateDto);
 
             return Result.Ok(responseDto);
         });
@@ -120,16 +83,16 @@ public class JoinRoomHandler(
             return Results.ActionFailed("Unknown error");
         }
 
-        _logger.LogInformation("User with connection id: {ConnectionId} and id: {UserId} joined to room with code: {RoomCode}",
+        logger.LogInformation("User with connection id: {ConnectionId} and id: {UserId} joined to room with code: {RoomCode}",
             request.ConnectionId,
             response.Me.Id,
-            response.RoomCode);
+            response.RoomState.RoomCode);
 
-        await _publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
+        await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
 
         var eventDto = new PlayerJoinedEventDto(request.RoomCode, response.Me);
 
-        await _publisher.PublishPlayerJoinedAsync(eventDto);
+        await publisher.PublishPlayerJoinedAsync(eventDto);
 
         return Result.Ok(response);
     }

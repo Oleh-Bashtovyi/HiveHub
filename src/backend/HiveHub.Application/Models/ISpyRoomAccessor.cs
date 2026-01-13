@@ -1,5 +1,5 @@
 ﻿using FluentResults;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 
 namespace HiveHub.Application.Models;
 

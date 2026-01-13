@@ -5,7 +5,6 @@ using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -18,18 +17,14 @@ public record ChangeAvatarCommand(
 ) : IRequest<Result>;
 
 public class ChangeAvatarHandler(
-    ISpyGameRepository spyRepository,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<ChangeAvatarHandler> logger)
     : IRequestHandler<ChangeAvatarCommand, Result>
 {
-    private readonly ISpyGameRepository _spyRepository = spyRepository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<ChangeAvatarHandler> _logger = logger;
-
     public async Task<Result> Handle(ChangeAvatarCommand request, CancellationToken cancellationToken)
     {
-        if (!_spyRepository.TryGetRoom(request.RoomCode, out var roomAccessor))
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
@@ -38,7 +33,7 @@ public class ChangeAvatarHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.ChangeAvatar.CanNotChangeAvatarMidGame);
             }
@@ -64,11 +59,11 @@ public class ChangeAvatarHandler(
             return result;
         }
 
-        _logger.LogInformation("Player {PlayerId} changed avatar to {AvatarId} in room {RoomCode}",
+        logger.LogInformation("Player {PlayerId} changed avatar to {AvatarId} in room {RoomCode}",
             playerId, request.NewAvatarId, request.RoomCode);
 
         var eventDto = new PlayerChangedAvatarEventDto(request.RoomCode, playerId, request.NewAvatarId);
-        await _publisher.PublishPlayerChangedAvatarAsync(eventDto);
+        await publisher.PublishPlayerChangedAvatarAsync(eventDto);
 
         return Result.Ok();
     }

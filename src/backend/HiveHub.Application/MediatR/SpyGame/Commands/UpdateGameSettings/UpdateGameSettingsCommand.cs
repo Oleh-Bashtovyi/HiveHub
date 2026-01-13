@@ -5,7 +5,7 @@ using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -23,13 +23,9 @@ public class UpdateGameSettingsHandler(
     ILogger<UpdateGameSettingsHandler> logger)
     : IRequestHandler<UpdateGameSettingsCommand, Result>
 {
-    private readonly ISpyGameRepository _repository = repository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<UpdateGameSettingsHandler> _logger = logger;
-
     public async Task<Result> Handle(UpdateGameSettingsCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -37,7 +33,8 @@ public class UpdateGameSettingsHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            // State and Permissions
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.UpdateSettings.CanNotChangeGameSettingsMidGame);
             }
@@ -47,23 +44,48 @@ public class UpdateGameSettingsHandler(
                 return Results.Forbidden(ProjectMessages.UpdateSettings.OnlyHostCanChangeGameSettings);
             }
 
-            if (request.NewSettings.TimerMinutes < ProjectConstants.SpyGameMinGameDurationMinutes || 
-                request.NewSettings.TimerMinutes > ProjectConstants.SpyGameMaxGameDurationMinutes)
+            // Validation: Timer
+            if (request.NewSettings.TimerMinutes < ProjectConstants.SpyGame.MinGameDurationMinutes || 
+                request.NewSettings.TimerMinutes > ProjectConstants.SpyGame.MaxGameDurationMinutes)
             {
                 return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.GameTimeMustBeInRange);
             }
 
-            if (request.NewSettings.SpiesCount < 1)
+            // Spy Counts (Min/Max Logic)
+            if (request.NewSettings.MinSpiesCount < 0)
             {
-                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.SpiesCountMustBeMinimumOne);
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.MinSpiesMustBeNonNegative);
             }
 
+            if (request.NewSettings.MaxSpiesCount < 1)
+            {
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.MaxSpiesMustBeAtLeastOne);
+            }
+
+            if (request.NewSettings.MaxSpiesCount > ProjectConstants.SpyGame.MaxPlayersCount)
+            {
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.MaxSpiesCannotBeGraterThan);
+            }
+
+            if (request.NewSettings.MinSpiesCount > request.NewSettings.MaxSpiesCount)
+            {
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.MinSpiesCannotExceedMax);
+            }
+
+            // Custom words
+            if (request.NewSettings.CustomCategories.Count > ProjectConstants.SpyGame.MaxCustomCategoriesCount)
+            {
+                return Results.ValidationFailed(ProjectMessages.SpyGameUpdateSettings.MaxCustomCategoriesCountCannotBeGraterThan);
+            }
+
+            // Apply changes
             room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;
-            room.GameSettings.SpiesCount = request.NewSettings.SpiesCount;
+            room.GameSettings.MinSpiesCount = request.NewSettings.MinSpiesCount;
+            room.GameSettings.MaxSpiesCount = request.NewSettings.MaxSpiesCount;
             room.GameSettings.SpiesKnowEachOther = request.NewSettings.SpiesKnowEachOther;
             room.GameSettings.ShowCategoryToSpy = request.NewSettings.ShowCategoryToSpy;
 
-            room.GameSettings.Categories = request.NewSettings.WordsCategories
+            room.GameSettings.Categories = request.NewSettings.CustomCategories
                 .Select(c => new SpyGameWordsCategory
                 {
                     Name = c.Name,
@@ -79,10 +101,10 @@ public class UpdateGameSettingsHandler(
             return result;
         }
 
-        _logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
+        logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
 
         var eventDto = new GameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings);
-        await _publisher.PublishGameSettingsUpdatedAsync(eventDto);
+        await publisher.PublishGameSettingsUpdatedAsync(eventDto);
 
         return Result.Ok();
     }

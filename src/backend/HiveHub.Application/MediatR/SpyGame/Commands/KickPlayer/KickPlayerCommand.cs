@@ -4,7 +4,6 @@ using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -35,7 +34,7 @@ public class KickPlayerHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.Kick.CanNotKickPlayersMidGame);
             }

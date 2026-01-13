@@ -5,7 +5,7 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -23,14 +23,9 @@ public class VoteStopTimerHandler(
     ILogger<VoteStopTimerHandler> logger)
     : IRequestHandler<VoteStopTimerCommand, Result>
 {
-    private readonly ISpyGameRepository _repository = repository;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ITaskScheduler _scheduler = scheduler;
-    private readonly ILogger<VoteStopTimerHandler> _logger = logger;
-
     public async Task<Result> Handle(VoteStopTimerCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _repository.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -43,7 +38,7 @@ public class VoteStopTimerHandler(
 
         var result = await roomAccessor.ExecuteAsync(async (room) =>
         {
-            if (room.State != RoomState.InGame)
+            if (!room.IsInGame())
             {
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.VoteToStopTimerAvailvableOnlyMidGame);
             }
@@ -85,7 +80,7 @@ public class VoteStopTimerHandler(
                 timerStopped = true;
 
                 var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
-                await _scheduler.CancelAsync(timerTask);
+                await scheduler.CancelAsync(timerTask);
             }
 
             return Result.Ok();
@@ -96,11 +91,11 @@ public class VoteStopTimerHandler(
             return result;
         }
 
-        _logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
+        logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
             request.RoomCode, votesCount, requiredVotes, timerStopped);
 
         var eventDto = new TimerStoppedEventDto(request.RoomCode, votedPlayerId, votesCount, requiredVotes);
-        await _publisher.PublishTimerVoteAsync(eventDto);
+        await publisher.PublishTimerVoteAsync(eventDto);
 
         return Result.Ok();
     }

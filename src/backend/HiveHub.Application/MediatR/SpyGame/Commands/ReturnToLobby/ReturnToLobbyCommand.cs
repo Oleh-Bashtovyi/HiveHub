@@ -4,7 +4,7 @@ using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -21,13 +21,9 @@ public class ReturnToLobbyHandler(
     ILogger<ReturnToLobbyHandler> logger)
     : IRequestHandler<ReturnToLobbyCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<ReturnToLobbyHandler> _logger = logger;
-
     public async Task<Result> Handle(ReturnToLobbyCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = gameManager.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -40,7 +36,7 @@ public class ReturnToLobbyHandler(
                 return Results.Forbidden(ProjectMessages.ReturnToLobby.OnlyHostCanReturnToLobby);
             }
 
-            room.State = RoomState.Lobby;
+            room.Status = RoomStatus.Lobby;
             room.CurrentSecretWord = null;
             room.TimerState.GameStartTime = null;
             room.TimerState.IsTimerStopped = false;
@@ -62,10 +58,10 @@ public class ReturnToLobbyHandler(
             return result;
         }
 
-        _logger.LogInformation("Room {RoomCode} returned to lobby", request.RoomCode);
+        logger.LogInformation("Room {RoomCode} returned to lobby", request.RoomCode);
 
         var eventDto = new ReturnToLobbyEventDto(request.RoomCode);
-        await _publisher.PublishReturnToLobbyAsync(eventDto);
+        await publisher.PublishReturnToLobbyAsync(eventDto);
 
         return Result.Ok();
     }

@@ -4,7 +4,6 @@ using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -17,18 +16,14 @@ public record RenamePlayerCommand(
 ) : IRequest<Result>;
 
 public class RenamePlayerHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<RenamePlayerHandler> logger)
     : IRequestHandler<RenamePlayerCommand, Result>
 {
-    private readonly ISpyGameRepository _gameManager = gameManager;
-    private readonly ISpyGamePublisher _publisher = publisher;
-    private readonly ILogger<RenamePlayerHandler> _logger = logger;
-
     public async Task<Result> Handle(RenamePlayerCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = _gameManager.GetRoom(request.RoomCode);
+        var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
@@ -38,7 +33,7 @@ public class RenamePlayerHandler(
 
         var result = await roomAccessor.ExecuteAsync((room) =>
         {
-            if (room.State != RoomState.Lobby)
+            if (!room.IsInLobby())
             {
                 return Results.ActionFailed(ProjectMessages.Rename.CanNotChangeGameMidGame);
             }
@@ -70,14 +65,14 @@ public class RenamePlayerHandler(
             return result;
         }
 
-        _logger.LogInformation("Player {PlayerId} renamed to {NewName} in room {RoomCode}", 
+        logger.LogInformation("Player {PlayerId} renamed to {NewName} in room {RoomCode}", 
             publicId, 
             request.NewName, 
             request.RoomCode);
 
         var eventDto = new PlayerChangedNameEventDto(request.RoomCode, publicId, request.NewName);
         
-        await _publisher.PublishPlayerChangedNameAsync(eventDto);
+        await publisher.PublishPlayerChangedNameAsync(eventDto);
 
         return Result.Ok();
     }

@@ -57,7 +57,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
 
         if (result.IsSuccess)
         {
-            Context.Items[RoomCodeKey] = result.Value.RoomCode;
+            Context.Items[RoomCodeKey] = result.Value.RoomState.RoomCode;
         }
 
         return result.ToApiResponse();
