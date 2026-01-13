@@ -1,7 +1,12 @@
 ﻿using FluentResults;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
+using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
+using HiveHub.Application.Utils;
+using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -12,38 +17,66 @@ public record HandleGameTimeUpCommand(string RoomCode) : IRequest<Result>;
 public class HandleGameTimeUpHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<HandleGameTimeUpHandler> logger)
     : IRequestHandler<HandleGameTimeUpCommand, Result>
 {
     public async Task<Result> Handle(HandleGameTimeUpCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
-            return Result.Ok();
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        bool timeIsUp = false;
+        VotingStartedEventDto? votingEvent = null;
 
-        await roomAccessor.ExecuteAsync((room) =>
+        await roomAccessor.ExecuteAsync(async (room) =>
         {
-            if (room.IsInGame() && !room.TimerState.IsTimerStopped)
+            if (!room.IsInGame() || room.TimerState.IsTimerStopped)
             {
-                // Check if the time has actually expired (in case of lags or outdated scheduled tasks)
-                // Add a small buffer (2 seconds) to avoid race conditions
-                if (room.TimerState.PlannedGameEndTime <= DateTime.UtcNow.AddSeconds(2))
-                {
-                    room.TimerState.IsTimerStopped = true;
-                    timeIsUp = true;
-                }
+                return Result.Ok();
             }
+
+            if (room.TimerState.PlannedGameEndTime > DateTime.UtcNow.AddSeconds(2))
+            {
+                return Result.Ok();
+            }
+
+            logger.LogInformation("Game timer expired in room {RoomCode}. Starting Final Vote.", request.RoomCode);
+
+            room.TimerState.IsTimerStopped = true;
+            room.TimerState.TimerStoppedAt = DateTime.UtcNow;
+
+            room.CurrentPhase = SpyGamePhase.FinalVote;
+
+            var votingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinalVoteDurationSeconds);
+            var endsAt = DateTime.UtcNow.Add(votingDuration);
+
+            room.ActiveVoting = new GeneralVotingState
+            {
+                VotingStartedAt = DateTime.UtcNow,
+                VotingEndsAt = endsAt,
+                Votes = new Dictionary<string, string?>()
+            };
+
+            var votingTask = new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null);
+            await scheduler.ScheduleAsync(votingTask, votingDuration);
+
+            votingEvent = new VotingStartedEventDto(
+                RoomCode: room.RoomCode,
+                InitiatorId: "System",
+                TargetId: null,
+                VotingType: VotingType.Final,
+                CurrentGamePhase: SpyGamePhase.FinalVote,
+                EndsAt: endsAt
+            );
+
             return Result.Ok();
         });
 
-        if (timeIsUp)
+        if (votingEvent != null)
         {
-            logger.LogInformation("Game time up in room {RoomCode}", request.RoomCode);
-            await publisher.PublishGameEndedAsync(new GameEndedEventDto(request.RoomCode));
+            await publisher.PublishVotingStartedAsync(votingEvent);
         }
 
         return Result.Ok();

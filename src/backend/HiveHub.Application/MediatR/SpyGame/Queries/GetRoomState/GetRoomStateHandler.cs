@@ -12,9 +12,9 @@ namespace HiveHub.Application.MediatR.SpyGame.Queries.GetRoomState;
 public record GetRoomStateQuery(
     string RoomCode,
     string ConnectionId
-) : IRequest<Result<RoomStateDto>>;
+) : IRequest<Result<SpyRoomStateDto>>;
 
-public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<RoomStateDto>>
+public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<SpyRoomStateDto>>
 {
     private readonly ISpyGameRepository _repository;
     private readonly ILogger<GetRoomStateHandler> _logger;
@@ -27,7 +27,7 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
         _logger = logger;
     }
 
-    public async Task<Result<RoomStateDto>> Handle(GetRoomStateQuery request, CancellationToken cancellationToken)
+    public async Task<Result<SpyRoomStateDto>> Handle(GetRoomStateQuery request, CancellationToken cancellationToken)
     {
         var roomAccessor = _repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
@@ -41,7 +41,7 @@ public class GetRoomStateHandler : IRequestHandler<GetRoomStateQuery, Result<Roo
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var currentPlayer))
             {
-                return Results.NotFound<RoomStateDto>(ProjectMessages.GetRoomState.HaveNotFoundPlayerWithThisConnectionIdInRoom);
+                return Results.NotFound<SpyRoomStateDto>(ProjectMessages.GetRoomState.HaveNotFoundPlayerWithThisConnectionIdInRoom);
             }
 
             var state = SpyGameStateMapper.GetRoomStateForPlayer(room, currentPlayer.IdInRoom);

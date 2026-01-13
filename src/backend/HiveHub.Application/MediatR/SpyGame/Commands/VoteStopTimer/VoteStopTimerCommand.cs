@@ -1,11 +1,10 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

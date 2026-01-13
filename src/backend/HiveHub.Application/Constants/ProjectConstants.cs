@@ -15,6 +15,7 @@ public static class ProjectConstants
         public static readonly short MaxGameDurationMinutes = 30;
         public static readonly short MinGameDurationMinutes = 1;
         public static readonly short MaxCustomCategoriesCount = 10;
-        
+        public static readonly short AccusationVoteDurationSeconds = 30;
+        public static readonly short FinalVoteDurationSeconds = 60;
     }
 }

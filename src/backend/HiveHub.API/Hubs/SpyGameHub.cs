@@ -8,15 +8,19 @@ using HiveHub.Application.MediatR.SpyGame.Commands.HandleDisconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 using HiveHub.Application.MediatR.SpyGame.Commands.KickPlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.LeaveRoom;
+using HiveHub.Application.MediatR.SpyGame.Commands.MakeGuess;
 using HiveHub.Application.MediatR.SpyGame.Commands.Reconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.RenamePlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.ReturnToLobby;
 using HiveHub.Application.MediatR.SpyGame.Commands.RevealSpies;
 using HiveHub.Application.MediatR.SpyGame.Commands.SendMessage;
+using HiveHub.Application.MediatR.SpyGame.Commands.StartAccusation;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartGame;
 using HiveHub.Application.MediatR.SpyGame.Commands.ToggleReady;
 using HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
+using HiveHub.Application.MediatR.SpyGame.Commands.Vote;
 using HiveHub.Application.MediatR.SpyGame.Commands.VoteStopTimer;
+using HiveHub.Domain.Models;
 using MediatR;
 
 namespace HiveHub.API.Hubs;
@@ -75,7 +79,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
         return result.ToApiResponse();
     }
 
-    public async Task<ApiResponse<RoomStateDto>> Reconnect(string roomCode, string lastPlayerId)
+    public async Task<ApiResponse<SpyRoomStateDto>> Reconnect(string roomCode, string lastPlayerId)
     {
         var result = await _mediator.Send(new ReconnectCommand(roomCode, lastPlayerId, Context.ConnectionId));
 
@@ -116,7 +120,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
     public Task<ApiResponse> KickPlayer(string roomCode, string targetPlayerId)
         => HandleCommand(new KickPlayerCommand(roomCode, Context.ConnectionId, targetPlayerId));
 
-    public Task<ApiResponse> UpdateSettings(string roomCode, RoomGameSettingsDto settings)
+    public Task<ApiResponse> UpdateSettings(string roomCode, SpyRoomGameSettingsDto settings)
         => HandleCommand(new UpdateGameSettingsCommand(roomCode, Context.ConnectionId, settings));
 
     public Task<ApiResponse> ReturnToLobby(string roomCode)
@@ -134,4 +138,19 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
 
     public Task<ApiResponse> RevealSpies(string roomCode)
         => HandleCommand(new RevealSpiesCommand(roomCode, Context.ConnectionId));
+
+    public Task<ApiResponse> StartAccusation(string roomCode, string targetPlayerId)
+        => HandleCommand(new StartAccusationCommand(roomCode, Context.ConnectionId, targetPlayerId));
+
+    public Task<ApiResponse> Vote(string roomCode, string targetPlayerId, string? voteType)
+    {
+        TargetVoteType? parsedVote = null;
+        if (Enum.TryParse<TargetVoteType>(voteType, true, out var v))
+            parsedVote = v;
+
+        return HandleCommand(new VoteCommand(roomCode, Context.ConnectionId, targetPlayerId, parsedVote));
+    }
+
+    public Task<ApiResponse> MakeGuess(string roomCode, string word)
+        => HandleCommand(new MakeGuessCommand(roomCode, Context.ConnectionId, word));
 }

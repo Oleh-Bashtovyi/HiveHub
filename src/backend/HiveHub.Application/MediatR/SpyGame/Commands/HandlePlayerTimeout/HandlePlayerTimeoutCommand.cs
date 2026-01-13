@@ -1,7 +1,10 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
+using HiveHub.Application.Utils;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -20,10 +23,9 @@ public class HandlePlayerTimeoutHandler(
 {
     public async Task<Result> Handle(HandlePlayerTimeoutCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
-            return Result.Ok();
+            return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         PlayerRemovalResult removalResult = null!;

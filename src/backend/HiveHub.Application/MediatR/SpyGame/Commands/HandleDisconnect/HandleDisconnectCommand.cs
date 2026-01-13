@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -13,7 +14,7 @@ namespace HiveHub.Application.MediatR.SpyGame.Commands.HandleDisconnect;
 public record HandleDisconnectCommand(string ConnectionId, string RoomCode) : IRequest<Result>;
 
 public class HandleDisconnectHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ITaskScheduler scheduler,
     ILogger<HandleDisconnectHandler> logger)
@@ -28,8 +29,7 @@ public class HandleDisconnectHandler(
             return Result.Ok();
         }
 
-        var roomAccessor = gameManager.GetRoom(roomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }

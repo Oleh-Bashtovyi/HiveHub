@@ -1,13 +1,12 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain;
 using HiveHub.Domain.Models;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -58,12 +57,12 @@ public class StartGameHandler(
                 return Results.ActionFailed(ProjectMessages.StartGame.NotAllPlayersIsReady);
             }
 
-            if (room.GameSettings.Categories.Count == 0)
+            if (room.GameSettings.CustomCategories.Count == 0)
             {
                 return Results.ActionFailed(ProjectMessages.SpyGameStartGame.NoCategoriesWasSet);
             }
 
-            if (room.GameSettings.Categories.Any(x => x.Words.Count == 0))
+            if (room.GameSettings.CustomCategories.Any(x => x.Words.Count == 0))
             {
                 return Results.ActionFailed(ProjectMessages.SpyGameStartGame.SomeCategoryIsEmpty);
             }
@@ -71,7 +70,7 @@ public class StartGameHandler(
             var random = Random.Shared;
             
             // Assign category and word
-            var randomCategory = room.GameSettings.Categories[random.Next(room.GameSettings.Categories.Count)];
+            var randomCategory = room.GameSettings.CustomCategories[random.Next(room.GameSettings.CustomCategories.Count)];
             var randomWord = randomCategory.Words[random.Next(randomCategory.Words.Count)];
             room.CurrentSecretWord = randomWord;
             room.CurrentCategory = randomCategory.Name;

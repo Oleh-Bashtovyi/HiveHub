@@ -1,4 +1,5 @@
-﻿using HiveHub.Application.Dtos.Events;
+﻿using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Dtos.SpyGame;
 
 namespace HiveHub.Application.Publishers;
 
@@ -24,5 +25,9 @@ public interface ISpyGamePublisher
     Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
     Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
     Task PublishGameEndedAsync(GameEndedEventDto eventDto);
+
+    Task PublishVotingStartedAsync(VotingStartedEventDto eventDto);
+    Task PublishVoteCastAsync(VoteCastEventDto eventDto);
+    Task PublishVotingResultAsync(VotingResultEventDto eventDto);
 }
 

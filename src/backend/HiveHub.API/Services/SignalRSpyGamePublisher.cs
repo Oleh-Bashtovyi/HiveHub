@@ -1,5 +1,6 @@
 ﻿using HiveHub.API.Hubs;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using Microsoft.AspNetCore.SignalR;
 
@@ -112,5 +113,23 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
     {
         return _hub.Clients.Group(eventDto.RoomCode)
             .GameEnded(eventDto);
+    }
+
+    public Task PublishVotingStartedAsync(VotingStartedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .VotingStarted(eventDto);
+    }
+
+    public Task PublishVoteCastAsync(VoteCastEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .VoteCast(eventDto);
+    }
+
+    public Task PublishVotingResultAsync(VotingResultEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .VotingResult(eventDto);
     }
 }

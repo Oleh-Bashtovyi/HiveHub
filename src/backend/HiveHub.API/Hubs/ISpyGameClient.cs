@@ -1,4 +1,6 @@
-﻿using HiveHub.Application.Dtos.Events;
+﻿using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Dtos.SpyGame;
+using Microsoft.AspNetCore.SignalR;
 
 namespace HiveHub.API.Hubs;
 
@@ -19,4 +21,7 @@ public interface ISpyGameClient
     Task ReturnedToLobby(ReturnToLobbyEventDto eventDto);
     Task GameEnded(GameEndedEventDto eventDto);
     Task PlayerConnectionStatusChanged(PlayerConnectionChangedEventDto eventDto);
+    Task VotingStarted(VotingStartedEventDto eventDto);
+    Task VoteCast(VoteCastEventDto eventDto);
+    Task VotingResult(VotingResultEventDto eventDto);
 }

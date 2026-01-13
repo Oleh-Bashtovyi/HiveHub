@@ -3,7 +3,8 @@
 public enum TaskType
 {
     SpyGameEndTimeUp,
-    SpyPlayerDisconnectTimeout
+    SpyPlayerDisconnectTimeout,
+    SpyVotingTimeUp
 }
 
 public record ScheduledTask(

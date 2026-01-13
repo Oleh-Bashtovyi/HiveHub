@@ -1,5 +1,5 @@
 ﻿using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Domain.Models;

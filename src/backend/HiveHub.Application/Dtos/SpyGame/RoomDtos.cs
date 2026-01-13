@@ -2,27 +2,33 @@
 
 namespace HiveHub.Application.Dtos.SpyGame;
 
+public enum VotingType
+{
+    Accusation,
+    Final
+}
+
 public record JoinRoomResponseDto(
-    PlayerDto Me,
-    RoomStateDto RoomState
+    SpyPlayerDto Me,
+    SpyRoomStateDto RoomState
 );
 
 public record CreateRoomResponseDto(
-    PlayerDto Me,
-    RoomStateDto RoomState
+    SpyPlayerDto Me,
+    SpyRoomStateDto RoomState
 );
 
-public record RoomStateDto(
+public record SpyRoomStateDto(
     string RoomCode,
     RoomStatus Status,
-    List<PlayerDto> Players,
+    List<SpyPlayerDto> Players,
     List<ChatMessageDto> Messages,
-    RoomGameSettingsDto Settings,
+    SpyRoomGameSettingsDto Settings,
     GameStateDto? GameState,
     long Version
 );
 
-public record PlayerDto(
+public record SpyPlayerDto(
     string Id,
     string Name,
     string AvatarId,
@@ -40,7 +46,7 @@ public record ChatMessageDto(
     DateTime Timestamp
 );
 
-public record RoomGameSettingsDto(
+public record SpyRoomGameSettingsDto(
     int TimerMinutes,
     int MinSpiesCount,
     int MaxSpiesCount,
@@ -56,7 +62,22 @@ public record GameStateDto(
     DateTime? GameEndTime,
     bool IsTimerStopped,
     DateTime? TimerStoppedAt,
-    int TimerVotesCount
+    int TimerVotesCount,
+    SpyGamePhase Phase,
+    VotingStateDto? ActiveVoting,
+    string? CaughtSpyId,
+    string? CaughtSpyName
+);
+
+public record VotingStateDto(
+    VotingType Type,
+    string? AccusedPlayerId,
+    string? AccusedPlayerName,
+    Dictionary<string, TargetVoteType>? TargetVoting, // player with id voted as ... against player with AccusedPlayerId
+    Dictionary<string, string>? AgainstVoting,        // player with id against player with id
+    int? VotesReqired,                                // votes reqired when accusing player
+    DateTime StartedAt,
+    DateTime EndsAt
 );
 
 public record WordsCategoryDto(

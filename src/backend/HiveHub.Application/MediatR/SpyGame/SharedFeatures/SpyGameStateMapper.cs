@@ -6,7 +6,7 @@ namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
 public static class SpyGameStateMapper
 {
-    public static RoomStateDto GetRoomStateForPlayer(SpyRoom room, string playerId)
+    public static SpyRoomStateDto GetRoomStateForPlayer(SpyRoom room, string playerId)
     {
         var targetPlayer = room.Players.FirstOrDefault(x => x.IdInRoom == playerId);
 
@@ -33,7 +33,7 @@ public static class SpyGameStateMapper
                 showIsSpy = isTargetPlayer || (isTargetPlayerSpy && isSpiesKnowEachOther);
             }
 
-            return new PlayerDto(
+            return new SpyPlayerDto(
                 Id: p.IdInRoom,
                 Name: p.Name,
                 IsHost: p.IsHost,
@@ -45,15 +45,16 @@ public static class SpyGameStateMapper
             );
         }).ToList();
 
-        var settingsDto = new RoomGameSettingsDto(
+        var settingsDto = new SpyRoomGameSettingsDto(
             TimerMinutes: room.GameSettings.TimerMinutes,
             MaxSpiesCount: room.GameSettings.MaxSpiesCount,
             MinSpiesCount: room.GameSettings.MinSpiesCount,
             SpiesKnowEachOther: room.GameSettings.SpiesKnowEachOther,
             ShowCategoryToSpy: room.GameSettings.ShowCategoryToSpy,
-            CustomCategories: room.GameSettings.Categories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
+            CustomCategories: room.GameSettings.CustomCategories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
         );
 
+        // 3. Map GameState (Only if active or ended)
         GameStateDto? gameState = null;
 
         if (room.Status == RoomStatus.InGame || room.Status == RoomStatus.Ended)
@@ -61,6 +62,7 @@ public static class SpyGameStateMapper
             string? secretWord;
             string? category;
 
+            // Логіка видимості слова та категорії
             if (room.Status == RoomStatus.Ended)
             {
                 secretWord = room.CurrentSecretWord;
@@ -68,12 +70,58 @@ public static class SpyGameStateMapper
             }
             else
             {
+                // Шпигун не бачить слово
                 secretWord = isTargetPlayerSpy ? null : room.CurrentSecretWord;
+
+                // Шпигун бачить категорію тільки якщо дозволено налаштуваннями
                 var canSeeCategory = !isTargetPlayerSpy || room.GameSettings.ShowCategoryToSpy;
                 category = canSeeCategory ? room.CurrentCategory : null;
             }
 
             var activeVotesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer && p.IsConnected);
+
+            VotingStateDto? votingDto = null;
+
+            if (room.ActiveVoting != null)
+            {
+                var activePlayersCount = room.Players.Count(p => p.IsConnected);
+                var votesRequired = (int)Math.Floor(activePlayersCount / 2.0) + 1;
+
+                if (room.ActiveVoting is AccusationVotingState accState)
+                {
+                    var accusedName = room.Players.FirstOrDefault(p => p.IdInRoom == accState.TargetId)?.Name;
+
+                    votingDto = new VotingStateDto(
+                        Type: VotingType.Accusation,
+                        AccusedPlayerId: accState.TargetId,
+                        AccusedPlayerName: accusedName,
+                        TargetVoting: accState.Votes,
+                        AgainstVoting: null,
+                        VotesReqired: votesRequired,
+                        StartedAt: accState.VotingStartedAt,
+                        EndsAt: accState.VotingEndsAt
+                    );
+                }
+                else if (room.ActiveVoting is GeneralVotingState generalState)
+                {
+                    votingDto = new VotingStateDto(
+                        Type: VotingType.Final,
+                        AccusedPlayerId: null,
+                        AccusedPlayerName: null,
+                        TargetVoting: null,
+                        AgainstVoting: generalState.Votes!,
+                        VotesReqired: votesRequired,
+                        StartedAt: generalState.VotingStartedAt,
+                        EndsAt: generalState.VotingEndsAt
+                    );
+                }
+            }
+
+            string? caughtSpyName = null;
+            if (!string.IsNullOrEmpty(room.CaughtSpyId))
+            {
+                caughtSpyName = room.Players.FirstOrDefault(x => x.IdInRoom == room.CaughtSpyId)?.Name;
+            }
 
             gameState = new GameStateDto(
                 CurrentSecretWord: secretWord,
@@ -82,7 +130,11 @@ public static class SpyGameStateMapper
                 GameEndTime: room.TimerState.PlannedGameEndTime,
                 IsTimerStopped: room.TimerState.IsTimerStopped,
                 TimerStoppedAt: room.TimerState.TimerStoppedAt,
-                TimerVotesCount: activeVotesCount
+                TimerVotesCount: activeVotesCount,
+                Phase: room.CurrentPhase,
+                ActiveVoting: votingDto,
+                CaughtSpyId: room.CaughtSpyId,
+                CaughtSpyName: caughtSpyName
             );
         }
 
@@ -91,7 +143,7 @@ public static class SpyGameStateMapper
             .Select(m => new ChatMessageDto(m.PlayerId, m.PlayerName, m.Message, m.Timestamp))
             .ToList();
 
-        var stateDto = new RoomStateDto(
+        var stateDto = new SpyRoomStateDto(
             RoomCode: room.RoomCode,
             Status: room.Status,
             Players: playersDto,

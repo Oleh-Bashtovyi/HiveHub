@@ -84,6 +84,23 @@ public static class ProjectMessages
         public static readonly string NotAllPlayersIsReady = "Not all players are ready. Everyone must press 'Ready'.";
     }
 
+    public static class Accusation
+    {
+        public static readonly string AlreadyUsed = "Ви вже використали своє право на звинувачення в цьому раунді.";
+        public static readonly string VoteInProgress = "Голосування вже триває.";
+        public static readonly string TargetNotFound = "Ціль звинувачення не знайдена.";
+        public static readonly string CannotAccuseSelf = "Не можна звинуватити себе.";
+        public static readonly string InitiatorNotFound = "Initiator was not found";
+        public static readonly string NoActiveVoting = "No active voting";
+        public static readonly string UnknownVotingState = "Unknown voting state";
+
+        public static readonly string VoteTypeWasNotSpecified = "Vote type was not specified";
+        public static readonly string VotingTargetMismatch = "Voting target mismatch";
+        public static readonly string VotaCanBeDoneOnlyDuringSearch = "Голосування можливе лише під час пошуку.";
+        public static readonly string YouAlreadyVoted = "Ви вже проголосували";
+        public static readonly string TargetPlayerIdrequiredForFinalVote = "Target player required for final vote";
+    }
+
     public static class SpyGameJoinRoom
     {
         public static readonly string ExceedingMaxPlayersCount = 
@@ -120,4 +137,22 @@ public static class ProjectMessages
         public static readonly string GameTimeMustBeInRange =
             $"Game time must be between {ProjectConstants.SpyGame.MinGameDurationMinutes} and {ProjectConstants.SpyGame.MaxGameDurationMinutes} minutes.";
     }
+
+    public static class SpyGameMakeGuess 
+    {
+        public static readonly string CanBeDoneOnlyMidGame = "Guess can be made only during game";
+        public static readonly string OnlySpyCanGuess = "Тільки шпигун може вгадувати.";
+        public static readonly string GuessNotAllowedInCurrentPhase = "Вгадувати не можна в поточній фазі гри.";
+        public static readonly string OnlyCaughtSpyCanGuessInFinalPhase = "Вгадувати може тільки спійманий шпигун.";
+    }
+
+
+/*    public static class GameFlow
+    {
+        public static readonly string ActionNotAllowedInCurrentPhase = "Ця дія недоступна в поточній фазі гри.";
+        public static readonly string SpyWrongGuess = "Неправильна локація! Перемога мирних.";
+        public static readonly string SpyCorrectGuess = "Шпигун вгадав локацію! Перемога шпигунів.";
+        public static readonly string CiviliansWon = "Мирні жителі перемогли!";
+        public static readonly string SpiesWon = "Шпигуни перемогли!";
+    }*/
 }

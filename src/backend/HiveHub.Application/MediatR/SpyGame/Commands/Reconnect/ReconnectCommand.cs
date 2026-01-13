@@ -1,6 +1,5 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
@@ -16,16 +15,16 @@ public record ReconnectCommand(
     string RoomCode,
     string OldPlayerId,
     string NewConnectionId
-) : IRequest<Result<RoomStateDto>>;
+) : IRequest<Result<SpyRoomStateDto>>;
 
 public class ReconnectHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ITaskScheduler scheduler,
     ILogger<ReconnectHandler> logger)
-    : IRequestHandler<ReconnectCommand, Result<RoomStateDto>>
+    : IRequestHandler<ReconnectCommand, Result<SpyRoomStateDto>>
 {
-    public async Task<Result<RoomStateDto>> Handle(ReconnectCommand request, CancellationToken cancellationToken)
+    public async Task<Result<SpyRoomStateDto>> Handle(ReconnectCommand request, CancellationToken cancellationToken)
     {
         var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
@@ -40,7 +39,7 @@ public class ReconnectHandler(
             var player = room.Players.FirstOrDefault(x => x.IdInRoom == request.OldPlayerId);
             if (player == null)
             {
-                return Results.NotFound<RoomStateDto>(ProjectMessages.PlayerNotFound);
+                return Results.NotFound<SpyRoomStateDto>(ProjectMessages.PlayerNotFound);
             }
 
             var task = new ScheduledTask(TaskType.SpyPlayerDisconnectTimeout, request.RoomCode, request.OldPlayerId);

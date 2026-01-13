@@ -1,6 +1,5 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -14,7 +13,7 @@ namespace HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
 public record UpdateGameSettingsCommand(
     string RoomCode,
     string HostConnectionId,
-    RoomGameSettingsDto NewSettings
+    SpyRoomGameSettingsDto NewSettings
 ) : IRequest<Result>;
 
 public class UpdateGameSettingsHandler(
@@ -85,7 +84,7 @@ public class UpdateGameSettingsHandler(
             room.GameSettings.SpiesKnowEachOther = request.NewSettings.SpiesKnowEachOther;
             room.GameSettings.ShowCategoryToSpy = request.NewSettings.ShowCategoryToSpy;
 
-            room.GameSettings.Categories = request.NewSettings.CustomCategories
+            room.GameSettings.CustomCategories = request.NewSettings.CustomCategories
                 .Select(c => new SpyGameWordsCategory
                 {
                     Name = c.Name,

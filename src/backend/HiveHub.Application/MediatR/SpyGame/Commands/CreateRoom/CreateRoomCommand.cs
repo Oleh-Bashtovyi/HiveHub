@@ -38,7 +38,7 @@ public class CreateRoomHandler(
         room.GameSettings.MaxSpiesCount = 1;
         room.GameSettings.MinSpiesCount = 1;
         room.GameSettings.SpiesKnowEachOther = true;
-        room.GameSettings.Categories = CreateDefaultCategories();
+        room.GameSettings.CustomCategories = CreateDefaultCategories();
 
         room.Players.Add(hostPlayer);
 

@@ -1,6 +1,8 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
-using HiveHub.Application.Dtos.Events;
+using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Extensions;
+using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -16,39 +18,59 @@ public record ReturnToLobbyCommand(
 ) : IRequest<Result>;
 
 public class ReturnToLobbyHandler(
-    ISpyGameRepository gameManager,
+    ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<ReturnToLobbyHandler> logger)
     : IRequestHandler<ReturnToLobbyCommand, Result>
 {
     public async Task<Result> Handle(ReturnToLobbyCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = gameManager.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAsync(async (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
                 return Results.Forbidden(ProjectMessages.ReturnToLobby.OnlyHostCanReturnToLobby);
             }
 
+            // Main status
             room.Status = RoomStatus.Lobby;
+
+            // Secret word and category
             room.CurrentSecretWord = null;
+            room.CurrentCategory = null;
+
+            // Timer
             room.TimerState.GameStartTime = null;
-            room.TimerState.IsTimerStopped = false;
+            room.TimerState.PlannedGameEndTime = null;
+            room.TimerState.IsTimerStopped = true;
             room.TimerState.TimerStoppedAt = null;
+
+            // Phase, voting and game over reason
+            room.CurrentPhase = SpyGamePhase.None;
+            room.ActiveVoting = null;
+            room.CaughtSpyId = null;
+            room.WinnerTeam = null;
+            room.GameEndReason = null;
+
             room.ChatMessages.Clear();
 
+            // Players state
             foreach (var player in room.Players)
             {
                 player.IsReady = false;
                 player.PlayerState.IsSpy = false;
                 player.PlayerState.VotedToStopTimer = false;
+                player.PlayerState.HasUsedAccusation = false;
             }
+
+            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null));
+            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null));
 
             return Result.Ok();
         });
