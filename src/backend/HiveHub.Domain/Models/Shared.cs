@@ -25,15 +25,11 @@ public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code
     public long StateVersion { get; private set; } = 0;
     public DateTime StateVersionChangedAt { get; private set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; } = DateTime.UtcNow;
-
     public TGameSettings GameSettings { get; init; } = default!;
+    public bool IsMarkedAsDeleted { get; private set; } = false;
 
-
-    public void IncrementVersion()
-    {
-        StateVersion++;
-        StateVersionChangedAt = DateTime.UtcNow;
-    }
+    public bool IsInLobby() => Status == RoomStatus.Lobby;
+    public bool IsInGame() => Status == RoomStatus.InGame;
 
     public bool TryGetPlayerByConnectionId(string connectionId, [NotNullWhen(true)] out TPlayer? player)
     {
@@ -47,8 +43,13 @@ public abstract class RoomBase<TGameSettings, TPlayer, TPlayerState>(string code
         return player != null;
     }
 
-    public bool IsInLobby() => Status == RoomStatus.Lobby;
-    public bool IsInGame() => Status == RoomStatus.InGame;
+    public void IncrementVersion()
+    {
+        StateVersion++;
+        StateVersionChangedAt = DateTime.UtcNow;
+    }
+
+    public void MarkAsDeleted() => IsMarkedAsDeleted = true;
 }
 
 public class ChatMessage(string playerId, string playerName, string message, DateTime timestamp)

@@ -2,6 +2,7 @@
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -19,20 +20,19 @@ public record JoinRoomCommand(
 
 public class JoinRoomHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<JoinRoomHandler> logger,
     IIdGenerator idGenerator)
     : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>>
 {
     public async Task<Result<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.IsInLobby())
             {
@@ -68,32 +68,20 @@ public class JoinRoomHandler(
 
             var responseDto = new JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>(meDto, roomStateDto);
 
+            context.AddEvent(new AddPlayerToGroupEvent(request.ConnectionId, request.RoomCode));
+            context.AddEvent(new PlayerJoinedEventDto<SpyPlayerDto>(request.RoomCode, meDto));
+
             return Result.Ok(responseDto);
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("User with connection id: {ConnectionId} and id: {UserId} joined to room with code: {RoomCode}",
+                request.ConnectionId,
+                result.Value.Me.Id,
+                result.Value.RoomState.RoomCode);
         }
 
-        var response = result.Value;
-
-        if (response == null)
-        {
-            return Results.ActionFailed("Unknown error");
-        }
-
-        logger.LogInformation("User with connection id: {ConnectionId} and id: {UserId} joined to room with code: {RoomCode}",
-            request.ConnectionId,
-            response.Me.Id,
-            response.RoomState.RoomCode);
-
-        await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
-
-        var eventDto = new PlayerJoinedEventDto<SpyPlayerDto>(request.RoomCode, response.Me);
-
-        await publisher.PublishPlayerJoinedAsync(eventDto);
-
-        return Result.Ok(response);
+        return result;
     }
 }

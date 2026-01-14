@@ -31,7 +31,7 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .GameSettingsUpdated(eventDto);
     }
 
-    public async Task PublishGameStartedAsync(string connectionId, GameStartedEventDto eventDto)
+    public async Task PublishGameStartedAsync(string connectionId, SpyGameStartedEventDto eventDto)
     {
         await _hub.Clients.Client(connectionId)
             .GameStarted(eventDto);
@@ -85,7 +85,7 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .ChatMessageReceived(eventDto);
     }
 
-    public Task PublishTimerVoteAsync(TimerStoppedEventDto eventDto)
+    public Task PublishTimerVoteAsync(PlayerVotedToStopTimerEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)
             .TimerVoteUpdated(eventDto);
@@ -103,7 +103,7 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .ReturnedToLobby(eventDto);
     }
 
-    public Task PublishGameEndedAsync(GameEndedEventDto eventDto)
+    public Task PublishGameEndedAsync(SpyGameEndedEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)
             .GameEnded(eventDto);

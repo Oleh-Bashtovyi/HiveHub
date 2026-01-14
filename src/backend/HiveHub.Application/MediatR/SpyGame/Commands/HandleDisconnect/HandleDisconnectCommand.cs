@@ -1,8 +1,8 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
-using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -52,7 +52,17 @@ public class HandleDisconnectHandler(
             logger.LogInformation("Player {PlayerId} disconnected from room {RoomCode}", player.IdInRoom, roomCode);
 
             var task = new ScheduledTask(TaskType.SpyPlayerDisconnectTimeout, roomCode, playerId);
-            await scheduler.ScheduleAsync(task, TimeSpan.FromSeconds(30));
+            await scheduler.ScheduleAsync(task, TimeSpan.FromSeconds(ProjectConstants.PlayerDisconnectTimeoutSeconds));
+
+            //
+            //
+            //
+            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
+            //
+            //
+            //
+            await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
+            await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
         });
 
         if (!string.IsNullOrEmpty(playerId) && wasConnected)

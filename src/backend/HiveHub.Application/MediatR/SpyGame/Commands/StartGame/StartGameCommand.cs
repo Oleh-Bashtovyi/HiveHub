@@ -32,7 +32,7 @@ public class StartGameHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        List<(string ConnectionId, GameStartedEventDto Payload)> notifications = new();
+        List<(string ConnectionId, SpyGameStartedEventDto Payload)> notifications = new();
         TimeSpan? timerDuration = null!;
 
         var result = await roomAccessor.ExecuteAsync((room) =>
@@ -80,7 +80,10 @@ public class StartGameHandler(
             {
                 player.PlayerState.IsSpy = false;
                 player.PlayerState.VotedToStopTimer = false;
+                player.PlayerState.HasUsedAccusation = false;
             }
+
+            room.ActiveVoting = null;
 
             // Assigning spy roles
             int targetSpyCount = random.Next(room.GameSettings.MinSpiesCount, room.GameSettings.MaxSpiesCount + 1);
@@ -104,13 +107,14 @@ public class StartGameHandler(
             room.TimerState.TimerStoppedAt = null;
 
             room.Status = RoomStatus.InGame;
+            room.CurrentPhase = SpyGamePhase.Search;
             room.ChatMessages.Clear();
 
             foreach (var player in room.Players)
             {
                 var personalState = SpyGameStateMapper.GetRoomStateForPlayer(room, player.IdInRoom);
 
-                var dto = new GameStartedEventDto(personalState);
+                var dto = new SpyGameStartedEventDto(personalState);
 
                 notifications.Add((player.ConnectionId, dto));
             }

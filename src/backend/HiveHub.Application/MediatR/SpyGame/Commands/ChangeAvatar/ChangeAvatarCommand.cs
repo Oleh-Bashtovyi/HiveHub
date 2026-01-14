@@ -18,7 +18,7 @@ public record ChangeAvatarCommand(
 
 public class ChangeAvatarHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<ChangeAvatarHandler> logger)
     : IRequestHandler<ChangeAvatarCommand, Result>
 {
@@ -29,9 +29,9 @@ public class ChangeAvatarHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string playerId = string.Empty;
+        var playerId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.IsInLobby())
             {
@@ -49,22 +49,20 @@ public class ChangeAvatarHandler(
             }
 
             player.AvatarId = request.NewAvatarId;
-            playerId = player.IdInRoom;
+
+            context.AddEvent(new PlayerChangedAvatarEventDto(request.RoomCode, player.IdInRoom, request.NewAvatarId));
 
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Player {PlayerId} changed avatar to {AvatarId} in room {RoomCode}",
+                playerId,
+                request.NewAvatarId,
+                request.RoomCode);
         }
 
-        logger.LogInformation("Player {PlayerId} changed avatar to {AvatarId} in room {RoomCode}",
-            playerId, request.NewAvatarId, request.RoomCode);
-
-        var eventDto = new PlayerChangedAvatarEventDto(request.RoomCode, playerId, request.NewAvatarId);
-        await publisher.PublishPlayerChangedAvatarAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

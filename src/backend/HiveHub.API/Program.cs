@@ -21,6 +21,7 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(HiveHub.Application.BllMarker).Assembly);
 });
 
+builder.Services.AddScoped<SpyGameEventsContext>();
 builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
 builder.Services.AddSingleton<ISpyGamePublisher, SignalRSpyGamePublisher>();
 builder.Services.AddLogging();

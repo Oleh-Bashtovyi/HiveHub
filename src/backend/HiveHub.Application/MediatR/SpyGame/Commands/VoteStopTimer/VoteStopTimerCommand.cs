@@ -93,7 +93,7 @@ public class VoteStopTimerHandler(
         logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
             request.RoomCode, votesCount, requiredVotes, timerStopped);
 
-        var eventDto = new TimerStoppedEventDto(request.RoomCode, votedPlayerId, votesCount, requiredVotes);
+        var eventDto = new PlayerVotedToStopTimerEventDto(request.RoomCode, votedPlayerId, votesCount, requiredVotes);
         await publisher.PublishTimerVoteAsync(eventDto);
 
         return Result.Ok();

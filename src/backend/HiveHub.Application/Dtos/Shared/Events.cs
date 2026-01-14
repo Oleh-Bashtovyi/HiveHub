@@ -1,52 +1,90 @@
-﻿namespace HiveHub.Application.Dtos.Shared;
+﻿using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Models;
+
+namespace HiveHub.Application.Dtos.Shared;
+
+public interface IRoomEvent { }
+
+public record AddPlayerToGroupEvent(
+    string ConnectionId, 
+    string RoomCode
+) : IRoomEvent;
+
+public record RemovePlayerFromGroupEvent(
+    string ConnectionId, 
+    string RoomCode
+) : IRoomEvent;
+
+
+public record ScheduleTaskEvent(
+    TaskType Type, 
+    string RoomCode,
+    string? TargetId, 
+    TimeSpan Delay
+) : IRoomEvent;
+
+public record CancelTaskEvent(
+    TaskType Type, 
+    string RoomCode,
+    string? TargetId
+) : IRoomEvent;
 
 public record PlayerJoinedEventDto<TPlayer>(
     string RoomCode,
     TPlayer Player
-);
+) : IRoomEvent;
 
 public record PlayerLeftEventDto(
     string RoomCode,
-    string PlayerId);
+    string PlayerId
+) : IRoomEvent;
 
 public record PlayerChangedNameEventDto(
     string RoomCode,
     string PlayerId,
-    string NewName);
+    string NewName
+) : IRoomEvent;
 
 public record PlayerKickedEventDto(
     string RoomCode,
     string PlayerId,
-    string KickedByPlayerId);
+    string KickedByPlayerId
+) : IRoomEvent;
 
 public record PlayerConnectionChangedEventDto(
     string RoomCode,
     string PlayerId,
     bool IsConnected
-);
+) : IRoomEvent;
 
 public record PlayerReadyStatusChangedEventDto(
     string RoomCode,
     string PlayerId,
-    bool IsReady);
+    bool IsReady
+) : IRoomEvent;
 
 public record PlayerChangedAvatarEventDto(
     string RoomCode,
     string PlayerId,
-    string NewAvatarId);
+    string NewAvatarId
+) : IRoomEvent;
 
 public record HostChangedEventDto(
     string RoomCode,
-    string NewHostId);
+    string NewHostId
+) : IRoomEvent;
 
 public record ReturnToLobbyEventDto(
-    string RoomCode);
+    string RoomCode
+) : IRoomEvent;
 
 public record AccusationStartedEventDto(
     string RoomCode,
     string InitiatorId,
-    string TargetId);
+    string TargetId
+) : IRoomEvent;
 
 public record ChatMessageEventDto(
     string RoomCode,
-    ChatMessageDto Message);
+    ChatMessageDto Message
+) : IRoomEvent;

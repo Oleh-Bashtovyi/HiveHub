@@ -18,6 +18,7 @@ public record LeaveRoomCommand(
 public class LeaveRoomHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<LeaveRoomHandler> logger)
     : IRequestHandler<LeaveRoomCommand, Result>
 {
@@ -30,7 +31,7 @@ public class LeaveRoomHandler(
 
         PlayerRemovalResult removalResult = null!;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAsync(async (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
@@ -38,6 +39,19 @@ public class LeaveRoomHandler(
             }
 
             removalResult = SpyGamePlayerRemover.Remove(room, player.IdInRoom);
+
+            //
+            //
+            //
+            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
+            //
+            //
+            //
+            if (!removalResult.ShouldDeleteRoom)
+            {
+                await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
+                await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
+            }
 
             return Result.Ok();
         });

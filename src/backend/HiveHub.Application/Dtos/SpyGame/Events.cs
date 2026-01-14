@@ -1,17 +1,35 @@
-﻿using HiveHub.Domain.Models;
+﻿using HiveHub.Application.Dtos.Shared;
+using HiveHub.Domain.Models;
 
 namespace HiveHub.Application.Dtos.SpyGame;
+
+public record TargetedGameStartedEvent(
+    string ConnectionId, 
+    SpyGameStartedEventDto Payload
+) : IRoomEvent;
+
+public record SpyGameStartedEventDto(
+    SpyRoomStateDto State
+) : IRoomEvent;
+
+public record SpyGameEndedEventDto(
+    string RoomCode,
+    Team WinnerTeam,
+    GameEndReason Reason,
+    string? ReasonMessage
+) : IRoomEvent;
 
 public record SpyGameSettingsUpdatedEventDto(
     string RoomCode,
     SpyRoomGameSettingsDto Settings
-);
+) : IRoomEvent;
 
-public record TimerStoppedEventDto(
+public record PlayerVotedToStopTimerEventDto(
     string RoomCode,
     string PlayerId,
     int VotesCount,
-    int RequiredVotes);
+    int RequiredVotes
+) : IRoomEvent;
 
 public record VotingResultEventDto(
     string RoomCode,
@@ -19,13 +37,7 @@ public record VotingResultEventDto(
     SpyGamePhase CurrentGamePhase,
     string? ResultMessage,
     string? AccusedId
-);
-
-
-
-public record GameStartedEventDto(
-    SpyRoomStateDto State
-);
+) : IRoomEvent;
 
 public record VotingStartedEventDto(
     string RoomCode,
@@ -34,18 +46,12 @@ public record VotingStartedEventDto(
     SpyVotingType VotingType,
     SpyGamePhase CurrentGamePhase,
     DateTime EndsAt
-);
+) : IRoomEvent;
 
 public record VoteCastEventDto(
     string RoomCode,
     string VoterId,
     TargetVoteType? TargetVoteType,
     string? AgainstPlayerId
-);
+) : IRoomEvent;
 
-public record GameEndedEventDto(
-    string RoomCode,
-    Team WinnerTeam,
-    GameEndReason Reason,
-    string? ReasonMessage
-);

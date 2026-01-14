@@ -14,11 +14,11 @@ public interface ISpyGameClient
     Task PlayerChangedAvatar(PlayerChangedAvatarEventDto eventDto);
     Task HostChanged(HostChangedEventDto eventDto);
     Task GameSettingsUpdated(SpyGameSettingsUpdatedEventDto eventDto);
-    Task GameStarted(GameStartedEventDto eventDto);
+    Task GameStarted(SpyGameStartedEventDto eventDto);
     Task ChatMessageReceived(ChatMessageEventDto eventDto);
-    Task TimerVoteUpdated(TimerStoppedEventDto eventDto);
+    Task TimerVoteUpdated(PlayerVotedToStopTimerEventDto eventDto);
     Task ReturnedToLobby(ReturnToLobbyEventDto eventDto);
-    Task GameEnded(GameEndedEventDto eventDto);
+    Task GameEnded(SpyGameEndedEventDto eventDto);
     Task PlayerConnectionStatusChanged(PlayerConnectionChangedEventDto eventDto);
     Task VotingStarted(VotingStartedEventDto eventDto);
     Task VoteCast(VoteCastEventDto eventDto);

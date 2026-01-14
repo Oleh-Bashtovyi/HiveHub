@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -16,22 +17,21 @@ public record ToggleReadyCommand(
 
 public class ToggleReadyHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<ToggleReadyHandler> logger)
     : IRequestHandler<ToggleReadyCommand, Result>
 {
     public async Task<Result> Handle(ToggleReadyCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string playerId = string.Empty;
-        bool newReadyStatus = false;
+        var playerId = string.Empty;
+        var newReadyStatus = false;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.IsInLobby())
             {
@@ -47,20 +47,17 @@ public class ToggleReadyHandler(
             playerId = player.IdInRoom;
             newReadyStatus = player.IsReady;
 
+            context.AddEvent(new PlayerReadyStatusChangedEventDto(request.RoomCode, playerId, newReadyStatus));
+
             return Result.Ok();
         });
 
         if (result.IsFailed)
         {
-            return result;
+            logger.LogInformation("Player {PlayerId} ready status changed to {IsReady} in room {RoomCode}",
+                playerId, newReadyStatus, request.RoomCode);
         }
 
-        logger.LogInformation("Player {PlayerId} ready status changed to {IsReady} in room {RoomCode}",
-            playerId, newReadyStatus, request.RoomCode);
-
-        var eventDto = new PlayerReadyStatusChangedEventDto(request.RoomCode, playerId, newReadyStatus);
-        await publisher.PublishPlayerReadyStatusChangedAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

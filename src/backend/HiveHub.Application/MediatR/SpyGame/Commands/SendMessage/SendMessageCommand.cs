@@ -1,7 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
-using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -19,21 +19,20 @@ public record SendMessageCommand(
 
 public class SendMessageHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<SendMessageHandler> logger)
     : IRequestHandler<SendMessageCommand, Result>
 {
     public async Task<Result> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
         ChatMessageDto messageDto = null!;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
@@ -46,13 +45,12 @@ public class SendMessageHandler(
             }
 
             var chatMessage = new ChatMessage(player.IdInRoom, player.Name, request.Message.Trim(), DateTime.UtcNow);
+            room.ChatMessages.Add(chatMessage);
 
             if (room.ChatMessages.Count >= ProjectConstants.MessagesMaxCount)
             {
                 room.ChatMessages.RemoveAt(0);
             }
-
-            room.ChatMessages.Add(chatMessage);
 
             messageDto = new ChatMessageDto(
                 chatMessage.PlayerId,
@@ -61,21 +59,18 @@ public class SendMessageHandler(
                 chatMessage.Timestamp
             );
 
+            context.AddEvent(new ChatMessageEventDto(request.RoomCode, messageDto));
+
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Chat message sent in room {RoomCode} by player {PlayerId}",
+                request.RoomCode,
+                messageDto.PlayerId);
         }
 
-        logger.LogInformation("Chat message sent in room {RoomCode} by player {PlayerId}",
-            request.RoomCode, 
-            messageDto.PlayerId);
-
-        var eventDto = new ChatMessageEventDto(request.RoomCode, messageDto);
-        await publisher.PublishChatMessageAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

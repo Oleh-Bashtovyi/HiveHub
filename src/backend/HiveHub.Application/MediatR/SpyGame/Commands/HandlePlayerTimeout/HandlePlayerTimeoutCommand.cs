@@ -18,6 +18,7 @@ public record HandlePlayerTimeoutCommand(
 public class HandlePlayerTimeoutHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
+    ITaskScheduler scheduler,
     ILogger<HandlePlayerTimeoutHandler> logger)
     : IRequestHandler<HandlePlayerTimeoutCommand, Result>
 {
@@ -30,13 +31,26 @@ public class HandlePlayerTimeoutHandler(
 
         PlayerRemovalResult removalResult = null!;
 
-        await roomAccessor.ExecuteAsync((room) =>
+        await roomAccessor.ExecuteAsync(async (room) =>
         {
             var player = room.Players.FirstOrDefault(p => p.IdInRoom == request.PlayerId);
 
             if (player == null || player.IsConnected) return;
 
             removalResult = SpyGamePlayerRemover.Remove(room, request.PlayerId);
+
+            //
+            //
+            //
+            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
+            //
+            //
+            //
+            if (!removalResult.ShouldDeleteRoom)
+            {
+                await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
+                await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
+            }
         });
 
         if (removalResult == null)

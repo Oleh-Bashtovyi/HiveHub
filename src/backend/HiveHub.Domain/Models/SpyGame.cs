@@ -3,9 +3,13 @@
 public enum SpyGamePhase
 {
     None,
+    // Default phase of gae=me, players saying questions and trying to figure out who is spy
     Search,
+    // A player suspects someone of spying and initiates a vote against them.
     Accusation,
+    // The round timer has ended, and the final vote for the spy begins.
     FinalVote,
+    // When a spy is chosen during the accusation or final vote, they have one "last chance" to guess the secret word.
     SpyLastChance
 }
 

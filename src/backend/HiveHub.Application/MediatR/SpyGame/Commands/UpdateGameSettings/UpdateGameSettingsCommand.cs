@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -18,19 +19,18 @@ public record UpdateGameSettingsCommand(
 
 public class UpdateGameSettingsHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<UpdateGameSettingsHandler> logger)
     : IRequestHandler<UpdateGameSettingsCommand, Result>
 {
     public async Task<Result> Handle(UpdateGameSettingsCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             // State and Permissions
             if (!room.IsInLobby())
@@ -92,19 +92,16 @@ public class UpdateGameSettingsHandler(
                 })
                 .ToList();
 
+            context.AddEvent(new SpyGameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings));
+
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
         }
 
-        logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
-
-        var eventDto = new SpyGameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings);
-        await publisher.PublishGameSettingsUpdatedAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

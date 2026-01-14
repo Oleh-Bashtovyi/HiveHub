@@ -85,7 +85,7 @@ public class HandleVotingTimeUpHandler(
                     ResultMessage: "Time is up! No decision made. Spies win!",
                     AccusedId: null));
 
-                await publisher.PublishGameEndedAsync(new GameEndedEventDto(
+                await publisher.PublishGameEndedAsync(new SpyGameEndedEventDto(
                     RoomCode: room.RoomCode, 
                     WinnerTeam: Team.Spies,
                     Reason: GameEndReason.FinalVotingFailed,

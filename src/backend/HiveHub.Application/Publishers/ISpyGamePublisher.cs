@@ -18,13 +18,13 @@ public interface ISpyGamePublisher
     Task PublishPlayerChangedNameAsync(PlayerChangedNameEventDto eventDto);
     Task PublishPlayerChangedAvatarAsync(PlayerChangedAvatarEventDto eventDto);
     Task PublishPlayerReadyStatusChangedAsync(PlayerReadyStatusChangedEventDto eventDto);
-    Task PublishGameStartedAsync(string connectionId, GameStartedEventDto eventDto);
+    Task PublishGameStartedAsync(string connectionId, SpyGameStartedEventDto eventDto);
     Task PublishGameSettingsUpdatedAsync(SpyGameSettingsUpdatedEventDto eventDto);
 
     // Gameplay
-    Task PublishTimerVoteAsync(TimerStoppedEventDto eventDto);
+    Task PublishTimerVoteAsync(PlayerVotedToStopTimerEventDto eventDto);
     Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
-    Task PublishGameEndedAsync(GameEndedEventDto eventDto);
+    Task PublishGameEndedAsync(SpyGameEndedEventDto eventDto);
     Task PublishVotingStartedAsync(VotingStartedEventDto eventDto);
     Task PublishVoteCastAsync(VoteCastEventDto eventDto);
     Task PublishVotingResultAsync(VotingResultEventDto eventDto);

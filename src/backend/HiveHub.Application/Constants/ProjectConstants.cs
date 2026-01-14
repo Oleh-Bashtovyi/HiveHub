@@ -7,6 +7,7 @@ public static class ProjectConstants
     public static readonly short MessagesMaxCount = 60;
     public static readonly short RoomCodeLength = 6;
     public static readonly short PlayerIdLength = 8;
+    public static readonly short PlayerDisconnectTimeoutSeconds = 30;
     public static readonly string DefaultAvatarId = "default";
 
     public static class SpyGame

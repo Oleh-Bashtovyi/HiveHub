@@ -18,7 +18,7 @@ public record ChangeHostCommand(
 
 public class ChangeHostHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
+    SpyGameEventsContext context,
     ILogger<ChangeHostHandler> logger)
     : IRequestHandler<ChangeHostCommand, Result>
 {
@@ -29,9 +29,9 @@ public class ChangeHostHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string newHostId = string.Empty;
+        var newHostId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.IsInLobby())
             {
@@ -52,19 +52,16 @@ public class ChangeHostHandler(
             newHost.IsHost = true;
             newHostId = newHost.IdInRoom;
 
+            context.AddEvent(new HostChangedEventDto(room.RoomCode, newHostId));
+
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Host changed to {NewHostId} in room {RoomCode}", newHostId, request.RoomCode);
         }
 
-        logger.LogInformation("Host changed to {NewHostId} in room {RoomCode}", newHostId, request.RoomCode);
-
-        var eventDto = new HostChangedEventDto(request.RoomCode, newHostId);
-        await publisher.PublishHostChangedAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }
