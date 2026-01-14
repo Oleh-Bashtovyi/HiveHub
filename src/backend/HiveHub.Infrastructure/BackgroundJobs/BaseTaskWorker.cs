@@ -31,16 +31,16 @@ public abstract class BaseTaskWorker : BackgroundService
         {
             switch (task.Type)
             {
-                case TaskType.SpyPlayerDisconnectTimeout:
+                case TaskType.SpyGamePlayerDisconnectedTimeout:
                     if (task.TargetId != null)
                         await mediator.Send(new HandlePlayerTimeoutCommand(task.RoomCode, task.TargetId));
                     break;
 
-                case TaskType.SpyGameEndTimeUp:
+                case TaskType.SpyGameRoundTimeUp:
                     await mediator.Send(new HandleGameTimeUpCommand(task.RoomCode));
                     break;
 
-                case TaskType.SpyVotingTimeUp:
+                case TaskType.SpyGameVotingTimeUp:
                     await mediator.Send(new HandleVotingTimeUpCommand(task.RoomCode));
                     break;
             }

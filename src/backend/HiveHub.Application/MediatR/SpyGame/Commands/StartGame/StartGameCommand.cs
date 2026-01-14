@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
@@ -20,8 +21,7 @@ public record StartGameCommand(
 
 public class StartGameHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<StartGameHandler> logger)
     : IRequestHandler<StartGameCommand, Result>
 {
@@ -32,10 +32,9 @@ public class StartGameHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        List<(string ConnectionId, SpyGameStartedEventDto Payload)> notifications = new();
-        TimeSpan? timerDuration = null!;
+        var secretWord = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync((room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (room.IsInGame())
             {
@@ -116,31 +115,21 @@ public class StartGameHandler(
 
                 var dto = new SpyGameStartedEventDto(personalState);
 
-                notifications.Add((player.ConnectionId, dto));
+                context.AddEvent(new SpyGameStartedEventDto(personalState));
             }
 
-            timerDuration = duration;
+            context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null, duration));
+
+            secretWord = room.CurrentSecretWord;
+
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, secretWord);
         }
 
-        if (timerDuration.HasValue)
-        {
-            var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
-            await scheduler.ScheduleAsync(timerTask, timerDuration.Value);
-        }
-
-        logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, "HIDDEN_IN_LOGS");
-
-        foreach (var notification in notifications)
-        {
-            await publisher.PublishGameStartedAsync(notification.ConnectionId, notification.Payload);
-        }
-
-        return Result.Ok();
+        return result;
     }
 }

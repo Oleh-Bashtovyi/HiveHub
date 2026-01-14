@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartAccusation;
@@ -21,8 +22,7 @@ public record MakeGuessCommand(
 
 public class MakeGuessHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<StartAccusationHandler> logger) : IRequestHandler<MakeGuessCommand, Result>
 {
     public async Task<Result> Handle(MakeGuessCommand request, CancellationToken token)
@@ -32,9 +32,9 @@ public class MakeGuessHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        SpyGameEndedEventDto? gameEndEvent = null;
+        Team? winnerTeam = null;
 
-        var result = await roomAccessor.ExecuteAsync((room) => 
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) => 
         {
             if (!room.IsInGame())
             {
@@ -72,33 +72,43 @@ public class MakeGuessHandler(
             room.Status = RoomStatus.Ended;
             room.ActiveVoting = null;
 
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null));
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, request.RoomCode, null));
+
             if (isCorrect)
             {
                 room.WinnerTeam = Team.Spies;
                 room.GameEndReason = GameEndReason.SpyGuessedWord;
-                gameEndEvent = new SpyGameEndedEventDto(room.RoomCode, Team.Spies, GameEndReason.SpyGuessedWord, $"Spy guessed correctly! The word was {room.CurrentSecretWord}");
+
+                context.AddEvent(new SpyGameEndedEventDto(
+                    room.RoomCode, 
+                    Team.Spies, 
+                    GameEndReason.SpyGuessedWord, 
+                    $"Spy guessed correctly! The word was {room.CurrentSecretWord}"));
             }
             else
             {
                 room.WinnerTeam = Team.Civilians;
                 room.GameEndReason = room.CurrentPhase == SpyGamePhase.SpyLastChance ? GameEndReason.SpyFound : GameEndReason.SpyWrongGuess;
-                gameEndEvent = new SpyGameEndedEventDto(room.RoomCode, Team.Civilians, room.GameEndReason.Value, $"Wrong guess! The word was {room.CurrentSecretWord}");
+
+                context.AddEvent(new SpyGameEndedEventDto(
+                    room.RoomCode, 
+                    Team.Civilians, 
+                    room.GameEndReason.Value, 
+                    $"Wrong guess! The word was {room.CurrentSecretWord}"));
             }
+
+            winnerTeam = room.WinnerTeam;
 
             return Result.Ok();
         });
 
-        if (result.IsFailed) return result;
-
-        if (gameEndEvent != null)
+        if (result.IsSuccess)
         {
-            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null));
-            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyVotingTimeUp, request.RoomCode, null));
-
-            await publisher.PublishGameEndedAsync(gameEndEvent);
-            logger.LogInformation("Game ended in room {Room} via Guess. Winner: {Winner}", request.RoomCode, gameEndEvent.WinnerTeam);
+            logger.LogInformation("Game ended in room {Room} via Guess. Winner: {Winner}", 
+                request.RoomCode, winnerTeam);
         }
 
-        return Result.Ok();
+        return result;
     }
 }

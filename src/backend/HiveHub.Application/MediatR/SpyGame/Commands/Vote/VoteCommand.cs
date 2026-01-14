@@ -21,8 +21,7 @@ public record VoteCommand(
 
 public class VoteHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<VoteHandler> logger) : IRequestHandler<VoteCommand, Result>
 {
     public async Task<Result> Handle(VoteCommand request, CancellationToken token)
@@ -32,7 +31,7 @@ public class VoteHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string voterId = string.Empty;
+        var voterId = string.Empty;
 
         var result = await roomAccessor.ExecuteAsync(async (room) => 
         {
@@ -85,36 +84,31 @@ public class VoteHandler(
                 return Results.ActionFailed(ProjectMessages.Accusation.UnknownVotingState);
             }
 
+            context.AddEvent(new VoteCastEventDto(
+                RoomCode: request.RoomCode,
+                VoterId: voterId,
+                TargetVoteType: request.VoteType,
+                AgainstPlayerId: request.TargetPlayerId));
+
+            SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
+
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
-        }
-
-        await publisher.PublishVoteCastAsync(new VoteCastEventDto(
-            RoomCode: request.RoomCode, 
-            VoterId: voterId,
-            TargetVoteType: request.VoteType,
-            AgainstPlayerId: request.TargetPlayerId));
-
-        //
-        //
-        //
-        // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
-        //
-        //
-        //
-        var roomAccessorForResolution = repository.GetRoom(request.RoomCode);
-        if (roomAccessorForResolution != null)
-        {
-            await roomAccessorForResolution.ExecuteAsync(async (room) =>
+            if (request.VoteType.HasValue)
             {
-                await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
-            });
+                logger.LogInformation("Player {PlayerId} susccessfuly voted in room {RoomId} against {TargetId} with vote type {VoteType}",
+                    voterId, request.RoomCode, request.TargetPlayerId, request.VoteType);
+            }
+            else
+            {
+                logger.LogInformation("Player {PlayerId} susccessfuly voted in room {RoomId} against {TargetId}",
+                    voterId, request.RoomCode, request.TargetPlayerId);
+            }
         }
 
-        return Result.Ok();
+        return result;
     }
 }

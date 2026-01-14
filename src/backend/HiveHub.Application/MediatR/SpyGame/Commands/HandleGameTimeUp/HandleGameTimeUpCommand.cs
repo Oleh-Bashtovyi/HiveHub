@@ -59,7 +59,7 @@ public class HandleGameTimeUpHandler(
                 Votes = new Dictionary<string, string?>()
             };
 
-            var votingTask = new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null);
+            var votingTask = new ScheduledTask(TaskType.SpyGameVotingTimeUp, room.RoomCode, null);
             await scheduler.ScheduleAsync(votingTask, votingDuration);
 
             votingEvent = new VotingStartedEventDto(

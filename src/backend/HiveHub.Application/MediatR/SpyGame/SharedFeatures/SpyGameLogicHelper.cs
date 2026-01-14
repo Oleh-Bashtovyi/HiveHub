@@ -1,4 +1,5 @@
-﻿using HiveHub.Application.Dtos.SpyGame;
+﻿using HiveHub.Application.Dtos.Shared;
+using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -9,10 +10,9 @@ namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
 public static class SpyGameLogicHelper
 {
-    public static async Task CheckAndResolveVoting(
+    public static void CheckAndResolveVoting(
         SpyRoom room,
-        ISpyGamePublisher publisher,
-        ITaskScheduler scheduler,
+        SpyGameEventsContext context,
         ISpyGameRepository repository,
         ILogger logger)
     {
@@ -24,10 +24,6 @@ public static class SpyGameLogicHelper
         // Recalculate required votes based on currently connected players
         int requiredVotes = (int)Math.Floor(activePlayers.Count / 2.0) + 1;
 
-        VotingResultEventDto? resultDto = null;
-        SpyGameEndedEventDto? gameEndedDto = null;
-        ScheduledTask? timerResumeTask = null;
-        TimeSpan? timerResumeDelay = null;
         bool votingResolved = false;
 
         // Handle Accusation Logic
@@ -51,12 +47,12 @@ public static class SpyGameLogicHelper
 
                     logger.LogInformation("Voting Passed: Spy {SpyId} caught in room {RoomCode}", accused.IdInRoom, room.RoomCode);
 
-                    resultDto = new VotingResultEventDto(
+                    context.AddEvent(new VotingResultEventDto(
                         RoomCode: room.RoomCode,
                         IsSuccess: true,
                         CurrentGamePhase: SpyGamePhase.SpyLastChance,
                         ResultMessage: $"Spy {accused.Name} caught! They have a last chance to guess the location.",
-                        AccusedId: accused.IdInRoom);
+                        AccusedId: accused.IdInRoom));
                 }
                 else
                 {
@@ -65,16 +61,21 @@ public static class SpyGameLogicHelper
                     room.WinnerTeam = Team.Spies;
                     room.GameEndReason = GameEndReason.CivilianKicked;
 
-                    logger.LogInformation("Voting Passed: Innocent {PlayerId} kicked in room {RoomCode}. Spies win.", accState.TargetId, room.RoomCode);
+                    logger.LogInformation("Voting Passed: Innocent {PlayerId} kicked in room {RoomCode}. Spies win.", 
+                        accState.TargetId, room.RoomCode);
 
-                    resultDto = new VotingResultEventDto(
+                    context.AddEvent(new VotingResultEventDto(
                         RoomCode: room.RoomCode,
                         IsSuccess: true,
                         CurrentGamePhase: SpyGamePhase.None,
                         ResultMessage: $"Player {accused?.Name} was NOT a spy. Spies win!",
-                        AccusedId: accState.TargetId);
+                        AccusedId: accState.TargetId));
 
-                    gameEndedDto = new SpyGameEndedEventDto(room.RoomCode, Team.Spies, GameEndReason.CivilianKicked, "Innocent player kicked");
+                    context.AddEvent(new SpyGameEndedEventDto(
+                        RoomCode: room.RoomCode, 
+                        WinnerTeam: Team.Spies,
+                        Reason: GameEndReason.CivilianKicked,
+                        ReasonMessage: "Innocent player kicked"));
                 }
             }
             // Resolution: Failure (Everyone voted, but not enough Yes, OR strictly impossible to reach majority)
@@ -85,12 +86,12 @@ public static class SpyGameLogicHelper
 
                 logger.LogInformation("Voting Failed: Not enough votes in room {RoomCode}. Resuming game.", room.RoomCode);
 
-                resultDto = new VotingResultEventDto(
+                context.AddEvent(new VotingResultEventDto(
                     RoomCode: room.RoomCode,
                     IsSuccess: false,
                     CurrentGamePhase: SpyGamePhase.Search,
                     ResultMessage: "Not enough votes. Game resumes.",
-                    AccusedId: null);
+                    AccusedId: null));
 
                 // Resume Timer Logic
                 if (room.TimerState.TimerStoppedAt.HasValue && room.TimerState.PlannedGameEndTime.HasValue)
@@ -101,8 +102,13 @@ public static class SpyGameLogicHelper
                     room.TimerState.TimerStoppedAt = null;
 
                     var remaining = room.TimerState.PlannedGameEndTime.Value - DateTime.UtcNow;
-                    timerResumeDelay = remaining.TotalSeconds > 0 ? remaining : TimeSpan.Zero;
-                    timerResumeTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null);
+                    var timerResumeDelay = remaining.TotalSeconds > 0 ? remaining : TimeSpan.Zero;
+
+                    context.AddEvent(new ScheduleTaskEvent(
+                        Type: TaskType.SpyGameRoundTimeUp,
+                        RoomCode: room.RoomCode,
+                        TargetId: null,
+                        Delay: timerResumeDelay));
                 }
             }
         }
@@ -130,14 +136,18 @@ public static class SpyGameLogicHelper
 
                     logger.LogInformation("Final Voting Failed: Consensus not reached in room {RoomCode}.", room.RoomCode);
 
-                    resultDto = new VotingResultEventDto(
+                    context.AddEvent(new VotingResultEventDto(
                         RoomCode: room.RoomCode,
                         IsSuccess: false,
                         CurrentGamePhase: SpyGamePhase.None,
                         ResultMessage: "Consensus not reached. Spies win!",
-                        AccusedId: null);
+                        AccusedId: null));
 
-                    gameEndedDto = new SpyGameEndedEventDto(room.RoomCode, Team.Spies, GameEndReason.FinalVotingFailed, "Civilians failed to agree on a suspect");
+                    context.AddEvent(new SpyGameEndedEventDto(
+                        room.RoomCode, 
+                        Team.Spies, 
+                        GameEndReason.FinalVotingFailed,
+                        "Civilians failed to agree on a suspect"));
                 }
                 else
                 {
@@ -153,12 +163,12 @@ public static class SpyGameLogicHelper
 
                         logger.LogInformation("Final Voting Success: Spy {SpyId} identified in room {RoomCode}.", targetId, room.RoomCode);
 
-                        resultDto = new VotingResultEventDto(
+                        context.AddEvent(new VotingResultEventDto(
                             RoomCode: room.RoomCode,
                             IsSuccess: true,
                             CurrentGamePhase: SpyGamePhase.SpyLastChance,
                             ResultMessage: "Spy identified! Last chance to guess.",
-                            AccusedId: targetId);
+                            AccusedId: targetId));
                     }
                     else
                     {
@@ -169,39 +179,33 @@ public static class SpyGameLogicHelper
 
                         logger.LogInformation("Final Voting Fail: Wrong target {TargetId} in room {RoomCode}.", targetId, room.RoomCode);
 
-                        resultDto = new VotingResultEventDto(
+                        context.AddEvent(new VotingResultEventDto(
                             RoomCode: room.RoomCode,
                             IsSuccess: true,
                             CurrentGamePhase: SpyGamePhase.None,
                             ResultMessage: $"Wrong choice! {target?.Name} is innocent. Spies win!",
-                            AccusedId: targetId);
+                            AccusedId: targetId));
 
-                        gameEndedDto = new SpyGameEndedEventDto(room.RoomCode, Team.Spies, GameEndReason.CivilianKicked, "Civilians voted for an innocent player");
+                        context.AddEvent(new SpyGameEndedEventDto(
+                            room.RoomCode, 
+                            Team.Spies, 
+                            GameEndReason.CivilianKicked,
+                            "Civilians voted for an innocent player"));
                     }
                 }
             }
         }
 
-        // Apply Side Effects
         if (votingResolved)
         {
             room.ActiveVoting = null;
-            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null));
-
-            if (resultDto != null) await publisher.PublishVotingResultAsync(resultDto);
-            if (gameEndedDto != null) await publisher.PublishGameEndedAsync(gameEndedDto);
-
-            if (timerResumeTask != null && timerResumeDelay.HasValue)
-            {
-                await scheduler.ScheduleAsync(timerResumeTask, timerResumeDelay.Value);
-            }
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null));
         }
     }
 
-    public static async Task CheckAndResolveTimerStop(
+    public static void CheckAndResolveTimerStop(
         SpyRoom room,
-        ISpyGamePublisher publisher,
-        ITaskScheduler scheduler,
+        SpyGameEventsContext context,
         ILogger logger)
     {
         // Only check if timer is running
@@ -220,12 +224,8 @@ public static class SpyGameLogicHelper
 
             logger.LogInformation("Timer stopped automatically in room {RoomCode} (Votes: {Votes}/{Req})", room.RoomCode, votesCount, requiredVotes);
 
-            var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null);
-            await scheduler.CancelAsync(timerTask);
-
-            // Notify everyone
-            var eventDto = new PlayerVotedToStopTimerEventDto(room.RoomCode, "System", votesCount, requiredVotes);
-            await publisher.PublishTimerVoteAsync(eventDto);
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
+            context.AddEvent(new PlayerVotedToStopTimerEventDto(room.RoomCode, "System", votesCount, requiredVotes));
         }
     }
 }

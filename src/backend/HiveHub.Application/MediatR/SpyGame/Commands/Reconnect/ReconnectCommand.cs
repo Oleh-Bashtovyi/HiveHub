@@ -2,6 +2,7 @@
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
@@ -20,55 +21,47 @@ public record ReconnectCommand(
 
 public class ReconnectHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<ReconnectHandler> logger)
     : IRequestHandler<ReconnectCommand, Result<SpyRoomStateDto>>
 {
     public async Task<Result<SpyRoomStateDto>> Handle(ReconnectCommand request, CancellationToken cancellationToken)
     {
-        var roomAccessor = repository.GetRoom(request.RoomCode);
-        if (roomAccessor == null)
+        if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string? oldConnectionId = null;
+        var playerId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync(async (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
-            var player = room.Players.FirstOrDefault(x => x.IdInRoom == request.OldPlayerId);
-            if (player == null)
+            if (!room.TryGetPlayerByIdInRoom(request.OldPlayerId, out var player))
             {
                 return Results.NotFound<SpyRoomStateDto>(ProjectMessages.PlayerNotFound);
             }
 
-            var task = new ScheduledTask(TaskType.SpyPlayerDisconnectTimeout, request.RoomCode, request.OldPlayerId);
-            await scheduler.CancelAsync(task);
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGamePlayerDisconnectedTimeout, request.RoomCode, request.OldPlayerId));
 
-            oldConnectionId = player.ConnectionId;
+            var oldConnectionId = player.ConnectionId;
+            playerId = player.IdInRoom;
             player.ConnectionId = request.NewConnectionId;
             player.IsConnected = true;
+
+            context.AddEvent(new RemovePlayerFromGroupEvent(oldConnectionId, request.RoomCode));
+            context.AddEvent(new AddPlayerToGroupEvent(request.NewConnectionId, request.RoomCode));
+            context.AddEvent(new PlayerConnectionChangedEventDto(request.RoomCode, request.OldPlayerId, true));
 
             var state = SpyGameStateMapper.GetRoomStateForPlayer(room, player.IdInRoom);
 
             return state;
         });
 
-        if (result.IsFailed) return result;
-
-        if (!string.IsNullOrEmpty(oldConnectionId))
+        if (result.IsSuccess)
         {
-            await publisher.RemovePlayerFromRoomGroupAsync(oldConnectionId, request.RoomCode);
+            logger.LogInformation("Reconnect: player {PlayerId} in room {Room}",
+                playerId, request.RoomCode);
         }
-
-        await publisher.AddPlayerToRoomGroupAsync(request.NewConnectionId, request.RoomCode);
-
-        logger.LogInformation("Reconnect: {Old} -> {New} in {Room}",
-            oldConnectionId, request.NewConnectionId, request.RoomCode);
-
-        var connectionEvent = new PlayerConnectionChangedEventDto(request.RoomCode, request.OldPlayerId, true);
-        await publisher.PublishPlayerConnectionChangedAsync(connectionEvent);
 
         return result;
     }

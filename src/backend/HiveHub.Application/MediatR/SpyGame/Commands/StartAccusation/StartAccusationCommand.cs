@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.Models;
@@ -20,8 +21,7 @@ public record StartAccusationCommand(
 
 public class StartAccusationHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<StartAccusationHandler> logger) : IRequestHandler<StartAccusationCommand, Result>
 {
     public async Task<Result> Handle(StartAccusationCommand request, CancellationToken token)
@@ -31,9 +31,9 @@ public class StartAccusationHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        VotingStartedEventDto? eventDto = null;
+        var initiatorId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync(async (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (room.CurrentPhase != SpyGamePhase.Search)
             {
@@ -60,14 +60,15 @@ public class StartAccusationHandler(
                 return Results.NotFound(ProjectMessages.Accusation.TargetNotFound);
             }
 
+            initiatorId = initiator.IdInRoom;
+
             // Stop main game timer
             if (!room.TimerState.IsTimerStopped)
             {
                 room.TimerState.IsTimerStopped = true;
                 room.TimerState.TimerStoppedAt = DateTime.UtcNow;
 
-                var gameTimerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null);
-                await scheduler.CancelAsync(gameTimerTask);
+                context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
             }
 
             // Start accusation process
@@ -90,34 +91,26 @@ public class StartAccusationHandler(
             };
 
             // Start voting timer
-            var votingTask = new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null);
-            await scheduler.ScheduleAsync(votingTask, votingDuration);
+            context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null, votingDuration));
 
-            eventDto = new VotingStartedEventDto(
+            context.AddEvent(new VotingStartedEventDto(
                 RoomCode: room.RoomCode,
                 InitiatorId: initiator.IdInRoom,
                 TargetId: targetPlayer.IdInRoom,
                 VotingType: SpyVotingType.Accusation,
                 CurrentGamePhase: SpyGamePhase.Accusation,
                 EndsAt: endsAt
-            );
+            ));
 
             return Result.Ok();
         });
 
         if (result.IsFailed)
         {
-            return result;
-        }
-
-        if (eventDto != null)
-        {
-            await publisher.PublishVotingStartedAsync(eventDto);
-
             logger.LogInformation("Accusation started in room {Room}: {Initiator} -> {Target}",
-                request.RoomCode, eventDto.InitiatorId, eventDto.TargetId);
+                request.RoomCode, initiatorId, request.TargetPlayerId);
         }
 
-        return Result.Ok();
+        return result;
     }
 }

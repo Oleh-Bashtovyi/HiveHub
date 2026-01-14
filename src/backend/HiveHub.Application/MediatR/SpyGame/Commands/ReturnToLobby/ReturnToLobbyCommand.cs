@@ -19,8 +19,7 @@ public record ReturnToLobbyCommand(
 
 public class ReturnToLobbyHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<ReturnToLobbyHandler> logger)
     : IRequestHandler<ReturnToLobbyCommand, Result>
 {
@@ -31,7 +30,7 @@ public class ReturnToLobbyHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        var result = await roomAccessor.ExecuteAsync(async (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.HostConnectionId, out var host) || !host.IsHost)
             {
@@ -69,22 +68,18 @@ public class ReturnToLobbyHandler(
                 player.PlayerState.HasUsedAccusation = false;
             }
 
-            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null));
-            await scheduler.CancelAsync(new ScheduledTask(TaskType.SpyVotingTimeUp, room.RoomCode, null));
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
+            context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null));
+            context.AddEvent(new ReturnToLobbyEventDto(request.RoomCode));
 
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Room {RoomCode} returned to lobby", request.RoomCode);
         }
 
-        logger.LogInformation("Room {RoomCode} returned to lobby", request.RoomCode);
-
-        var eventDto = new ReturnToLobbyEventDto(request.RoomCode);
-        await publisher.PublishReturnToLobbyAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

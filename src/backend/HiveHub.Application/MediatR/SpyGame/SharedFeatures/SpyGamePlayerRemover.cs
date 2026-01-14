@@ -1,10 +1,7 @@
 ﻿using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Publishers;
-using HiveHub.Application.Services;
 using HiveHub.Domain.Models;
-using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
@@ -17,7 +14,7 @@ public record PlayerRemovalResult(
 
 public static class SpyGamePlayerRemover
 {
-    public static PlayerRemovalResult Remove(SpyRoom room, string playerId)
+    public static PlayerRemovalResult Remove(SpyRoom room, SpyGameEventsContext context, string playerId)
     {
         var player = room.Players.FirstOrDefault(p => p.IdInRoom == playerId);
 
@@ -30,8 +27,12 @@ public static class SpyGamePlayerRemover
 
         room.Players.Remove(player);
 
+        context.AddEvent(new PlayerLeftEventDto(room.RoomCode, player.IdInRoom));
+        context.AddEvent(new RemovePlayerFromGroupEvent(player.ConnectionId, room.RoomCode));
+
         if (room.Players.Count == 0)
         {
+            room.MarkAsDeleted();
             return new PlayerRemovalResult(
                 RemovedPlayerId: playerId,
                 RoomCode:room.RoomCode,
@@ -50,6 +51,7 @@ public static class SpyGamePlayerRemover
             {
                 newHost.IsHost = true;
                 newHostId = newHost.IdInRoom;
+                context.AddEvent(new HostChangedEventDto(room.RoomCode, newHost.IdInRoom));
             }
         }
 
@@ -58,34 +60,5 @@ public static class SpyGamePlayerRemover
             NewHostId: newHostId,
             RoomCode: room.RoomCode,
             ShouldDeleteRoom: false);
-    }
-
-    public static async Task PublishSideEffectAfterRemove<TLogger>(
-        PlayerRemovalResult removalResult, 
-        ISpyGamePublisher publisher,
-        ISpyGameRepository repository,
-        TLogger logger) where TLogger : ILogger
-    {
-        if (removalResult.ShouldDeleteRoom)
-        {
-            await repository.RemoveRoomAsync(removalResult.RoomCode);
-            logger.LogInformation("Room {RoomCode} deleted - no players left", removalResult.RoomCode);
-        }
-        else
-        {
-            if (!string.IsNullOrEmpty(removalResult.RemovedPlayerId))
-            {
-                var leftEvent = new PlayerLeftEventDto(removalResult.RoomCode, removalResult.RemovedPlayerId);
-                await publisher.PublishPlayerLeftAsync(leftEvent);
-                logger.LogDebug("Player {PlayerId} left room {RoomId}", removalResult.RemovedPlayerId, removalResult.RoomCode);
-            }
-
-            if (!string.IsNullOrEmpty(removalResult.NewHostId))
-            {
-                var hostChangedEvent = new HostChangedEventDto(removalResult.RoomCode, removalResult.NewHostId);
-                await publisher.PublishHostChangedAsync(hostChangedEvent);
-                logger.LogDebug("New host {HostId} assigned in room {RoomCode}", removalResult.NewHostId, removalResult.RoomCode);
-            }
-        }
     }
 }

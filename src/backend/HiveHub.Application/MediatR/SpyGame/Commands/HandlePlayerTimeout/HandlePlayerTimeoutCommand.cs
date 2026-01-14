@@ -17,8 +17,7 @@ public record HandlePlayerTimeoutCommand(
 
 public class HandlePlayerTimeoutHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<HandlePlayerTimeoutHandler> logger)
     : IRequestHandler<HandlePlayerTimeoutCommand, Result>
 {
@@ -29,28 +28,24 @@ public class HandlePlayerTimeoutHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        PlayerRemovalResult removalResult = null!;
+        PlayerRemovalResult? removalResult = null;
 
-        await roomAccessor.ExecuteAsync(async (room) =>
+        await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
-            var player = room.Players.FirstOrDefault(p => p.IdInRoom == request.PlayerId);
+            if (!room.TryGetPlayerByIdInRoom(request.PlayerId, out var player) || player.IsConnected)
+            {
+                return Result.Ok();
+            }
 
-            if (player == null || player.IsConnected) return;
+            removalResult = SpyGamePlayerRemover.Remove(room, context, request.PlayerId);
 
-            removalResult = SpyGamePlayerRemover.Remove(room, request.PlayerId);
-
-            //
-            //
-            //
-            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
-            //
-            //
-            //
             if (!removalResult.ShouldDeleteRoom)
             {
-                await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
-                await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
+                SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
+                SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
             }
+
+            return Result.Ok();
         });
 
         if (removalResult == null)
@@ -60,7 +55,10 @@ public class HandlePlayerTimeoutHandler(
 
         logger.LogInformation("Timeout: Player {PlayerId} removed from room {RoomCode}", request.PlayerId, request.RoomCode);
 
-        await SpyGamePlayerRemover.PublishSideEffectAfterRemove(removalResult, publisher, repository, logger);
+        if (removalResult != null && removalResult.ShouldDeleteRoom)
+        {
+            await repository.RemoveRoomAsync(request.RoomCode);
+        }
 
         return Result.Ok();
     }

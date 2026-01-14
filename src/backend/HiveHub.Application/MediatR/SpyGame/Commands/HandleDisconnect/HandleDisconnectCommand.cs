@@ -16,8 +16,7 @@ public record HandleDisconnectCommand(string ConnectionId, string RoomCode) : IR
 
 public class HandleDisconnectHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<HandleDisconnectHandler> logger)
     : IRequestHandler<HandleDisconnectCommand, Result>
 {
@@ -35,14 +34,14 @@ public class HandleDisconnectHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string? playerId = null;
-        bool wasConnected = false;
+        var playerId = string.Empty;
+        var wasConnected = false;
 
-        await roomAccessor.ExecuteAsync(async (room) =>
+        await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
-                return;
+                return Result.Ok();
             }
 
             playerId = player.IdInRoom;
@@ -51,25 +50,18 @@ public class HandleDisconnectHandler(
 
             logger.LogInformation("Player {PlayerId} disconnected from room {RoomCode}", player.IdInRoom, roomCode);
 
-            var task = new ScheduledTask(TaskType.SpyPlayerDisconnectTimeout, roomCode, playerId);
-            await scheduler.ScheduleAsync(task, TimeSpan.FromSeconds(ProjectConstants.PlayerDisconnectTimeoutSeconds));
+            context.AddEvent(new PlayerConnectionChangedEventDto(roomCode, playerId, false));
 
-            //
-            //
-            //
-            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
-            //
-            //
-            //
-            await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
-            await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
+            context.AddEvent(new ScheduleTaskEvent(
+                TaskType.SpyGamePlayerDisconnectedTimeout, 
+                roomCode, playerId, 
+                TimeSpan.FromSeconds(ProjectConstants.PlayerDisconnectTimeoutSeconds)));
+
+            SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
+            SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
+
+            return Result.Ok();
         });
-
-        if (!string.IsNullOrEmpty(playerId) && wasConnected)
-        {
-            var eventDto = new PlayerConnectionChangedEventDto(roomCode, playerId, false);
-            await publisher.PublishPlayerConnectionChangedAsync(eventDto);
-        }
 
         return Result.Ok();
     }

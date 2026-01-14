@@ -2,11 +2,13 @@
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Models;
 using HiveHub.Application.Services;
+using Microsoft.Extensions.Logging;
 
 namespace HiveHub.Application.Publishers;
 
 public class SpyGameEventsContext(
     ISpyGamePublisher publisher,
+    ILogger<SpyGameEventsContext> logger,
     ITaskScheduler scheduler)
 {
     private readonly List<IRoomEvent> _pendingEvents = new();
@@ -58,18 +60,26 @@ public class SpyGameEventsContext(
             // --- Connection ---
             case PlayerJoinedEventDto<SpyPlayerDto> e:
                 await publisher.PublishPlayerJoinedAsync(e);
+                logger.LogDebug("Publishing: Player {PlayerId} joined room {RoomId}", 
+                    e.Player.Id, e.RoomCode);
                 break;
 
             case PlayerLeftEventDto e:
                 await publisher.PublishPlayerLeftAsync(e);
+                logger.LogDebug("Publishing: Player {PlayerId} left room {RoomId}", 
+                    e.PlayerId, e.RoomCode);
                 break;
 
             case PlayerKickedEventDto e:
                 await publisher.PublishPlayerKickedAsync(e);
+                logger.LogDebug("Publishing: Player {PlayerId} was kicked from room {RoomId}", 
+                    e.PlayerId, e.RoomCode);
                 break;
 
             case PlayerConnectionChangedEventDto e:
                 await publisher.PublishPlayerConnectionChangedAsync(e);
+                logger.LogDebug("Publishing: Player {PlayerId} changed connection to {IsConnected} in room {RoomId}", 
+                    e.PlayerId, e.IsConnected, e.RoomCode);
                 break;
 
             // --- Lobby ---

@@ -78,7 +78,7 @@ public class VoteStopTimerHandler(
                 room.TimerState.TimerStoppedAt = DateTime.UtcNow;
                 timerStopped = true;
 
-                var timerTask = new ScheduledTask(TaskType.SpyGameEndTimeUp, request.RoomCode, null);
+                var timerTask = new ScheduledTask(TaskType.SpyGameRoundTimeUp, request.RoomCode, null);
                 await scheduler.CancelAsync(timerTask);
             }
 

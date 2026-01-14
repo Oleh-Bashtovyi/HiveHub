@@ -17,8 +17,7 @@ public record LeaveRoomCommand(
 
 public class LeaveRoomHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<LeaveRoomHandler> logger)
     : IRequestHandler<LeaveRoomCommand, Result>
 {
@@ -31,42 +30,34 @@ public class LeaveRoomHandler(
 
         PlayerRemovalResult removalResult = null!;
 
-        var result = await roomAccessor.ExecuteAsync(async (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player))
             {
                 return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            removalResult = SpyGamePlayerRemover.Remove(room, player.IdInRoom);
+            removalResult = SpyGamePlayerRemover.Remove(room, context, player.IdInRoom);
 
-            //
-            //
-            //
-            // TODO: Dont publish inside of ExecuteAsync, store all events in list and publish outside of logic block
-            //
-            //
-            //
             if (!removalResult.ShouldDeleteRoom)
             {
-                await SpyGameLogicHelper.CheckAndResolveVoting(room, publisher, scheduler, repository, logger);
-                await SpyGameLogicHelper.CheckAndResolveTimerStop(room, publisher, scheduler, logger);
+                SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
+                SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
             }
 
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Player {PlayerId} left room {RoomCode}", removalResult.RemovedPlayerId, request.RoomCode);
         }
 
-       logger.LogInformation("Player {PlayerId} left room {RoomCode}", removalResult.RemovedPlayerId, request.RoomCode);
+        if (removalResult != null && removalResult.ShouldDeleteRoom)
+        {
+            await repository.RemoveRoomAsync(request.RoomCode);
+        }
 
-        await publisher.RemovePlayerFromRoomGroupAsync(request.ConnectionId, request.RoomCode);
-
-        await SpyGamePlayerRemover.PublishSideEffectAfterRemove(removalResult, publisher, repository, logger);
-
-        return Result.Ok();
+        return result;
     }
 }

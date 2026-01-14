@@ -68,7 +68,7 @@ public class HandleVotingTimeUpHandler(
                     var remaining = room.TimerState.PlannedGameEndTime.Value - DateTime.UtcNow;
                     var delay = remaining.TotalSeconds > 0 ? remaining : TimeSpan.Zero;
 
-                    await scheduler.ScheduleAsync(new ScheduledTask(TaskType.SpyGameEndTimeUp, room.RoomCode, null), delay);
+                    await scheduler.ScheduleAsync(new ScheduledTask(TaskType.SpyGameRoundTimeUp, room.RoomCode, null), delay);
                 }
             }
             else if (room.CurrentPhase == SpyGamePhase.FinalVote)
