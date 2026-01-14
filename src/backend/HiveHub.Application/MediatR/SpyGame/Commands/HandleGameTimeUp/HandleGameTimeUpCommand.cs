@@ -66,6 +66,7 @@ public class HandleGameTimeUpHandler(
                 RoomCode: room.RoomCode,
                 InitiatorId: "System",
                 TargetId: null,
+                TargetName: null,
                 VotingType: SpyVotingType.Final,
                 CurrentGamePhase: SpyGamePhase.FinalVote,
                 EndsAt: endsAt
