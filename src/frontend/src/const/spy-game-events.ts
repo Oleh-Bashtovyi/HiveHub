@@ -14,7 +14,9 @@ export const SpyHubMethods = {
     StartGame: "StartGame",
     SendMessage: "SendMessage",
     VoteStopTimer: "VoteStopTimer",
-    RevealSpies: "RevealSpies"
+    StartAccusation: "StartAccusation",
+    Vote: "Vote",
+    MakeGuess: "MakeGuess"
 } as const;
 
 // backend events
@@ -30,9 +32,11 @@ export const SpyHubEvents = {
     GameStarted: "GameStarted",
     ChatMessageReceived: "ChatMessageReceived",
     TimerVoteUpdated: "TimerVoteUpdated",
-    SpiesRevealed: "SpiesRevealed",
     ReturnedToLobby: "ReturnedToLobby",
     PlayerConnectionStatusChanged: 'PlayerConnectionStatusChanged',
+    VotingStarted: "VotingStarted",
+    VoteCast: "VoteCast",
+    VotingResult: "VotingResult",
     GameEnded: "GameEnded",
 } as const;
 

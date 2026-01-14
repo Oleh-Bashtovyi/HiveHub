@@ -1,35 +1,85 @@
 import { SpyHubEvents } from "../const/spy-game-events.ts";
 
-export const RoomState = {
-    Lobby: 0,
-    InGame: 1,
-    Ended: 2,
+export const ResponseStatus = {
+    Success: "Success",
+    ActionFailed: "Failed",
+    Forbidden: "Forbidden",
+    ValidationFailed: "ValidationFailed",
+    NotFound: "Not Found",
+    UnknownError: "UnknownError",
 } as const;
+export type ResponseStatus = (typeof ResponseStatus)[keyof typeof ResponseStatus];
 
-export type RoomState = (typeof RoomState)[keyof typeof RoomState];
+export const RoomStatus = {
+    Lobby: 'Lobby',
+    InGame: 'InGame',
+    Ended: 'Ended',
+} as const;
+export type RoomStatus = (typeof RoomStatus)[keyof typeof RoomStatus];
 
-export interface PlayerDto {
+export const SpyVotingType = {
+    Accusation: 'Accusation',
+    Final: 'Final',
+} as const;
+export type SpyVotingType = (typeof SpyVotingType)[keyof typeof SpyVotingType];
+
+export const TargetVoteType = {
+    Yes: 'Yes',
+    No: 'No',
+    Skip: 'Skip',
+} as const;
+export type TargetVoteType = (typeof TargetVoteType)[keyof typeof TargetVoteType];
+
+export const SpyGamePhase = {
+    None: 'None',
+    Search: 'Search',
+    Accusation: 'Accusation',
+    FinalVote: 'FinalVote',
+    SpyLastChance: 'SpyLastChance',
+} as const;
+export type SpyGamePhase = (typeof SpyGamePhase)[keyof typeof SpyGamePhase];
+
+export const SpyGameTeam = {
+    Civilians: 'Civilians',
+    Spies: 'Spies',
+} as const;
+export type SpyGameTeam = (typeof SpyGameTeam)[keyof typeof SpyGameTeam];
+
+export const SpyGameEndReason = {
+    TimerExpired: 'TimerExpired',
+    CivilianKicked: 'CivilianKicked',
+    SpyGuessedWord: 'SpyGuessedWord',
+    SpyWrongGuess: 'SpyWrongGuess',
+    FinalVotingFailed: 'FinalVotingFailed',
+    SpyFound: 'SpyFound',
+
+} as const;
+export type SpyGameEndReason = (typeof SpyGameEndReason)[keyof typeof SpyGameEndReason];
+
+// --- DTOs ---
+export interface SpyPlayerDto {
     id: string;
     name: string;
     isHost: boolean;
     isReady: boolean;
     avatarId: string;
     isConnected: boolean;
-    isSpy?: boolean;
-    isVotedToStopTimer?: boolean;
+    isSpy?: boolean | null;
+    isVotedToStopTimer?: boolean | null;
+}
+
+export interface SpyRoomGameSettingsDto {
+    timerMinutes: number;
+    minSpiesCount: number;
+    maxSpiesCount: number;
+    spiesKnowEachOther: boolean;
+    showCategoryToSpy: boolean;
+    customCategories: WordsCategoryDto[];
 }
 
 export interface WordsCategoryDto {
     name: string;
     words: string[];
-}
-
-export interface RoomGameSettingsDto {
-    timerMinutes: number;
-    spiesCount: number;
-    spiesKnowEachOther: boolean;
-    showCategoryToSpy: boolean;
-    wordsCategories: WordsCategoryDto[];
 }
 
 export interface ChatMessageDto {
@@ -39,9 +89,15 @@ export interface ChatMessageDto {
     timestamp: string;
 }
 
-export interface SpyRevealDto {
-    playerId: string;
-    playerName: string;
+export interface VotingStateDto {
+    type: SpyVotingType;
+    accusedPlayerId: string | null;
+    accusedPlayerName: string | null;
+    targetVoting: Record<string, TargetVoteType> | null;
+    againstVoting: Record<string, string> | null;
+    votesRequired: number | null;
+    startedAt: string;
+    endsAt: string;
 }
 
 export interface GameStateDto {
@@ -52,42 +108,44 @@ export interface GameStateDto {
     isTimerStopped: boolean;
     timerStoppedAt: string | null;
     timerVotesCount: number;
-    recentMessages: ChatMessageDto[];
+    phase: SpyGamePhase;
+    activeVoting: VotingStateDto | null;
+    caughtSpyId: string | null;
+    caughtSpyName: string | null;
 }
 
 export interface RoomStateDto {
     roomCode: string;
-    state: RoomState;
-    players: PlayerDto[];
-    settings: RoomGameSettingsDto;
+    status: RoomStatus;
+    players: SpyPlayerDto[];
+    messages: ChatMessageDto[];
+    settings: SpyRoomGameSettingsDto;
     gameState: GameStateDto | null;
     version: number;
 }
 
-// --- API Responses (Result of Invoke) ---
+// --- API Responses ---
 export interface ApiResponse<T> {
+    status: ResponseStatus;
     success: boolean;
     data?: T;
     error?: string;
 }
 
 export interface CreateRoomResponseDto {
-    roomCode: string;
-    me: PlayerDto;
-    settings: RoomGameSettingsDto;
+    me: SpyPlayerDto;
+    roomState: RoomStateDto;
 }
 
 export interface JoinRoomResponseDto {
-    me: PlayerDto;
-    roomCode: string;
-    players: PlayerDto[];
-    settings: RoomGameSettingsDto;
+    me: SpyPlayerDto;
+    roomState: RoomStateDto;
 }
 
 // --- Events DTOs ---
 export interface PlayerJoinedEventDto {
     roomCode: string;
-    player: PlayerDto;
+    player: SpyPlayerDto;
 }
 export interface PlayerLeftEventDto {
     roomCode: string;
@@ -119,7 +177,7 @@ export interface HostChangedEventDto {
 }
 export interface GameSettingsUpdatedEventDto {
     roomCode: string;
-    settings: RoomGameSettingsDto;
+    settings: SpyRoomGameSettingsDto;
 }
 export interface GameStartedEventDto {
     state: RoomStateDto;
@@ -134,21 +192,45 @@ export interface TimerStoppedEventDto {
     votesCount: number;
     requiredVotes: number;
 }
-export interface SpiesRevealedEventDto {
+export interface PlayerConnectionChangedEventDto {
     roomCode: string;
-    spies: SpyRevealDto[];
-}
-export interface GameEndedEventDto {
-    roomCode: string;
+    playerId: string;
+    isConnected: boolean;
 }
 export interface ReturnToLobbyEventDto {
     roomCode: string;
 }
 
-export interface PlayerConnectionChangedEventDto {
+export interface VotingStartedEventDto {
     roomCode: string;
-    playerId: string;
-    isConnected: boolean;
+    initiatorId: string;
+    targetId: string | null;
+    targetName: string | null;
+    votingType: SpyVotingType;
+    currentGamePhase: SpyGamePhase;
+    endsAt: string;
+}
+
+export interface VoteCastEventDto {
+    roomCode: string;
+    voterId: string;
+    targetVoteType?: TargetVoteType;
+    againstPlayerId?: string;
+}
+
+export interface VotingResultEventDto {
+    roomCode: string;
+    isSuccess: boolean;
+    currentGamePhase: SpyGamePhase;
+    resultMessage: string | null;
+    accusedId: string | null;
+}
+
+export interface GameEndedEventDto {
+    roomCode: string;
+    winnerTeam: SpyGameTeam;
+    reason: SpyGameEndReason;
+    reasonMessage: string | null;
 }
 
 export interface SpyGameEventMap {
@@ -163,8 +245,10 @@ export interface SpyGameEventMap {
     [SpyHubEvents.GameStarted]: GameStartedEventDto;
     [SpyHubEvents.ChatMessageReceived]: ChatMessageEventDto;
     [SpyHubEvents.TimerVoteUpdated]: TimerStoppedEventDto;
-    [SpyHubEvents.SpiesRevealed]: SpiesRevealedEventDto;
     [SpyHubEvents.ReturnedToLobby]: ReturnToLobbyEventDto;
     [SpyHubEvents.PlayerConnectionStatusChanged]: PlayerConnectionChangedEventDto;
+    [SpyHubEvents.VotingStarted]: VotingStartedEventDto;
+    [SpyHubEvents.VoteCast]: VoteCastEventDto;
+    [SpyHubEvents.VotingResult]: VotingResultEventDto;
     [SpyHubEvents.GameEnded]: GameEndedEventDto;
 }

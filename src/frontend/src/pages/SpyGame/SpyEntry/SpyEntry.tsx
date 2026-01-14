@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useSpyGame } from '../../../context/SpyGameContext';
+import { useSpyGame } from '../../../context/spy-game/SpyGameContext.tsx';
 import { Button } from '../../../components/ui/Button/Button';
 import { Modal } from '../../../components/ui/Modal/Modal';
+import { RoomStatus } from "../../../models/spy-game.ts";
 import './SpyEntry.scss';
-import {RoomState} from "../../../models/spy-game.ts";
 
 export const SpyEntry = () => {
     const navigate = useNavigate();
@@ -19,7 +19,7 @@ export const SpyEntry = () => {
 
     useEffect(() => {
         if (roomCode) {
-            if (roomState === RoomState.InGame) navigate('/spy/game');
+            if (roomState === RoomStatus.InGame) navigate('/spy/game');
             else navigate('/spy/lobby');
         }
     }, [roomCode, roomState, navigate]);

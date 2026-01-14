@@ -78,18 +78,18 @@ public class MakeGuessHandler(
             if (isCorrect)
             {
                 room.WinnerTeam = Team.Spies;
-                room.GameEndReason = GameEndReason.SpyGuessedWord;
+                room.GameEndReason = SpyGameEndReason.SpyGuessedWord;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 
                     Team.Spies, 
-                    GameEndReason.SpyGuessedWord, 
+                    SpyGameEndReason.SpyGuessedWord, 
                     $"Spy guessed correctly! The word was {room.CurrentSecretWord}"));
             }
             else
             {
                 room.WinnerTeam = Team.Civilians;
-                room.GameEndReason = room.CurrentPhase == SpyGamePhase.SpyLastChance ? GameEndReason.SpyFound : GameEndReason.SpyWrongGuess;
+                room.GameEndReason = room.CurrentPhase == SpyGamePhase.SpyLastChance ? SpyGameEndReason.SpyFound : SpyGameEndReason.SpyWrongGuess;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 

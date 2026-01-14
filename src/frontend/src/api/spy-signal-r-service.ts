@@ -2,7 +2,7 @@ import * as signalR from "@microsoft/signalr";
 import { type SpyHubEvent, SpyHubMethods, SpyHubEvents } from "../const/spy-game-events";
 import type {
     ApiResponse,
-    RoomGameSettingsDto,
+    SpyRoomGameSettingsDto,
     CreateRoomResponseDto,
     JoinRoomResponseDto,
     SpyGameEventMap,
@@ -120,7 +120,7 @@ export class SpySignalRService {
         return this.invoke<void>(SpyHubMethods.KickPlayer, roomCode, targetPlayerId);
     }
 
-    public async updateSettings(roomCode: string, settings: RoomGameSettingsDto) {
+    public async updateSettings(roomCode: string, settings: SpyRoomGameSettingsDto) {
         return this.invoke<void>(SpyHubMethods.UpdateSettings, roomCode, settings);
     }
 
@@ -140,8 +140,20 @@ export class SpySignalRService {
         return this.invoke<void>(SpyHubMethods.VoteStopTimer, roomCode);
     }
 
-    public async revealSpies(roomCode: string) {
-        return this.invoke<void>(SpyHubMethods.RevealSpies, roomCode);
+    public async startAccusation(roomCode: string, targetPlayerId: string) {
+        return this.invoke<void>(SpyHubMethods.StartAccusation, roomCode, targetPlayerId);
+    }
+
+    public async vote(roomCode: string, targetPlayerId: string, voteType: string | null) {
+        const voteTypeString = voteType?.toString();
+
+        console.log("Sending Vote:", { roomCode, targetPlayerId, voteTypeString });
+
+        return this.invoke<void>(SpyHubMethods.Vote, roomCode, targetPlayerId, voteTypeString);
+    }
+
+    public async makeGuess(roomCode: string, word: string) {
+        return this.invoke<void>(SpyHubMethods.MakeGuess, roomCode, word);
     }
 
     private registerInternalListeners() {

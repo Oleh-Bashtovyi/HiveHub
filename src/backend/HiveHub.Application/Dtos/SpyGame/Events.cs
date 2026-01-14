@@ -15,7 +15,7 @@ public record SpyGameStartedEventDto(
 public record SpyGameEndedEventDto(
     string RoomCode,
     Team WinnerTeam,
-    GameEndReason Reason,
+    SpyGameEndReason Reason,
     string? ReasonMessage
 ) : IRoomEvent;
 
@@ -43,6 +43,7 @@ public record VotingStartedEventDto(
     string RoomCode,
     string InitiatorId,
     string? TargetId,
+    string? TargetName,
     SpyVotingType VotingType,
     SpyGamePhase CurrentGamePhase,
     DateTime EndsAt

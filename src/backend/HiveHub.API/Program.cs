@@ -1,5 +1,5 @@
 using HiveHub.API.Hubs;
-using HiveHub.API.Services; // Ensure this namespace exists if used
+using HiveHub.API.Services;
 using HiveHub.Application.Interfaces;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
@@ -11,11 +11,20 @@ using RedLockNet;
 using RedLockNet.SERedis;
 using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Core Services ---
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(HiveHub.Application.BllMarker).Assembly);

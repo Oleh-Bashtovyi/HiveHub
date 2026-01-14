@@ -13,7 +13,7 @@ public enum SpyGamePhase
     SpyLastChance
 }
 
-public enum GameEndReason
+public enum SpyGameEndReason
 {
     TimerExpired,
     // Wrong accuse or final vote target
@@ -44,7 +44,7 @@ public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerStat
     public VotingStateBase? ActiveVoting { get; set; }
     // Only caught spy can guess word during last chance phase
     public string? CaughtSpyId { get; set; }
-    public GameEndReason? GameEndReason { get; set; }
+    public SpyGameEndReason? GameEndReason { get; set; }
     public Team? WinnerTeam { get; set; }
 
     public SpyRoom(string code) : base(code)

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useSpyGame } from '../../context/SpyGameContext';
+import { useSpyGame } from '../../context/spy-game/SpyGameContext.tsx';
 import './SpyLoader.scss';
 
 const GlobalLoader = () => {

@@ -59,7 +59,7 @@ public static class SpyGameLogicHelper
                     // Civilian Kicked -> Spies Win
                     room.Status = RoomStatus.Ended;
                     room.WinnerTeam = Team.Spies;
-                    room.GameEndReason = GameEndReason.CivilianKicked;
+                    room.GameEndReason = SpyGameEndReason.CivilianKicked;
 
                     logger.LogInformation("Voting Passed: Innocent {PlayerId} kicked in room {RoomCode}. Spies win.", 
                         accState.TargetId, room.RoomCode);
@@ -74,7 +74,7 @@ public static class SpyGameLogicHelper
                     context.AddEvent(new SpyGameEndedEventDto(
                         RoomCode: room.RoomCode, 
                         WinnerTeam: Team.Spies,
-                        Reason: GameEndReason.CivilianKicked,
+                        Reason: SpyGameEndReason.CivilianKicked,
                         ReasonMessage: "Innocent player kicked"));
                 }
             }
@@ -132,7 +132,7 @@ public static class SpyGameLogicHelper
                     // Consensus Failed -> Spies Win
                     room.Status = RoomStatus.Ended;
                     room.WinnerTeam = Team.Spies;
-                    room.GameEndReason = GameEndReason.FinalVotingFailed;
+                    room.GameEndReason = SpyGameEndReason.FinalVotingFailed;
 
                     logger.LogInformation("Final Voting Failed: Consensus not reached in room {RoomCode}.", room.RoomCode);
 
@@ -146,7 +146,7 @@ public static class SpyGameLogicHelper
                     context.AddEvent(new SpyGameEndedEventDto(
                         room.RoomCode, 
                         Team.Spies, 
-                        GameEndReason.FinalVotingFailed,
+                        SpyGameEndReason.FinalVotingFailed,
                         "Civilians failed to agree on a suspect"));
                 }
                 else
@@ -175,7 +175,7 @@ public static class SpyGameLogicHelper
                         // Wrong Target -> Spies Win
                         room.Status = RoomStatus.Ended;
                         room.WinnerTeam = Team.Spies;
-                        room.GameEndReason = GameEndReason.CivilianKicked;
+                        room.GameEndReason = SpyGameEndReason.CivilianKicked;
 
                         logger.LogInformation("Final Voting Fail: Wrong target {TargetId} in room {RoomCode}.", targetId, room.RoomCode);
 
@@ -189,7 +189,7 @@ public static class SpyGameLogicHelper
                         context.AddEvent(new SpyGameEndedEventDto(
                             room.RoomCode, 
                             Team.Spies, 
-                            GameEndReason.CivilianKicked,
+                            SpyGameEndReason.CivilianKicked,
                             "Civilians voted for an innocent player"));
                     }
                 }
