@@ -31,11 +31,6 @@ public record VotingResultEventDto(
     string? AccusedId
 );
 
-public record PhaseChangedEventDto(
-    string RoomCode,
-    SpyGamePhase Phase
-);
-
 public record PlayerJoinedEventDto(
     string RoomCode,
     SpyPlayerDto Player

@@ -145,14 +145,4 @@ public static class ProjectMessages
         public static readonly string GuessNotAllowedInCurrentPhase = "Вгадувати не можна в поточній фазі гри.";
         public static readonly string OnlyCaughtSpyCanGuessInFinalPhase = "Вгадувати може тільки спійманий шпигун.";
     }
-
-
-/*    public static class GameFlow
-    {
-        public static readonly string ActionNotAllowedInCurrentPhase = "Ця дія недоступна в поточній фазі гри.";
-        public static readonly string SpyWrongGuess = "Неправильна локація! Перемога мирних.";
-        public static readonly string SpyCorrectGuess = "Шпигун вгадав локацію! Перемога шпигунів.";
-        public static readonly string CiviliansWon = "Мирні жителі перемогли!";
-        public static readonly string SpiesWon = "Шпигуни перемогли!";
-    }*/
 }

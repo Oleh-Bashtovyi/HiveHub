@@ -1,0 +1,85 @@
+@use '../../../../styles/variables' as *;
+
+.spy-role-card {
+  flex-shrink: 0;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, $color-spy-primary 0%, $color-spy-dark 100%);
+
+  @media (max-width: 768px) {
+    padding: 20px;
+  }
+
+  &--civilian {
+    background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+  }
+
+  &__icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+
+    @media (max-width: 768px) {
+      font-size: 48px;
+    }
+  }
+
+  &__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+
+    @media (max-width: 768px) {
+      font-size: 20px;
+    }
+  }
+
+  &__desc {
+    font-size: 14px;
+    opacity: 0.9;
+    line-height: 1.4;
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
+  }
+
+  &__secret-word {
+    background: rgba(0,0,0,0.3);
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 15px 0;
+    letter-spacing: 1px;
+    border: 1px dashed rgba(255,255,255,0.4);
+
+    @media (max-width: 768px) {
+      font-size: 20px;
+      padding: 12px;
+    }
+  }
+
+  &__category-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  &__category-text {
+    font-size: 14px;
+    margin-top: 10px;
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
+  }
+}
