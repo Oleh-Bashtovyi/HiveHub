@@ -1,4 +1,5 @@
 ﻿using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Domain.Models;
 
@@ -92,7 +93,7 @@ public static class SpyGameStateMapper
                     var accusedName = room.Players.FirstOrDefault(p => p.IdInRoom == accState.TargetId)?.Name;
 
                     votingDto = new VotingStateDto(
-                        Type: VotingType.Accusation,
+                        Type: SpyVotingType.Accusation,
                         AccusedPlayerId: accState.TargetId,
                         AccusedPlayerName: accusedName,
                         TargetVoting: accState.Votes,
@@ -105,7 +106,7 @@ public static class SpyGameStateMapper
                 else if (room.ActiveVoting is GeneralVotingState generalState)
                 {
                     votingDto = new VotingStateDto(
-                        Type: VotingType.Final,
+                        Type: SpyVotingType.Final,
                         AccusedPlayerId: null,
                         AccusedPlayerName: null,
                         TargetVoting: null,

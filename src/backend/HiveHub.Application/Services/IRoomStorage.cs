@@ -2,8 +2,8 @@
 
 namespace HiveHub.Application.Interfaces;
 
-public interface IRoomStorage
+public interface IRoomStorage<TRoom>
 {
-    Task<SpyRoom?> LoadAsync(string roomCode);
-    Task SaveAsync(SpyRoom room);
+    Task<TRoom?> LoadAsync(string roomCode);
+    Task SaveAsync(TRoom room);
 }

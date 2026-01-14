@@ -5,29 +5,33 @@ namespace HiveHub.Application.Publishers;
 
 public interface ISpyGamePublisher
 {
+    // Room grouping
     Task AddPlayerToRoomGroupAsync(string connectionId, string roomCode);
     Task RemovePlayerFromRoomGroupAsync(string connectionId, string roomCode);
 
-    Task PublishPlayerJoinedAsync(PlayerJoinedEventDto eventDto);
+    // Connection
+    Task PublishPlayerJoinedAsync(PlayerJoinedEventDto<SpyPlayerDto> eventDto);
     Task PublishPlayerLeftAsync(PlayerLeftEventDto eventDto);
-    Task PublishPlayerChangedNameAsync(PlayerChangedNameEventDto eventDto);
     Task PublishPlayerKickedAsync(PlayerKickedEventDto eventDto);
-    Task PublishPlayerReadyStatusChangedAsync(PlayerReadyStatusChangedEventDto eventDto);
+    
+    // Lobby
+    Task PublishPlayerChangedNameAsync(PlayerChangedNameEventDto eventDto);
     Task PublishPlayerChangedAvatarAsync(PlayerChangedAvatarEventDto eventDto);
-
-    Task PublishHostChangedAsync(HostChangedEventDto eventDto);
-    Task PublishGameSettingsUpdatedAsync(GameSettingsUpdatedEventDto eventDto);
-
+    Task PublishPlayerReadyStatusChangedAsync(PlayerReadyStatusChangedEventDto eventDto);
     Task PublishGameStartedAsync(string connectionId, GameStartedEventDto eventDto);
-    Task PublishChatMessageAsync(ChatMessageEventDto eventDto);
-    Task PublishTimerVoteAsync(TimerStoppedEventDto eventDto);
-    Task PublishSpiesRevealedAsync(SpiesRevealedEventDto eventDto);
-    Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
-    Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
-    Task PublishGameEndedAsync(GameEndedEventDto eventDto);
+    Task PublishGameSettingsUpdatedAsync(SpyGameSettingsUpdatedEventDto eventDto);
 
+    // Gameplay
+    Task PublishTimerVoteAsync(TimerStoppedEventDto eventDto);
+    Task PublishReturnToLobbyAsync(ReturnToLobbyEventDto eventDto);
+    Task PublishGameEndedAsync(GameEndedEventDto eventDto);
     Task PublishVotingStartedAsync(VotingStartedEventDto eventDto);
     Task PublishVoteCastAsync(VoteCastEventDto eventDto);
     Task PublishVotingResultAsync(VotingResultEventDto eventDto);
+
+    // General
+    Task PublishChatMessageAsync(ChatMessageEventDto eventDto);
+    Task PublishHostChangedAsync(HostChangedEventDto eventDto);
+    Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
 }
 

@@ -4,7 +4,7 @@ using HiveHub.Domain.Models;
 
 namespace HiveHub.Infrastructure.Models;
 
-public sealed class InMemorySpyRoomAccessor(SpyRoom room) : ISpyRoomAccessor, IDisposable
+public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoom>, IDisposable
 {
     private readonly SpyRoom _room = room;
     private readonly SemaphoreSlim _semaphore = new(1, 1);

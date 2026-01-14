@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;

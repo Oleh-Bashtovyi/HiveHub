@@ -1,6 +1,9 @@
-﻿using HiveHub.Application.Dtos.SpyGame;
+﻿namespace HiveHub.Application.Dtos.Shared;
 
-namespace HiveHub.Application.Dtos.Shared;
+public record PlayerJoinedEventDto<TPlayer>(
+    string RoomCode,
+    TPlayer Player
+);
 
 public record PlayerLeftEventDto(
     string RoomCode,
@@ -15,6 +18,12 @@ public record PlayerKickedEventDto(
     string RoomCode,
     string PlayerId,
     string KickedByPlayerId);
+
+public record PlayerConnectionChangedEventDto(
+    string RoomCode,
+    string PlayerId,
+    bool IsConnected
+);
 
 public record PlayerReadyStatusChangedEventDto(
     string RoomCode,

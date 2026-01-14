@@ -97,7 +97,7 @@ public class StartAccusationHandler(
                 RoomCode: room.RoomCode,
                 InitiatorId: initiator.IdInRoom,
                 TargetId: targetPlayer.IdInRoom,
-                VotingType: VotingType.Accusation,
+                VotingType: SpyVotingType.Accusation,
                 CurrentGamePhase: SpyGamePhase.Accusation,
                 EndsAt: endsAt
             );

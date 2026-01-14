@@ -2,7 +2,7 @@
 
 namespace HiveHub.Application.Dtos.SpyGame;
 
-public record GameSettingsUpdatedEventDto(
+public record SpyGameSettingsUpdatedEventDto(
     string RoomCode,
     SpyRoomGameSettingsDto Settings
 );
@@ -13,16 +13,6 @@ public record TimerStoppedEventDto(
     int VotesCount,
     int RequiredVotes);
 
-public record SpiesRevealedEventDto(
-    string RoomCode,
-    List<SpyRevealDto> Spies);
-
-public record PlayerConnectionChangedEventDto(
-    string RoomCode,
-    string PlayerId,
-    bool IsConnected
-);
-
 public record VotingResultEventDto(
     string RoomCode,
     bool IsSuccess,
@@ -31,10 +21,7 @@ public record VotingResultEventDto(
     string? AccusedId
 );
 
-public record PlayerJoinedEventDto(
-    string RoomCode,
-    SpyPlayerDto Player
-);
+
 
 public record GameStartedEventDto(
     SpyRoomStateDto State
@@ -44,7 +31,7 @@ public record VotingStartedEventDto(
     string RoomCode,
     string InitiatorId,
     string? TargetId,
-    VotingType VotingType,
+    SpyVotingType VotingType,
     SpyGamePhase CurrentGamePhase,
     DateTime EndsAt
 );

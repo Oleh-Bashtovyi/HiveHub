@@ -1,32 +1,13 @@
-﻿using HiveHub.Domain.Models;
+﻿using HiveHub.Application.Dtos.Shared;
+using HiveHub.Domain.Models;
 
 namespace HiveHub.Application.Dtos.SpyGame;
 
-public enum VotingType
+public enum SpyVotingType
 {
     Accusation,
     Final
 }
-
-public record JoinRoomResponseDto(
-    SpyPlayerDto Me,
-    SpyRoomStateDto RoomState
-);
-
-public record CreateRoomResponseDto(
-    SpyPlayerDto Me,
-    SpyRoomStateDto RoomState
-);
-
-public record SpyRoomStateDto(
-    string RoomCode,
-    RoomStatus Status,
-    List<SpyPlayerDto> Players,
-    List<ChatMessageDto> Messages,
-    SpyRoomGameSettingsDto Settings,
-    GameStateDto? GameState,
-    long Version
-);
 
 public record SpyPlayerDto(
     string Id,
@@ -37,13 +18,16 @@ public record SpyPlayerDto(
     bool IsConnected,
     bool? IsSpy,
     bool? IsVotedToStopTimer
-);
+) : PlayerDto(Id, Name, AvatarId, IsHost, IsReady, IsConnected);
 
-public record ChatMessageDto(
-    string PlayerId,
-    string PlayerName,
-    string Message,
-    DateTime Timestamp
+public record SpyRoomStateDto(
+    string RoomCode,
+    RoomStatus Status,
+    List<SpyPlayerDto> Players,
+    List<ChatMessageDto> Messages,
+    SpyRoomGameSettingsDto Settings,
+    GameStateDto? GameState,
+    long Version
 );
 
 public record SpyRoomGameSettingsDto(
@@ -70,7 +54,7 @@ public record GameStateDto(
 );
 
 public record VotingStateDto(
-    VotingType Type,
+    SpyVotingType Type,
     string? AccusedPlayerId,
     string? AccusedPlayerName,
     Dictionary<string, TargetVoteType>? TargetVoting, // player with id voted as ... against player with AccusedPlayerId
@@ -84,9 +68,3 @@ public record WordsCategoryDto(
     string Name,
     List<string> Words
 );
-
-public record SpyRevealDto(
-    string PlayerId,
-    string PlayerName);
-
-

@@ -102,7 +102,7 @@ public class UpdateGameSettingsHandler(
 
         logger.LogInformation("Game settings updated in room {RoomCode}", request.RoomCode);
 
-        var eventDto = new GameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings);
+        var eventDto = new SpyGameSettingsUpdatedEventDto(request.RoomCode, request.NewSettings);
         await publisher.PublishGameSettingsUpdatedAsync(eventDto);
 
         return Result.Ok();

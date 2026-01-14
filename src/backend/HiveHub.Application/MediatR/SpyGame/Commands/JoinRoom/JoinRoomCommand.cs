@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
@@ -14,16 +15,16 @@ namespace HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 public record JoinRoomCommand(
     string ConnectionId,
     string RoomCode
-) : IRequest<Result<JoinRoomResponseDto>>;
+) : IRequest<Result<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>>;
 
 public class JoinRoomHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<JoinRoomHandler> logger,
     IIdGenerator idGenerator)
-    : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto>>
+    : IRequestHandler<JoinRoomCommand, Result<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>>
 {
-    public async Task<Result<JoinRoomResponseDto>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
+    public async Task<Result<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>> Handle(JoinRoomCommand request, CancellationToken cancellationToken)
     {
         var roomAccessor = repository.GetRoom(request.RoomCode);
         if (roomAccessor == null)
@@ -65,7 +66,7 @@ public class JoinRoomHandler(
             var roomStateDto = SpyGameStateMapper.GetRoomStateForPlayer(room, publicId);
             var meDto = roomStateDto.Players.First(x => x.Id == publicId);
 
-            var responseDto = new JoinRoomResponseDto(meDto, roomStateDto);
+            var responseDto = new JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>(meDto, roomStateDto);
 
             return Result.Ok(responseDto);
         });
@@ -89,7 +90,7 @@ public class JoinRoomHandler(
 
         await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, request.RoomCode);
 
-        var eventDto = new PlayerJoinedEventDto(request.RoomCode, response.Me);
+        var eventDto = new PlayerJoinedEventDto<SpyPlayerDto>(request.RoomCode, response.Me);
 
         await publisher.PublishPlayerJoinedAsync(eventDto);
 

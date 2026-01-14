@@ -1,4 +1,5 @@
 ﻿using HiveHub.API.Dtos;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeAvatar;
@@ -12,7 +13,6 @@ using HiveHub.Application.MediatR.SpyGame.Commands.MakeGuess;
 using HiveHub.Application.MediatR.SpyGame.Commands.Reconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.RenamePlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.ReturnToLobby;
-using HiveHub.Application.MediatR.SpyGame.Commands.RevealSpies;
 using HiveHub.Application.MediatR.SpyGame.Commands.SendMessage;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartAccusation;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartGame;
@@ -55,7 +55,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
     }
 
     // --- Connection Management ---
-    public async Task<ApiResponse<CreateRoomResponseDto>> CreateRoom()
+    public async Task<ApiResponse<CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>> CreateRoom()
     {
         var result = await _mediator.Send(new CreateRoomCommand(Context.ConnectionId));
 
@@ -67,7 +67,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
         return result.ToApiResponse();
     }
 
-    public async Task<ApiResponse<JoinRoomResponseDto>> JoinRoom(string roomCode)
+    public async Task<ApiResponse<JoinRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>> JoinRoom(string roomCode)
     {
         var result = await _mediator.Send(new JoinRoomCommand(Context.ConnectionId, roomCode));
 
@@ -135,9 +135,6 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
 
     public Task<ApiResponse> VoteStopTimer(string roomCode)
         => HandleCommand(new VoteStopTimerCommand(roomCode, Context.ConnectionId));
-
-    public Task<ApiResponse> RevealSpies(string roomCode)
-        => HandleCommand(new RevealSpiesCommand(roomCode, Context.ConnectionId));
 
     public Task<ApiResponse> StartAccusation(string roomCode, string targetPlayerId)
         => HandleCommand(new StartAccusationCommand(roomCode, Context.ConnectionId, targetPlayerId));

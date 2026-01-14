@@ -4,6 +4,7 @@ using HiveHub.Application.Interfaces;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
+using HiveHub.Domain.Models;
 using HiveHub.Infrastructure.BackgroundJobs;
 using HiveHub.Infrastructure.Services;
 using RedLockNet;
@@ -67,7 +68,7 @@ else
         });
     });
 
-    builder.Services.AddSingleton<IRoomStorage, RedisRoomStorage>();
+    builder.Services.AddSingleton<IRoomStorage<SpyRoom>, RedisRoomStorage>();
     builder.Services.AddSingleton<ISpyGameRepository, RedisSpyGameRepository>();
     builder.Services.AddSingleton<ITaskScheduler, RedisTaskScheduler>();
 

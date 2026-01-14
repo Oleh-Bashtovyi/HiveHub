@@ -14,13 +14,13 @@ public class RedisSpyGameRepository : ISpyGameRepository
 {
     private readonly IDatabase _db;
     private readonly IIdGenerator _idGenerator;
-    private readonly IRoomStorage _storage;
+    private readonly IRoomStorage<SpyRoom> _storage;
     private readonly IDistributedLockFactory _lockFactory;
 
     public RedisSpyGameRepository(
         IConnectionMultiplexer redis,
         IIdGenerator idGenerator,
-        IRoomStorage storage,
+        IRoomStorage<SpyRoom> storage,
         IDistributedLockFactory lockFactory)
     {
         _db = redis.GetDatabase();
@@ -41,7 +41,7 @@ public class RedisSpyGameRepository : ISpyGameRepository
         return code;
     }
 
-    public ISpyRoomAccessor? GetRoom(string roomCode)
+    public IRoomAccessor<SpyRoom>? GetRoom(string roomCode)
     {
         if (string.IsNullOrEmpty(roomCode)) return null;
         return new RedisSpyRoomAccessor(roomCode, _storage, _lockFactory);

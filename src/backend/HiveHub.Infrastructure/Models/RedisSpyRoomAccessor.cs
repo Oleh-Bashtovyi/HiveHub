@@ -8,19 +8,19 @@ using RedLockNet;
 
 namespace HiveHub.Infrastructure.Models;
 
-public class RedisSpyRoomAccessor : ISpyRoomAccessor
+public class RedisSpyRoomAccessor : IRoomAccessor<SpyRoom>
 {
     private static readonly TimeSpan ExpireTime = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan WaitTime = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RetryTime = TimeSpan.FromMilliseconds(200);
 
     private readonly string _roomCode;
-    private readonly IRoomStorage _storage;
+    private readonly IRoomStorage<SpyRoom> _storage;
     private readonly IDistributedLockFactory _lockFactory;
 
     public string RoomCode => _roomCode;
 
-    public RedisSpyRoomAccessor(string roomCode, IRoomStorage storage, IDistributedLockFactory lockFactory)
+    public RedisSpyRoomAccessor(string roomCode, IRoomStorage<SpyRoom> storage, IDistributedLockFactory lockFactory)
     {
         _roomCode = roomCode;
         _storage = storage;

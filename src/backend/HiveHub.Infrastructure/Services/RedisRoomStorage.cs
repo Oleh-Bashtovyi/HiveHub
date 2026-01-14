@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace HiveHub.Infrastructure.Services;
 
-public class RedisRoomStorage : IRoomStorage
+public class RedisRoomStorage : IRoomStorage<SpyRoom>
 {
     private readonly IDatabase _db;
     private readonly ILogger<RedisRoomStorage> _logger;

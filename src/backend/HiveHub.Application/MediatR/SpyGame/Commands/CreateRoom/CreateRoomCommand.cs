@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
@@ -11,16 +12,17 @@ using Microsoft.Extensions.Logging;
 
 namespace HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
 
-public record CreateRoomCommand(string ConnectionId) : IRequest<Result<CreateRoomResponseDto>>;
+public record CreateRoomCommand(string ConnectionId) : IRequest<Result<CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>>;
 
 public class CreateRoomHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ILogger<CreateRoomHandler> logger,
     IIdGenerator idGenerator)
-    : IRequestHandler<CreateRoomCommand, Result<CreateRoomResponseDto>>
+    : IRequestHandler<CreateRoomCommand, Result<CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>>
 {
-    public async Task<Result<CreateRoomResponseDto>> Handle(CreateRoomCommand request, CancellationToken cancellationToken)
+    public async Task<Result<CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>>> 
+        Handle(CreateRoomCommand request, CancellationToken cancellationToken)
     {
         var roomCode = await repository.GenerateUniqueRoomCodeAsync();
         var room = new SpyRoom(roomCode);
@@ -50,7 +52,7 @@ public class CreateRoomHandler(
         var roomStateDto = SpyGameStateMapper.GetRoomStateForPlayer(room, hostPublicId);
         var meDto = roomStateDto.Players.First(x => x.Id == hostPublicId);
 
-        var response = new CreateRoomResponseDto(meDto, roomStateDto);
+        var response = new CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>(meDto, roomStateDto);
 
         logger.LogInformation("Room created: {RoomCode}", roomCode);
         await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);

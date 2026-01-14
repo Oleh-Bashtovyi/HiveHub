@@ -23,7 +23,7 @@ public sealed class InMemorySpyGameRepository(IIdGenerator idGenerator) : ISpyGa
         return Task.FromResult(code);
     }
 
-    public ISpyRoomAccessor? GetRoom(string roomCode)
+    public IRoomAccessor<SpyRoom>? GetRoom(string roomCode)
     {
         if (string.IsNullOrEmpty(roomCode)) return null;
         _rooms.TryGetValue(roomCode, out var accessor);
