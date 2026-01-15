@@ -1,23 +1,22 @@
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import { AVATAR_MAP } from '../../../../const/avatars';
 import type { SpyPlayerDto } from '../../../../models/spy-game';
+import { useGameTimer } from '../../../../hooks/useGameTimer';
 import './FinalVotingModal.scss';
 
 interface FinalVotingModalProps {
     isOpen: boolean;
     players: SpyPlayerDto[];
     hasVoted: boolean;
+    endsAt: string;
     onVote: (playerId: string) => void;
 }
 
-export const FinalVotingModal = ({
-                                     isOpen,
-                                     players,
-                                     hasVoted,
-                                     onVote
-                                 }: FinalVotingModalProps) => {
+export const FinalVotingModal = ({ isOpen, players, hasVoted, endsAt, onVote }: FinalVotingModalProps) => {
+    const timeLeft = useGameTimer(endsAt);
+
     return (
-        <Modal isOpen={isOpen} onClose={() => {}} title="🗳️ Фінальне голосування">
+        <Modal isOpen={isOpen} onClose={() => {}} title={`🗳️ Фінальне голосування (${timeLeft}с)`}>
             <div className="final-voting">
                 <div className="final-voting__header">
                     <div className="final-voting__icon">⏱️</div>
@@ -26,7 +25,6 @@ export const FinalVotingModal = ({
                         Оберіть гравця, якого ви підозрюєте у шпигунстві
                     </p>
                 </div>
-
                 {hasVoted ? (
                     <div className="final-voting__voted">
                         <div className="final-voting__voted-icon">✅</div>

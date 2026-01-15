@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.Models;
@@ -16,8 +17,7 @@ public record HandleVotingTimeUpCommand(string RoomCode) : IRequest<Result>;
 
 public class HandleVotingTimeUpHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<HandleVotingTimeUpHandler> logger) : IRequestHandler<HandleVotingTimeUpCommand, Result>
 {
     public async Task<Result> Handle(HandleVotingTimeUpCommand request, CancellationToken token)
@@ -27,7 +27,7 @@ public class HandleVotingTimeUpHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        await roomAccessor.ExecuteAsync(async (room) =>
+        return await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (room.CurrentPhase != SpyGamePhase.Accusation && room.CurrentPhase != SpyGamePhase.FinalVote)
             {
@@ -51,24 +51,32 @@ public class HandleVotingTimeUpHandler(
                 room.CurrentPhase = SpyGamePhase.Search;
                 room.ActiveVoting = null;
 
-                await publisher.PublishVotingResultAsync(new VotingResultEventDto(
+                context.AddEvent(new VotingResultEventDto(
                     RoomCode: room.RoomCode,
                     IsSuccess: false,
                     CurrentGamePhase: SpyGamePhase.Search,
                     ResultMessage: "Vote timed out. Game resumes.",
+                    LastChanceEndsAt: null,
+                    IsAccusedSpy: null,
                     AccusedId: null));
 
-                if (room.TimerState.TimerStoppedAt.HasValue && room.TimerState.PlannedGameEndTime.HasValue)
+                if (room.RoundTimerState.IsTimerStopped)
                 {
-                    var timeSpentPaused = DateTime.UtcNow - room.TimerState.TimerStoppedAt.Value;
-                    room.TimerState.PlannedGameEndTime = room.TimerState.PlannedGameEndTime.Value.Add(timeSpentPaused);
-                    room.TimerState.IsTimerStopped = false;
-                    room.TimerState.TimerStoppedAt = null;
+                    room.RoundTimerState.Resume();
+                    var remainingTime = TimeSpan.FromSeconds(room.RoundTimerState.GetRemainingSeconds());
+                    
+                    context.AddEvent(new ScheduleTaskEvent(
+                        TaskType.SpyGameRoundTimeUp, 
+                        room.RoomCode, 
+                        null, 
+                        remainingTime));
 
-                    var remaining = room.TimerState.PlannedGameEndTime.Value - DateTime.UtcNow;
-                    var delay = remaining.TotalSeconds > 0 ? remaining : TimeSpan.Zero;
-
-                    await scheduler.ScheduleAsync(new ScheduledTask(TaskType.SpyGameRoundTimeUp, room.RoomCode, null), delay);
+                    context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
+                        room.RoomCode,
+                        room.RoundTimerState.IsTimerStopped,
+                        room.RoundTimerState.TimerStartedAt,
+                        room.RoundTimerState.TimerWillStopAt,
+                        room.RoundTimerState.TimerPausedAt));
                 }
             }
             else if (room.CurrentPhase == SpyGamePhase.FinalVote)
@@ -78,24 +86,23 @@ public class HandleVotingTimeUpHandler(
                 room.GameEndReason = SpyGameEndReason.FinalVotingFailed;
                 room.ActiveVoting = null;
 
-                await publisher.PublishVotingResultAsync(new VotingResultEventDto(
+                context.AddEvent(new VotingResultEventDto(
                     RoomCode: room.RoomCode,
                     IsSuccess: false,
                     CurrentGamePhase: SpyGamePhase.None,
                     ResultMessage: "Time is up! No decision made. Spies win!",
+                    LastChanceEndsAt: null,
+                    IsAccusedSpy: null,
                     AccusedId: null));
 
-                await publisher.PublishGameEndedAsync(new SpyGameEndedEventDto(
-                    RoomCode: room.RoomCode, 
+                context.AddEvent(new SpyGameEndedEventDto(
+                    RoomCode: room.RoomCode,
                     WinnerTeam: SpyTeam.Spies,
                     Reason: SpyGameEndReason.FinalVotingFailed,
                     SpiesReveal: room.GetSpyRevealDto(),
                     ReasonMessage: "Timeout on final vote"));
             }
-
             return Result.Ok();
         });
-
-        return Result.Ok();
     }
 }

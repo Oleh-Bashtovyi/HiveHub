@@ -38,6 +38,7 @@ export const SpyHubEvents = {
     VoteCast: "VoteCast",
     VotingResult: "VotingResult",
     GameEnded: "GameEnded",
+    RoundTimerStateChanged: "RoundTimerStateChanged",
 } as const;
 
 export type SpyHubMethod = typeof SpyHubMethods[keyof typeof SpyHubMethods];

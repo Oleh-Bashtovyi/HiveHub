@@ -28,6 +28,7 @@ public interface ISpyGamePublisher
     Task PublishVotingStartedAsync(VotingStartedEventDto eventDto);
     Task PublishVoteCastAsync(VoteCastEventDto eventDto);
     Task PublishVotingResultAsync(VotingResultEventDto eventDto);
+    Task PublishTimerStateChangedAsync(SpyGameRoundTimerStateChangedEventDto eventDto);
 
     // General
     Task PublishChatMessageAsync(ChatMessageEventDto eventDto);

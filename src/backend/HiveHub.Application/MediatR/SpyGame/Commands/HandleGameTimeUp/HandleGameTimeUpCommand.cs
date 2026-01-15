@@ -32,20 +32,19 @@ public class HandleGameTimeUpHandler(
 
         await roomAccessor.ExecuteAsync(async (room) =>
         {
-            if (!room.IsInGame() || room.TimerState.IsTimerStopped)
+            if (!room.IsInGame() || room.RoundTimerState.IsTimerStopped)
             {
                 return Result.Ok();
             }
 
-            if (room.TimerState.PlannedGameEndTime > DateTime.UtcNow.AddSeconds(2))
+            if (room.RoundTimerState.TimerWillStopAt > DateTime.UtcNow.AddSeconds(2))
             {
                 return Result.Ok();
             }
 
             logger.LogInformation("Game timer expired in room {RoomCode}. Starting Final Vote.", request.RoomCode);
 
-            room.TimerState.IsTimerStopped = true;
-            room.TimerState.TimerStoppedAt = DateTime.UtcNow;
+            room.RoundTimerState.Pause();
 
             room.CurrentPhase = SpyGamePhase.FinalVote;
 

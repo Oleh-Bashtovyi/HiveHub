@@ -1,5 +1,4 @@
-﻿using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Application.Models;
+﻿using HiveHub.Application.Models;
 
 namespace HiveHub.Application.Dtos.Shared;
 
@@ -76,12 +75,6 @@ public record HostChangedEventDto(
 
 public record ReturnToLobbyEventDto(
     string RoomCode
-) : IRoomEvent;
-
-public record AccusationStartedEventDto(
-    string RoomCode,
-    string InitiatorId,
-    string TargetId
 ) : IRoomEvent;
 
 public record ChatMessageEventDto(

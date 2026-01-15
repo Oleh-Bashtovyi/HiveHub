@@ -111,22 +111,32 @@ public class SpyGameEventsContext(
 
             case ReturnToLobbyEventDto e:
                 await publisher.PublishReturnToLobbyAsync(e);
+                logger.LogCritical("Published: Return to lobby in room {RoomCode}", 
+                    e.RoomCode);
                 break;
 
             case SpyGameEndedEventDto e:
                 await publisher.PublishGameEndedAsync(e);
+                logger.LogCritical("Publish: game ended in room {RoomCode}, reason: {Reason}", 
+                    e.RoomCode, e.Reason);
                 break;
 
             case VotingStartedEventDto e:
                 await publisher.PublishVotingStartedAsync(e);
+                logger.LogCritical("Published: Voting started in room {RoomCode}, initiator {InitiatorId}, type {VoteType}",
+                    e.RoomCode, e.InitiatorId, e.VotingType);
                 break;
 
             case VoteCastEventDto e:
                 await publisher.PublishVoteCastAsync(e);
+                logger.LogCritical("Published: Vote cast in room {RoomCode}, voter {VoterId}", 
+                    e.RoomCode, e.VoterId);
                 break;
 
             case VotingResultEventDto e:
                 await publisher.PublishVotingResultAsync(e);
+                logger.LogCritical("Published: Voting result in room {RoomCode}, is success: {IsSuccess}, result message: {ResultMessage}", 
+                    e.RoomCode, e.IsSuccess, e.ResultMessage);
                 break;
 
             case ChatMessageEventDto e:
@@ -135,6 +145,12 @@ public class SpyGameEventsContext(
 
             case HostChangedEventDto e:
                 await publisher.PublishHostChangedAsync(e);
+                break;
+
+            case SpyGameRoundTimerStateChangedEventDto e:
+                await publisher.PublishTimerStateChangedAsync(e);
+                logger.LogCritical("Published: Round timer status changed to: {IsTimerStopped} in room {RoomCode}",
+                    e.IsRoundTimerStopped, e.RoomCode);
                 break;
 
             default:

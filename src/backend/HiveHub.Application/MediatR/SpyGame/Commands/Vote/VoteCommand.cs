@@ -33,7 +33,7 @@ public class VoteHandler(
 
         var voterId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAsync(async (room) => 
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) => 
         {
             if (room.ActiveVoting == null)
             {

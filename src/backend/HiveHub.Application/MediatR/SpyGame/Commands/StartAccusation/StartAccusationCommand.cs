@@ -63,12 +63,16 @@ public class StartAccusationHandler(
             initiatorId = initiator.IdInRoom;
 
             // Stop main game timer
-            if (!room.TimerState.IsTimerStopped)
+            if (!room.RoundTimerState.IsTimerStopped)
             {
-                room.TimerState.IsTimerStopped = true;
-                room.TimerState.TimerStoppedAt = DateTime.UtcNow;
-
+                room.RoundTimerState.Pause();
                 context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
+                context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
+                    room.RoomCode,
+                    IsRoundTimerStopped: room.RoundTimerState.IsTimerStopped,
+                    RoundTimerPausedAt: room.RoundTimerState.TimerPausedAt,
+                    RoundTimerStartedAt: room.RoundTimerState.TimerStartedAt,
+                    RoundTimerWillStopAt: room.RoundTimerState.TimerWillStopAt));
             }
 
             // Start accusation process

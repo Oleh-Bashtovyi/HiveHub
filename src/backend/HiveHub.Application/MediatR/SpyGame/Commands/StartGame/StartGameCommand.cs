@@ -98,12 +98,8 @@ public class StartGameHandler(
             }
 
             // Setup Timer
-            var now = DateTime.UtcNow;
             var duration = TimeSpan.FromMinutes(room.GameSettings.TimerMinutes);
-            room.TimerState.GameStartTime = now;
-            room.TimerState.PlannedGameEndTime = now.Add(duration);
-            room.TimerState.IsTimerStopped = false;
-            room.TimerState.TimerStoppedAt = null;
+            room.RoundTimerState.Start(duration);
 
             room.Status = RoomStatus.InGame;
             room.CurrentPhase = SpyGamePhase.Search;

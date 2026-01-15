@@ -52,20 +52,29 @@ export const SpyGameEndReason = {
     SpyWrongGuess: 'SpyWrongGuess',
     FinalVotingFailed: 'FinalVotingFailed',
     SpyFound: 'SpyFound',
-
 } as const;
 export type SpyGameEndReason = (typeof SpyGameEndReason)[keyof typeof SpyGameEndReason];
 
-// --- DTOs ---
-export interface SpyPlayerDto {
+export interface PlayerDto {
     id: string;
     name: string;
+    avatarId: string;
     isHost: boolean;
     isReady: boolean;
-    avatarId: string;
     isConnected: boolean;
+}
+
+export interface ChatMessageDto {
+    playerId: string;
+    playerName: string;
+    message: string;
+    timestamp: string; // DateTime ISO string
+}
+
+export interface SpyPlayerDto extends PlayerDto {
     isSpy?: boolean | null;
     isVotedToStopTimer?: boolean | null;
+    hasUsedAccusation?: boolean | null;
 }
 
 export interface SpyRoomGameSettingsDto {
@@ -82,13 +91,6 @@ export interface WordsCategoryDto {
     words: string[];
 }
 
-export interface ChatMessageDto {
-    playerId: string;
-    playerName: string;
-    message: string;
-    timestamp: string;
-}
-
 export interface VotingStateDto {
     type: SpyVotingType;
     accusedPlayerId: string | null;
@@ -103,10 +105,12 @@ export interface VotingStateDto {
 export interface SpyGameStateDto {
     currentSecretWord: string | null;
     category: string | null;
-    gameStartTime: string;
-    gameEndTime: string | null;
-    isTimerStopped: boolean;
-    timerStoppedAt: string | null;
+    roundStartedAt: string;
+    isRoundTimerStopped: boolean;
+    roundTimerStartedAt: string | null;
+    roundTimerWillStopAt: string | null;
+    roundTimerPausedAt: string | null;
+    lastChanceEndsAt?: string | null;
     timerVotesCount: number;
     phase: SpyGamePhase;
     activeVoting: VotingStateDto | null;
@@ -137,12 +141,12 @@ export interface ApiResponse<T> {
     error?: string;
 }
 
-export interface CreateRoomResponseDto {
+export interface JoinRoomResponseDto {
     me: SpyPlayerDto;
     roomState: SpyRoomStateDto;
 }
 
-export interface JoinRoomResponseDto {
+export interface CreateRoomResponseDto {
     me: SpyPlayerDto;
     roomState: SpyRoomStateDto;
 }
@@ -152,25 +156,36 @@ export interface SpyPlayerJoinedEventDto {
     roomCode: string;
     player: SpyPlayerDto;
 }
+
 export interface PlayerLeftEventDto {
     roomCode: string;
     playerId: string;
 }
+
 export interface PlayerChangedNameEventDto {
     roomCode: string;
     playerId: string;
     newName: string;
 }
+
 export interface PlayerKickedEventDto {
     roomCode: string;
     playerId: string;
     kickedByPlayerId: string;
 }
+
+export interface PlayerConnectionChangedEventDto {
+    roomCode: string;
+    playerId: string;
+    isConnected: boolean;
+}
+
 export interface PlayerReadyStatusChangedEventDto {
     roomCode: string;
     playerId: string;
     isReady: boolean;
 }
+
 export interface PlayerChangedAvatarEventDto {
     roomCode: string;
     playerId: string;
@@ -182,18 +197,40 @@ export interface HostChangedEventDto {
     newHostId: string;
 }
 
-export interface SpyGameSettingsUpdatedEventDto {
+export interface ReturnToLobbyEventDto {
     roomCode: string;
-    settings: SpyRoomGameSettingsDto;
-}
-
-export interface SpyGameStartedEventDto {
-    state: SpyRoomStateDto;
 }
 
 export interface ChatMessageEventDto {
     roomCode: string;
     message: ChatMessageDto;
+}
+
+
+
+export interface SpyGameStartedEventDto {
+    state: SpyRoomStateDto;
+}
+
+export interface SpyGameEndedEventDto {
+    roomCode: string;
+    winnerTeam: SpyGameTeam;
+    reason: SpyGameEndReason;
+    spiesReveal: SpyRevealDto[];
+    reasonMessage: string | null;
+}
+
+export interface SpyGameRoundTimerStateChangedEventDto {
+    roomCode: string;
+    isRoundTimerStopped: boolean;
+    roundTimerStartedAt: string | null;
+    roundTimerWillStopAt: string | null;
+    roundTimerPausedAt: string | null;
+}
+
+export interface SpyGameSettingsUpdatedEventDto {
+    roomCode: string;
+    settings: SpyRoomGameSettingsDto;
 }
 
 export interface PlayerVotedToStopTimerEventDto {
@@ -203,13 +240,14 @@ export interface PlayerVotedToStopTimerEventDto {
     requiredVotes: number;
 }
 
-export interface PlayerConnectionChangedEventDto {
+export interface VotingResultEventDto {
     roomCode: string;
-    playerId: string;
-    isConnected: boolean;
-}
-export interface ReturnToLobbyEventDto {
-    roomCode: string;
+    isSuccess: boolean;
+    currentGamePhase: SpyGamePhase;
+    resultMessage: string | null;
+    accusedId: string | null;
+    isAccusedSpy: boolean | null;
+    lastChanceEndsAt?: string | null;
 }
 
 export interface VotingStartedEventDto {
@@ -229,22 +267,7 @@ export interface VoteCastEventDto {
     againstPlayerId?: string;
 }
 
-export interface VotingResultEventDto {
-    roomCode: string;
-    isSuccess: boolean;
-    currentGamePhase: SpyGamePhase;
-    resultMessage: string | null;
-    accusedId: string | null;
-}
-
-export interface SpyGameEndedEventDto {
-    roomCode: string;
-    winnerTeam: SpyGameTeam;
-    reason: SpyGameEndReason;
-    spiesReveal: SpyRevealDto[];
-    reasonMessage: string | null;
-}
-
+// --- Event Map ---
 export interface SpyGameEventMap {
     [SpyHubEvents.PlayerJoined]: SpyPlayerJoinedEventDto;
     [SpyHubEvents.PlayerLeft]: PlayerLeftEventDto;
@@ -263,4 +286,5 @@ export interface SpyGameEventMap {
     [SpyHubEvents.VoteCast]: VoteCastEventDto;
     [SpyHubEvents.VotingResult]: VotingResultEventDto;
     [SpyHubEvents.GameEnded]: SpyGameEndedEventDto;
+    [SpyHubEvents.RoundTimerStateChanged]: SpyGameRoundTimerStateChangedEventDto;
 }

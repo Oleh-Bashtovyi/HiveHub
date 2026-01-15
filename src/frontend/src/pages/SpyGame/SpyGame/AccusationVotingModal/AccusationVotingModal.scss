@@ -3,8 +3,15 @@
 .accusation-voting {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 20px;
   padding: 10px 0;
+
+  &__timer {
+    text-align: center;
+    font-family: monospace;
+    font-size: 18px;
+    color: #ffd700;
+  }
 
   &__target {
     text-align: center;
@@ -15,7 +22,7 @@
   }
 
   &__icon {
-    font-size: 60px;
+    font-size: 50px;
     margin-bottom: 10px;
   }
 
@@ -23,7 +30,6 @@
     font-size: 24px;
     font-weight: 700;
     color: $color-spy-primary;
-    margin-bottom: 5px;
   }
 
   &__label {
@@ -38,29 +44,43 @@
     gap: 12px;
   }
 
-  &__voted {
+  // Загальний блок статусу (для голосу або звинувачення)
+  &__status {
     text-align: center;
-    padding: 30px;
-    background: rgba($color-spy-success, 0.1);
-    border: 1px solid $color-spy-success;
+    padding: 25px;
     border-radius: 15px;
-  }
 
-  &__voted-icon {
-    font-size: 50px;
-    margin-bottom: 10px;
-  }
+    &-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
 
-  &__voted-text {
-    font-size: 20px;
-    font-weight: 600;
-    color: $color-spy-success;
-    margin-bottom: 10px;
-  }
+    &-text {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
 
-  &__voted-info {
-    font-size: 14px;
-    color: $color-text-muted;
-    margin: 0;
+    &-info {
+      font-size: 14px;
+      color: $color-text-muted;
+      margin: 0;
+    }
+
+    // Стиль для звинуваченого
+    &--accused {
+      background: rgba(255, 0, 0, 0.15);
+      border: 1px solid red;
+
+      .accusation-voting__status-text {
+        color: #ff4d4d;
+      }
+    }
+
+    // Стиль для того, хто проголосував
+    &--voted {
+      background: rgba($color-spy-success, 0.1);
+      border: 1px solid $color-spy-success;
+    }
   }
 }

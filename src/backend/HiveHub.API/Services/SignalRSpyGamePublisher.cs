@@ -126,4 +126,10 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
         return _hub.Clients.Group(eventDto.RoomCode)
             .VotingResult(eventDto);
     }
+
+    public Task PublishTimerStateChangedAsync(SpyGameRoundTimerStateChangedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .RoundTimerStateChanged(eventDto);
+    }
 }

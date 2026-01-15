@@ -32,8 +32,7 @@ export const SpyGame = () => {
         makeGuess,
     } = useSpyGame();
 
-    const [timeLeft, setTimeLeft] = useState(0);
-    const [showGuessModal, setShowGuessModal] = useState(false);
+    const [isGuessModalOpen, setIsGuessModalOpen] = useState(false);
 
     const safeExecute = async (action: () => Promise<void>) => {
         try {
@@ -64,160 +63,116 @@ export const SpyGame = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
-    useEffect(() => {
-        if (!gameState?.gameEndTime || gameState.isTimerStopped) return;
+    if (isInitializing || !gameState || !me || !roomCode) return null;
 
-        const updateTimer = () => {
-            const end = new Date(gameState.gameEndTime!).getTime();
-            const now = new Date().getTime();
-            const diff = Math.floor((end - now) / 1000);
-            setTimeLeft(Math.max(0, diff));
-        };
-
-        updateTimer();
-        const interval = setInterval(updateTimer, 1000);
-        return () => clearInterval(interval);
-    }, [gameState?.gameEndTime, gameState?.isTimerStopped]);
-
-    if (isInitializing || !gameState || !me || !roomCode) {
-        return null;
-    }
-
-    const handleVoteStopTimer = () => {
-        if (confirm("Зупинити таймер для обговорення?")) {
-            void safeExecute(async () => await voteStopTimer());
-        }
-    };
-
-    const handleLeave = () => {
-        if (confirm('Ви впевнені? Це завершить гру для вас.')) {
-            void safeExecute(async () => {
-                await leaveRoom();
-                navigate('/spy');
-            });
-        }
-    };
-
-    const handleReturnToLobby = () => {
-        if (confirm('УВАГА: Це примусово завершить гру для всіх і поверне всіх в лобі. Продовжити?')) {
-            void safeExecute(async () => await returnToLobby());
-        }
-    };
-
-    const handleAccuse = (playerId: string) => {
-        void safeExecute(async () => await startAccusation(playerId));
-    };
-
-    const handleVote = (targetId: string, voteType: string | null) => {
-        void safeExecute(async () => await vote(targetId, voteType));
-    };
-
-    const handleGuess = (word: string) => {
-        void safeExecute(async () => {
-            await makeGuess(word);
-            setShowGuessModal(false);
-        });
-    };
-
+    // --- LOGIC ---
     const isSpyRole = !gameState.currentSecretWord;
-    const activePlayers = players.filter(p => p.isConnected).length;
-    const isVotingActive = gameState.activeVoting !== null;
-    const isAccusationVoting = gameState.activeVoting?.type === SpyVotingType.Accusation;
-    const isFinalVoting = gameState.activeVoting?.type === SpyVotingType.Final;
+    const isSearchPhase = gameState.phase === SpyGamePhase.Search;
+
+    // Voting Logic
+    const activeVoting = gameState.activeVoting;
+    const isAccusation = activeVoting?.type === SpyVotingType.Accusation;
+    const isFinal = activeVoting?.type === SpyVotingType.Final;
+    const hasUsedAccusation = me.hasUsedAccusation ?? false;
+
+    // Last Chance Logic
+    const isLastChancePhase = gameState.phase === SpyGamePhase.SpyLastChance;
+    const amICaughtSpy = isLastChancePhase && gameState.caughtSpyId === me.id;
+
+    // Force open modal if it's Last Chance for me
+    const showGuessModal = isGuessModalOpen || amICaughtSpy;
+    const canAccuse = !activeVoting &&
+        isSearchPhase &&
+        !hasUsedAccusation;
 
     return (
         <div className="spy-game-page">
             <div className="spy-game-container">
                 <SpyGameHeader
                     roomCode={roomCode}
-                    timeLeft={timeLeft}
-                    isTimerStopped={gameState.isTimerStopped}
+                    stopAt={gameState.roundTimerWillStopAt}
+                    isTimerStopped={gameState.isRoundTimerStopped}
                     timerVotesCount={gameState.timerVotesCount}
-                    activePlayers={activePlayers}
-                    hasVoted={me.isVotedToStopTimer}
-                    onVoteStopTimer={handleVoteStopTimer}
+                    activePlayers={players.filter(p => p.isConnected).length}
+                    hasVoted={me.isVotedToStopTimer || false}
+                    onVoteStopTimer={() => safeExecute(voteStopTimer)}
                 />
 
                 <div className="spy-game-layout">
-                    {/* LEFT: Role + Players */}
                     <div className="spy-game-layout__column spy-game-layout__column--left">
                         <SpyGameRoleCard
                             isSpy={isSpyRole}
                             secretWord={gameState.currentSecretWord}
                             category={gameState.category}
-                            onGuessWord={() => setShowGuessModal(true)}
+                            onGuessWord={() => setIsGuessModalOpen(true)}
                         />
-
                         <SpyGamePlayers
                             players={players}
                             currentPlayerId={me.id}
-                            isTimerStopped={gameState.isTimerStopped}
+                            isTimerStopped={gameState.isRoundTimerStopped}
                             caughtSpyId={gameState.caughtSpyId}
-                            canAccuse={!isVotingActive && gameState.phase === SpyGamePhase.Search}
-                            onAccuse={handleAccuse}
+                            canAccuse={canAccuse}
+                            onAccuse={(id) => safeExecute(() => startAccusation(id))}
                         />
                     </div>
 
-                    {/* CENTER: Rules */}
                     <div className="spy-game-layout__column spy-game-layout__column--center">
                         <SpyGameRules />
-
-                        {/* Host Actions */}
                         <div className="spy-game-actions">
                             {me.isHost && (
-                                <Button
-                                    variant="secondary"
-                                    fullWidth
-                                    onClick={handleReturnToLobby}
-                                    title="Повернути всіх в лобі та скинути гру"
-                                >
+                                <Button variant="secondary" fullWidth onClick={() => confirm('Всі в лобі?') && safeExecute(returnToLobby)}>
                                     🛑 В лобі (Всіх)
                                 </Button>
                             )}
-
-                            <Button variant="danger" fullWidth onClick={handleLeave}>
+                            <Button variant="danger" fullWidth onClick={() => confirm('Вийти?') && safeExecute(async () => { await leaveRoom(); navigate('/spy'); })}>
                                 🚪 Покинути гру
                             </Button>
                         </div>
                     </div>
 
-                    {/* RIGHT: Chat */}
                     <div className="spy-game-layout__column spy-game-layout__column--right">
                         <SpyGameChat
                             messages={messages}
                             currentPlayerId={me.id}
-                            onSendMessage={sendMessage}
+                            onSendMessage={(msg) => safeExecute(() => sendMessage(msg))}
                         />
                     </div>
                 </div>
             </div>
 
-            {/* Voting Modals */}
-            {isAccusationVoting && gameState.activeVoting && (
+            {/* MODALS */}
+            {isAccusation && activeVoting && (
                 <AccusationVotingModal
                     isOpen={true}
-                    targetName={gameState.activeVoting.accusedPlayerName || 'Unknown'}
-                    hasVoted={me.id in (gameState.activeVoting.targetVoting || {})}
-                    onVote={(voteType) => handleVote(gameState.activeVoting!.accusedPlayerId || '', voteType)}
+                    targetName={activeVoting.accusedPlayerName || 'Unknown'}
+                    isAccused={me.id === activeVoting.accusedPlayerId}
+                    myVote={activeVoting.targetVoting ? activeVoting.targetVoting[me.id] : undefined}
+                    endsAt={activeVoting.endsAt}
+                    onVote={(type) => safeExecute(() => vote(activeVoting.accusedPlayerId!, type))}
                 />
             )}
 
-            {isFinalVoting && gameState.activeVoting && (
+            {isFinal && activeVoting && (
                 <FinalVotingModal
                     isOpen={true}
                     players={players.filter(p => p.id !== me.id)}
-                    hasVoted={me.id in (gameState.activeVoting.againstVoting || {})}
-                    onVote={(playerId) => handleVote(playerId, null)}
+                    hasVoted={!!activeVoting.againstVoting && me.id in activeVoting.againstVoting}
+                    endsAt={activeVoting.endsAt}
+                    onVote={(targetId) => safeExecute(() => vote(targetId, null))}
                 />
             )}
 
-            {/* Guess Word Modal (Spy only) */}
             {showGuessModal && isSpyRole && (
                 <GuessWordModal
-                    isOpen={showGuessModal}
+                    isOpen={true}
                     category={gameState.category}
-                    onClose={() => setShowGuessModal(false)}
-                    onGuess={handleGuess}
+                    isLastChance={amICaughtSpy}
+                    endsAt={gameState.lastChanceEndsAt || null}
+                    onClose={() => setIsGuessModalOpen(false)}
+                    onGuess={(word) => safeExecute(async () => {
+                        await makeGuess(word);
+                        setIsGuessModalOpen(false);
+                    })}
                 />
             )}
         </div>

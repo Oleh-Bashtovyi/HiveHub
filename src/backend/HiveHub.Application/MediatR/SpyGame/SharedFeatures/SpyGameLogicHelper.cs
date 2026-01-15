@@ -1,4 +1,5 @@
-﻿using HiveHub.Application.Dtos.Shared;
+﻿using HiveHub.Application.Constants;
+using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
 using HiveHub.Application.Extensions;
 using HiveHub.Application.Models;
@@ -43,16 +44,27 @@ public static class SpyGameLogicHelper
                 if (accused != null && accused.PlayerState.IsSpy)
                 {
                     // Spy Caught -> Last Chance
+                    var finalGuessingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinacGuessingChanceDurationSeconds);
+                    var now = DateTime.UtcNow;
+
                     room.CurrentPhase = SpyGamePhase.SpyLastChance;
                     room.CaughtSpyId = accused.IdInRoom;
+                    room.SpyLastChanceEndsAt = now.Add(finalGuessingDuration);
 
                     logger.LogInformation("Voting Passed: Spy {SpyId} caught in room {RoomCode}", accused.IdInRoom, room.RoomCode);
+
+                    context.AddEvent(new CancelTaskEvent(
+                        Type: TaskType.SpyGameRoundTimeUp,
+                        RoomCode: room.RoomCode,
+                        TargetId: null));
 
                     context.AddEvent(new VotingResultEventDto(
                         RoomCode: room.RoomCode,
                         IsSuccess: true,
                         CurrentGamePhase: SpyGamePhase.SpyLastChance,
                         ResultMessage: $"Spy {accused.Name} caught! They have a last chance to guess the location.",
+                        LastChanceEndsAt: room.SpyLastChanceEndsAt,
+                        IsAccusedSpy: true,
                         AccusedId: accused.IdInRoom));
                 }
                 else
@@ -70,6 +82,8 @@ public static class SpyGameLogicHelper
                         IsSuccess: true,
                         CurrentGamePhase: SpyGamePhase.None,
                         ResultMessage: $"Player {accused?.Name} was NOT a spy. Spies win!",
+                        LastChanceEndsAt: null,
+                        IsAccusedSpy: false,
                         AccusedId: accState.TargetId));
 
                     context.AddEvent(new SpyGameEndedEventDto(
@@ -93,18 +107,17 @@ public static class SpyGameLogicHelper
                     IsSuccess: false,
                     CurrentGamePhase: SpyGamePhase.Search,
                     ResultMessage: "Not enough votes. Game resumes.",
-                    AccusedId: null));
+                    IsAccusedSpy: null,
+                    LastChanceEndsAt: null,
+                    AccusedId: accState.TargetId));
 
                 // Resume Timer Logic
-                if (room.TimerState.TimerStoppedAt.HasValue && room.TimerState.PlannedGameEndTime.HasValue)
+                if (room.RoundTimerState.IsTimerStopped)
                 {
-                    var timeSpentPaused = DateTime.UtcNow - room.TimerState.TimerStoppedAt.Value;
-                    room.TimerState.PlannedGameEndTime = room.TimerState.PlannedGameEndTime.Value.Add(timeSpentPaused);
-                    room.TimerState.IsTimerStopped = false;
-                    room.TimerState.TimerStoppedAt = null;
+                    room.RoundTimerState.Resume();
 
-                    var remaining = room.TimerState.PlannedGameEndTime.Value - DateTime.UtcNow;
-                    var timerResumeDelay = remaining.TotalSeconds > 0 ? remaining : TimeSpan.Zero;
+                    var remaining = room.RoundTimerState.GetRemainingSeconds();
+                    var timerResumeDelay = TimeSpan.FromSeconds(remaining);
 
                     context.AddEvent(new ScheduleTaskEvent(
                         Type: TaskType.SpyGameRoundTimeUp,
@@ -143,6 +156,8 @@ public static class SpyGameLogicHelper
                         IsSuccess: false,
                         CurrentGamePhase: SpyGamePhase.None,
                         ResultMessage: "Consensus not reached. Spies win!",
+                        IsAccusedSpy: null,
+                        LastChanceEndsAt: null,
                         AccusedId: null));
 
                     context.AddEvent(new SpyGameEndedEventDto(
@@ -161,8 +176,12 @@ public static class SpyGameLogicHelper
                     if (target != null && target.PlayerState.IsSpy)
                     {
                         // Spy Found -> Last Chance
+                        var finalGuessingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinacGuessingChanceDurationSeconds);
+                        var now = DateTime.UtcNow;
+
                         room.CurrentPhase = SpyGamePhase.SpyLastChance;
                         room.CaughtSpyId = targetId;
+                        room.SpyLastChanceEndsAt = now.Add(finalGuessingDuration);
 
                         logger.LogInformation("Final Voting Success: Spy {SpyId} identified in room {RoomCode}.", targetId, room.RoomCode);
 
@@ -171,6 +190,8 @@ public static class SpyGameLogicHelper
                             IsSuccess: true,
                             CurrentGamePhase: SpyGamePhase.SpyLastChance,
                             ResultMessage: "Spy identified! Last chance to guess.",
+                            IsAccusedSpy: true,
+                            LastChanceEndsAt: room.SpyLastChanceEndsAt,
                             AccusedId: targetId));
                     }
                     else
@@ -187,6 +208,8 @@ public static class SpyGameLogicHelper
                             IsSuccess: true,
                             CurrentGamePhase: SpyGamePhase.None,
                             ResultMessage: $"Wrong choice! {target?.Name} is innocent. Spies win!",
+                            IsAccusedSpy: false,
+                            LastChanceEndsAt: null,
                             AccusedId: targetId));
 
                         context.AddEvent(new SpyGameEndedEventDto(
@@ -213,7 +236,7 @@ public static class SpyGameLogicHelper
         ILogger logger)
     {
         // Only check if timer is running
-        if (room.TimerState.IsTimerStopped || !room.IsInGame()) return;
+        if (room.RoundTimerState.IsTimerStopped || !room.IsInGame()) return;
 
         var votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer && p.IsConnected);
         var activePlayers = room.Players.Count(p => p.IsConnected);
@@ -223,8 +246,7 @@ public static class SpyGameLogicHelper
         // If threshold met due to player leaving/disconnecting
         if (votesCount >= requiredVotes)
         {
-            room.TimerState.IsTimerStopped = true;
-            room.TimerState.TimerStoppedAt = DateTime.UtcNow;
+            room.RoundTimerState.Pause();
 
             logger.LogInformation("Timer stopped automatically in room {RoomCode} (Votes: {Votes}/{Req})", room.RoomCode, votesCount, requiredVotes);
 

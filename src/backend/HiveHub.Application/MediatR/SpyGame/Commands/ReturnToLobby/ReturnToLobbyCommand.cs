@@ -45,10 +45,8 @@ public class ReturnToLobbyHandler(
             room.CurrentCategory = null;
 
             // Timer
-            room.TimerState.GameStartTime = null;
-            room.TimerState.PlannedGameEndTime = null;
-            room.TimerState.IsTimerStopped = true;
-            room.TimerState.TimerStoppedAt = null;
+            room.RoundStartedAt = null;
+            room.RoundTimerState.Clear();
 
             // Phase, voting and game over reason
             room.CurrentPhase = SpyGamePhase.None;

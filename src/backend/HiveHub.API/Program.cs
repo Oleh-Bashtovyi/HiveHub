@@ -36,7 +36,7 @@ builder.Services.AddSingleton<ISpyGamePublisher, SignalRSpyGamePublisher>();
 builder.Services.AddLogging();
 
 // --- CORS ---
-builder.Services.AddCors(options =>
+/*builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
@@ -45,9 +45,19 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .AllowCredentials();
     });
+});*/
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.SetIsOriginAllowed(origin => true)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
-if (builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment() || true)
 {
     Console.WriteLine("Running in DEVELOPMENT mode (In-Memory Storage & Scheduler)");
 

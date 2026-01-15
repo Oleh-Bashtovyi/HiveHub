@@ -16,6 +16,7 @@ public record SpyPlayerDto(
     bool IsHost,
     bool IsReady,
     bool IsConnected,
+    bool? HasUsedAccusation,
     bool? IsSpy,
     bool? IsVotedToStopTimer
 ) : PlayerDto(Id, Name, AvatarId, IsHost, IsReady, IsConnected);
@@ -31,7 +32,7 @@ public record SpyRoomStateDto(
     List<SpyPlayerDto> Players,
     List<ChatMessageDto> Messages,
     SpyRoomGameSettingsDto Settings,
-    GameStateDto? GameState,
+    SpyGameStateDto? GameState,
     long Version
 );
 
@@ -44,13 +45,15 @@ public record SpyRoomGameSettingsDto(
     List<WordsCategoryDto> CustomCategories
 );
 
-public record GameStateDto(
+public record SpyGameStateDto(
     string? CurrentSecretWord,
     string? Category,
-    DateTime GameStartTime,
-    DateTime? GameEndTime,
-    bool IsTimerStopped,
-    DateTime? TimerStoppedAt,
+    DateTime RoundStartedAt,
+    bool IsRoundTimerStopped,
+    DateTime? RoundTimerStartedAt,
+    DateTime? RoundTimerWillStopAt,
+    DateTime? RoundTimerPausedAt,
+    DateTime? SpyLastChanceEndsAt,
     int TimerVotesCount,
     SpyGamePhase Phase,
     VotingStateDto? ActiveVoting,
@@ -64,7 +67,7 @@ public record VotingStateDto(
     string? AccusedPlayerName,
     Dictionary<string, TargetVoteType>? TargetVoting, // player with id voted as ... against player with AccusedPlayerId
     Dictionary<string, string>? AgainstVoting,        // player with id against player with id
-    int? VotesReqired,                                // votes reqired when accusing player
+    int? votesRequired,                               // votes reqired when accusing player
     DateTime StartedAt,
     DateTime EndsAt
 );

@@ -38,19 +38,21 @@ public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerStat
 {
     public string? CurrentSecretWord { get; set; }
     public string? CurrentCategory { get; set; }
-    public List<ChatMessage> ChatMessages { get; set; } = new();
-    public TimerState TimerState { get; init; } = default!;
     public SpyGamePhase CurrentPhase { get; set; } = SpyGamePhase.None;
+    public TimerState RoundTimerState { get; init; } = default!;
+    public DateTime? RoundStartedAt { get; set; }
     public VotingStateBase? ActiveVoting { get; set; }
     // Only caught spy can guess word during last chance phase
     public string? CaughtSpyId { get; set; }
+    public DateTime? SpyLastChanceEndsAt { get; set; }
     public SpyGameEndReason? GameEndReason { get; set; }
     public SpyTeam? WinnerTeam { get; set; }
+    public List<ChatMessage> ChatMessages { get; set; } = new();
 
     public SpyRoom(string code) : base(code)
     {
         GameSettings = new SpyRoomSettings();
-        TimerState = new TimerState();
+        RoundTimerState = new TimerState();
     }
 }
 

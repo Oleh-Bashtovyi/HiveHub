@@ -20,6 +20,14 @@ public record SpyGameEndedEventDto(
     string? ReasonMessage
 ) : IRoomEvent;
 
+public record SpyGameRoundTimerStateChangedEventDto(
+    string RoomCode,
+    bool IsRoundTimerStopped,
+    DateTime? RoundTimerStartedAt,
+    DateTime? RoundTimerWillStopAt,
+    DateTime? RoundTimerPausedAt
+) : IRoomEvent;
+
 public record SpyGameSettingsUpdatedEventDto(
     string RoomCode,
     SpyRoomGameSettingsDto Settings
@@ -37,7 +45,9 @@ public record VotingResultEventDto(
     bool IsSuccess,
     SpyGamePhase CurrentGamePhase,
     string? ResultMessage,
-    string? AccusedId
+    string? AccusedId,
+    bool? IsAccusedSpy,
+    DateTime? LastChanceEndsAt
 ) : IRoomEvent;
 
 public record VotingStartedEventDto(

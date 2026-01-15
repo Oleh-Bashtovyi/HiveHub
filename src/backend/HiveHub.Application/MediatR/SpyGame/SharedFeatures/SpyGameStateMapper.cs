@@ -41,6 +41,7 @@ public static class SpyGameStateMapper
                 IsReady: p.IsReady,
                 AvatarId: p.AvatarId,
                 IsConnected: p.IsConnected,
+                HasUsedAccusation: p.PlayerState.HasUsedAccusation,
                 IsVotedToStopTimer: p.PlayerState.VotedToStopTimer,
                 IsSpy: showIsSpy ? p.PlayerState.IsSpy : null
             );
@@ -56,7 +57,7 @@ public static class SpyGameStateMapper
         );
 
         // 3. Map GameState (Only if active or ended)
-        GameStateDto? gameState = null;
+        SpyGameStateDto? gameState = null;
 
         if (room.Status == RoomStatus.InGame || room.Status == RoomStatus.Ended)
         {
@@ -98,7 +99,7 @@ public static class SpyGameStateMapper
                         AccusedPlayerName: accusedName,
                         TargetVoting: accState.Votes,
                         AgainstVoting: null,
-                        VotesReqired: votesRequired,
+                        votesRequired: votesRequired,
                         StartedAt: accState.VotingStartedAt,
                         EndsAt: accState.VotingEndsAt
                     );
@@ -111,7 +112,7 @@ public static class SpyGameStateMapper
                         AccusedPlayerName: null,
                         TargetVoting: null,
                         AgainstVoting: generalState.Votes!,
-                        VotesReqired: votesRequired,
+                        votesRequired: votesRequired,
                         StartedAt: generalState.VotingStartedAt,
                         EndsAt: generalState.VotingEndsAt
                     );
@@ -124,13 +125,15 @@ public static class SpyGameStateMapper
                 caughtSpyName = room.Players.FirstOrDefault(x => x.IdInRoom == room.CaughtSpyId)?.Name;
             }
 
-            gameState = new GameStateDto(
+            gameState = new SpyGameStateDto(
                 CurrentSecretWord: secretWord,
                 Category: category,
-                GameStartTime: room.TimerState.GameStartTime ?? DateTime.UtcNow,
-                GameEndTime: room.TimerState.PlannedGameEndTime,
-                IsTimerStopped: room.TimerState.IsTimerStopped,
-                TimerStoppedAt: room.TimerState.TimerStoppedAt,
+                RoundStartedAt: room.RoundStartedAt ?? DateTime.UtcNow,
+                IsRoundTimerStopped: room.RoundTimerState.IsTimerStopped,
+                RoundTimerWillStopAt: room.RoundTimerState.TimerWillStopAt,
+                RoundTimerStartedAt: room.RoundTimerState.TimerStartedAt,
+                RoundTimerPausedAt: room.RoundTimerState.TimerPausedAt,
+                SpyLastChanceEndsAt: room.SpyLastChanceEndsAt,
                 TimerVotesCount: activeVotesCount,
                 Phase: room.CurrentPhase,
                 ActiveVoting: votingDto,

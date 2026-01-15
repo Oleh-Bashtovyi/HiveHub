@@ -18,5 +18,6 @@ public static class ProjectConstants
         public static readonly short MaxCustomCategoriesCount = 10;
         public static readonly short AccusationVoteDurationSeconds = 30;
         public static readonly short FinalVoteDurationSeconds = 60;
+        public static readonly short FinacGuessingChanceDurationSeconds = 30;
     }
 }
