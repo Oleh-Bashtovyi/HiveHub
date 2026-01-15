@@ -6,7 +6,8 @@ using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -35,7 +36,7 @@ public class VoteHandler(
 
         var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) => 
         {
-            if (room.ActiveVoting == null)
+            if (room.GameState.ActiveVoting == null)
             {
                 return Results.ActionFailed(ProjectMessages.Accusation.NoActiveVoting);
             }
@@ -57,7 +58,7 @@ public class VoteHandler(
 
             voterId = voter.IdInRoom;
 
-            if (room.CurrentPhase == SpyGamePhase.Accusation && room.ActiveVoting is AccusationVotingState accusationState)
+            if (room.GameState.CurrentPhase == SpyGamePhase.Accusation && room.GameState.ActiveVoting is AccusationVotingState accusationState)
             {
                 if (request.VoteType == null)
                 {
@@ -72,7 +73,7 @@ public class VoteHandler(
                     return Results.ActionFailed(ProjectMessages.Accusation.YouAlreadyVoted);
                 }
             }
-            else if (room.CurrentPhase == SpyGamePhase.FinalVote && room.ActiveVoting is GeneralVotingState finalState)
+            else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote && room.GameState.ActiveVoting is GeneralVotingState finalState)
             {
                 if (!finalState.TryVote(voter.IdInRoom, targetPlayer.IdInRoom))
                 {

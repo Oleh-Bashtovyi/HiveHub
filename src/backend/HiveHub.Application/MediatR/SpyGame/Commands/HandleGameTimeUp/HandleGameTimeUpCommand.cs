@@ -6,7 +6,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -32,26 +33,26 @@ public class HandleGameTimeUpHandler(
 
         await roomAccessor.ExecuteAsync(async (room) =>
         {
-            if (!room.IsInGame() || room.RoundTimerState.IsTimerStopped)
+            if (!room.IsInGame() || room.GameState.RoundTimerState.IsTimerStopped)
             {
                 return Result.Ok();
             }
 
-            if (room.RoundTimerState.TimerWillStopAt > DateTime.UtcNow.AddSeconds(2))
+            if (room.GameState.RoundTimerState.TimerWillStopAt > DateTime.UtcNow.AddSeconds(2))
             {
                 return Result.Ok();
             }
 
             logger.LogInformation("Game timer expired in room {RoomCode}. Starting Final Vote.", request.RoomCode);
 
-            room.RoundTimerState.Pause();
+            room.GameState.RoundTimerState.Pause();
 
-            room.CurrentPhase = SpyGamePhase.FinalVote;
+            room.GameState.CurrentPhase = SpyGamePhase.FinalVote;
 
             var votingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinalVoteDurationSeconds);
             var endsAt = DateTime.UtcNow.Add(votingDuration);
 
-            room.ActiveVoting = new GeneralVotingState
+            room.GameState.ActiveVoting = new GeneralVotingState
             {
                 VotingStartedAt = DateTime.UtcNow,
                 VotingEndsAt = endsAt,

@@ -1,5 +1,6 @@
 ﻿using HiveHub.Application.Dtos.Shared;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Application.Dtos.SpyGame;
 

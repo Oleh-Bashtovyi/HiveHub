@@ -2,7 +2,7 @@
 using HiveHub.Application.Models;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using HiveHub.Infrastructure.Models;
 using System.Collections.Concurrent;
 

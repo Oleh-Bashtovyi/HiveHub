@@ -8,7 +8,7 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -67,22 +67,14 @@ public class StartGameHandler(
             }
 
             var random = Random.Shared;
-            
+            var newGameState = new SpyRoomGameState();
+
             // Assign category and word
             var randomCategory = room.GameSettings.CustomCategories[random.Next(room.GameSettings.CustomCategories.Count)];
             var randomWord = randomCategory.Words[random.Next(randomCategory.Words.Count)];
-            room.CurrentSecretWord = randomWord;
-            room.CurrentCategory = randomCategory.Name;
+            newGameState.CurrentSecretWord = randomWord;
+            newGameState.CurrentCategory = randomCategory.Name;
 
-            // Cleanup players states
-            foreach (var player in room.Players)
-            {
-                player.PlayerState.IsSpy = false;
-                player.PlayerState.VotedToStopTimer = false;
-                player.PlayerState.HasUsedAccusation = false;
-            }
-
-            room.ActiveVoting = null;
 
             // Assigning spy roles
             int targetSpyCount = random.Next(room.GameSettings.MinSpiesCount, room.GameSettings.MaxSpiesCount + 1);
@@ -92,18 +84,25 @@ public class StartGameHandler(
                 .OrderBy(_ => random.Next())
                 .Take(spiesCount);
 
+            // Cleanup players states
+            foreach (var player in room.Players)
+            {
+                player.PlayerState.IsSpy = false;
+                player.PlayerState.VotedToStopTimer = false;
+                player.PlayerState.HasUsedAccusation = false;
+            }
+
             foreach (var spy in spies)
             {
                 spy.PlayerState.IsSpy = true;
             }
 
             // Setup Timer
-            var duration = TimeSpan.FromMinutes(room.GameSettings.TimerMinutes);
-            room.RoundTimerState.Start(duration);
+            var roundDuration = TimeSpan.FromMinutes(room.GameSettings.RoundDurationMinutes);
+            newGameState.RoundTimerState.Start(roundDuration);
+            newGameState.CurrentPhase = SpyGamePhase.Search;
 
-            room.Status = RoomStatus.InGame;
-            room.CurrentPhase = SpyGamePhase.Search;
-            room.ChatMessages.Clear();
+            room.StartGame(newGameState);
 
             foreach (var player in room.Players)
             {
@@ -114,9 +113,9 @@ public class StartGameHandler(
                 context.AddEvent(new TargetedGameStartedEvent(player.ConnectionId, new(personalState)));
             }
 
-            context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null, duration));
+            context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null, roundDuration));
 
-            secretWord = room.CurrentSecretWord;
+            secretWord = room.GameState.CurrentSecretWord;
 
             return Result.Ok();
         });

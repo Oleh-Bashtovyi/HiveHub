@@ -1,7 +1,7 @@
 ﻿using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Publishers;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
@@ -11,6 +11,15 @@ public record PlayerRemovalResult(
     bool ShouldDeleteRoom,
     string RoomCode
 );
+
+// Remove player 
+// If (other players) -> publish player left
+// If (player was host) -> change host -> publishhost changed
+// If (removed player been voted) -> {
+//     If (removed player was accused) -> publish voting unsuccessful (accuser left) -> continuing game 
+//     If (removed player final guessing) -> treat as thier fail -> (finish game if spies in group) or (continue if not in group)
+//
+// If leave mid game and was spy -> do nothing (dot finish game)
 
 public static class SpyGamePlayerRemover
 {

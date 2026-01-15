@@ -7,7 +7,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -29,27 +30,31 @@ public class HandleVotingTimeUpHandler(
 
         return await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
-            if (room.CurrentPhase != SpyGamePhase.Accusation && room.CurrentPhase != SpyGamePhase.FinalVote)
+            if (!room.IsInGame())
+            {
+                return Result.Ok();
+            }
+            if (room.GameState.CurrentPhase != SpyGamePhase.Accusation && room.GameState.CurrentPhase != SpyGamePhase.FinalVote)
             {
                 return Result.Ok();
             }
 
-            if (room.ActiveVoting == null)
+            if (room.GameState.ActiveVoting == null)
             {
                 return Result.Ok();
             }
 
-            if (room.ActiveVoting.VotingEndsAt > DateTime.UtcNow.AddSeconds(2))
+            if (room.GameState.ActiveVoting.VotingEndsAt > DateTime.UtcNow.AddSeconds(2))
             {
                 return Result.Ok();
             }
 
             logger.LogInformation("Voting time up in room {Code}", request.RoomCode);
 
-            if (room.CurrentPhase == SpyGamePhase.Accusation)
+            if (room.GameState.CurrentPhase == SpyGamePhase.Accusation)
             {
-                room.CurrentPhase = SpyGamePhase.Search;
-                room.ActiveVoting = null;
+                room.GameState.CurrentPhase = SpyGamePhase.Search;
+                room.GameState.ActiveVoting = null;
 
                 context.AddEvent(new VotingResultEventDto(
                     RoomCode: room.RoomCode,
@@ -60,10 +65,10 @@ public class HandleVotingTimeUpHandler(
                     IsAccusedSpy: null,
                     AccusedId: null));
 
-                if (room.RoundTimerState.IsTimerStopped)
+                if (room.GameState.RoundTimerState.IsTimerStopped)
                 {
-                    room.RoundTimerState.Resume();
-                    var remainingTime = TimeSpan.FromSeconds(room.RoundTimerState.GetRemainingSeconds());
+                    room.GameState.RoundTimerState.Resume();
+                    var remainingTime = TimeSpan.FromSeconds(room.GameState.RoundTimerState.GetRemainingSeconds());
                     
                     context.AddEvent(new ScheduleTaskEvent(
                         TaskType.SpyGameRoundTimeUp, 
@@ -73,18 +78,18 @@ public class HandleVotingTimeUpHandler(
 
                     context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
                         room.RoomCode,
-                        room.RoundTimerState.IsTimerStopped,
-                        room.RoundTimerState.TimerStartedAt,
-                        room.RoundTimerState.TimerWillStopAt,
-                        room.RoundTimerState.TimerPausedAt));
+                        room.GameState.RoundTimerState.IsTimerStopped,
+                        room.GameState.RoundTimerState.TimerStartedAt,
+                        room.GameState.RoundTimerState.TimerWillStopAt,
+                        room.GameState.RoundTimerState.TimerPausedAt));
                 }
             }
-            else if (room.CurrentPhase == SpyGamePhase.FinalVote)
+            else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote)
             {
                 room.Status = RoomStatus.Ended;
-                room.WinnerTeam = SpyTeam.Spies;
-                room.GameEndReason = SpyGameEndReason.FinalVotingFailed;
-                room.ActiveVoting = null;
+                room.GameState.WinnerTeam = SpyTeam.Spies;
+                room.GameState.GameEndReason = SpyGameEndReason.FinalVotingFailed;
+                room.GameState.ActiveVoting = null;
 
                 context.AddEvent(new VotingResultEventDto(
                     RoomCode: room.RoomCode,

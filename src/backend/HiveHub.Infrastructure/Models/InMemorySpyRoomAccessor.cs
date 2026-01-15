@@ -1,6 +1,6 @@
 ﻿using FluentResults;
 using HiveHub.Application.Models;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Infrastructure.Models;
 

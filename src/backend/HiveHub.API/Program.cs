@@ -4,7 +4,7 @@ using HiveHub.Application.Interfaces;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using HiveHub.Infrastructure.BackgroundJobs;
 using HiveHub.Infrastructure.Services;
 using RedLockNet;

@@ -7,7 +7,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -35,7 +36,7 @@ public class StartAccusationHandler(
 
         var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
-            if (room.CurrentPhase != SpyGamePhase.Search)
+            if (room.GameState.CurrentPhase != SpyGamePhase.Search)
             {
                 return Results.ActionFailed(ProjectMessages.Accusation.VotaCanBeDoneOnlyDuringSearch);
             }
@@ -63,26 +64,26 @@ public class StartAccusationHandler(
             initiatorId = initiator.IdInRoom;
 
             // Stop main game timer
-            if (!room.RoundTimerState.IsTimerStopped)
+            if (!room.GameState.RoundTimerState.IsTimerStopped)
             {
-                room.RoundTimerState.Pause();
+                room.GameState.RoundTimerState.Pause();
                 context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
                 context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
                     room.RoomCode,
-                    IsRoundTimerStopped: room.RoundTimerState.IsTimerStopped,
-                    RoundTimerPausedAt: room.RoundTimerState.TimerPausedAt,
-                    RoundTimerStartedAt: room.RoundTimerState.TimerStartedAt,
-                    RoundTimerWillStopAt: room.RoundTimerState.TimerWillStopAt));
+                    IsRoundTimerStopped: room.GameState.RoundTimerState.IsTimerStopped,
+                    RoundTimerPausedAt: room.GameState.RoundTimerState.TimerPausedAt,
+                    RoundTimerStartedAt: room.GameState.RoundTimerState.TimerStartedAt,
+                    RoundTimerWillStopAt: room.GameState.RoundTimerState.TimerWillStopAt));
             }
 
             // Start accusation process
-            room.CurrentPhase = SpyGamePhase.Accusation;
+            room.GameState.CurrentPhase = SpyGamePhase.Accusation;
             initiator.PlayerState.HasUsedAccusation = true;
 
             var votingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.AccusationVoteDurationSeconds);
             var endsAt = DateTime.UtcNow.Add(votingDuration);
 
-            room.ActiveVoting = new AccusationVotingState
+            room.GameState.ActiveVoting = new AccusationVotingState
             {
                 InitiatorId = initiator.IdInRoom,
                 TargetId = request.TargetPlayerId,

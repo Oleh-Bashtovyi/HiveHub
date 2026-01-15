@@ -1,4 +1,6 @@
-﻿namespace HiveHub.Domain.Models;
+﻿using HiveHub.Domain.Models.Shared;
+
+namespace HiveHub.Domain.Models.SpyGame;
 
 public enum SpyGamePhase
 {
@@ -34,7 +36,19 @@ public enum SpyTeam
     Spies
 }
 
-public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerState>
+public sealed class SpyRoom : RoomBase<SpyRoomGameState, SpyRoomSettings, SpyPlayer, SpyPlayerState>
+{
+
+    public List<ChatMessage> ChatMessages { get; set; } = new();
+
+    public SpyRoom(string code) : base(code)
+    {
+        GameSettings = new SpyRoomSettings();
+        GameState = new SpyRoomGameState();
+    }
+}
+
+public sealed class SpyRoomGameState
 {
     public string? CurrentSecretWord { get; set; }
     public string? CurrentCategory { get; set; }
@@ -47,44 +61,9 @@ public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerStat
     public DateTime? SpyLastChanceEndsAt { get; set; }
     public SpyGameEndReason? GameEndReason { get; set; }
     public SpyTeam? WinnerTeam { get; set; }
-    public List<ChatMessage> ChatMessages { get; set; } = new();
 
-    public SpyRoom(string code) : base(code)
+    public SpyRoomGameState()
     {
-        GameSettings = new SpyRoomSettings();
         RoundTimerState = new TimerState();
     }
-}
-
-public sealed class SpyPlayer : PlayerBase<SpyPlayerState>
-{
-    public SpyPlayer(string connectionId, string idInRoom)
-    {
-        ConnectionId = connectionId;
-        IdInRoom = idInRoom;
-        PlayerState = new SpyPlayerState();
-    }
-}
-
-public sealed class SpyPlayerState
-{
-    public bool IsSpy { get; set; } = false;
-    public bool VotedToStopTimer { get; set; } = false;
-    public bool HasUsedAccusation { get; set; } = false;
-}
-
-public sealed class SpyRoomSettings
-{
-    public int TimerMinutes { get; set; } = 5;
-    public int MinSpiesCount { get; set; } = 1;
-    public int MaxSpiesCount { get; set; } = 1;
-    public bool SpiesKnowEachOther { get; set; } = false;
-    public bool ShowCategoryToSpy { get; set; } = false;
-    public List<SpyGameWordsCategory> CustomCategories { get; set; } = new();
-}
-
-public sealed class SpyGameWordsCategory
-{
-    public string Name { get; set; } = string.Empty;
-    public List<string> Words { get; set; } = new();
 }

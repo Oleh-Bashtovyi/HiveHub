@@ -1,5 +1,5 @@
 ﻿using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Application.Extensions;
 

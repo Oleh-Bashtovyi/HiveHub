@@ -1,8 +1,7 @@
 ﻿using FluentResults;
-using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Application.Extensions;
 

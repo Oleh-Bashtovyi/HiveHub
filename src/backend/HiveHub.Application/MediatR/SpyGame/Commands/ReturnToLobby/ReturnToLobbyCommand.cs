@@ -6,7 +6,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -41,19 +42,19 @@ public class ReturnToLobbyHandler(
             room.Status = RoomStatus.Lobby;
 
             // Secret word and category
-            room.CurrentSecretWord = null;
-            room.CurrentCategory = null;
+            room.GameState.CurrentSecretWord = null;
+            room.GameState.CurrentCategory = null;
 
             // Timer
-            room.RoundStartedAt = null;
-            room.RoundTimerState.Clear();
+            room.GameState.RoundStartedAt = null;
+            room.GameState.RoundTimerState.Clear();
 
             // Phase, voting and game over reason
-            room.CurrentPhase = SpyGamePhase.None;
-            room.ActiveVoting = null;
-            room.CaughtSpyId = null;
-            room.WinnerTeam = null;
-            room.GameEndReason = null;
+            room.GameState.CurrentPhase = SpyGamePhase.None;
+            room.GameState.ActiveVoting = null;
+            room.GameState.CaughtSpyId = null;
+            room.GameState.WinnerTeam = null;
+            room.GameState.GameEndReason = null;
 
             room.ChatMessages.Clear();
 

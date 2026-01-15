@@ -3,7 +3,7 @@ using HiveHub.Application.Interfaces;
 using HiveHub.Application.Models;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using HiveHub.Infrastructure.Models;
 using RedLockNet;
 using StackExchange.Redis;

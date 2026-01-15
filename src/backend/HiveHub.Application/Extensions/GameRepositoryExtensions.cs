@@ -1,6 +1,6 @@
 ﻿using HiveHub.Application.Models;
 using HiveHub.Application.Services;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using System.Diagnostics.CodeAnalysis;
 
 namespace HiveHub.Application.Extensions;

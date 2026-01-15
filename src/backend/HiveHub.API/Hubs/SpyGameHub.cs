@@ -20,7 +20,7 @@ using HiveHub.Application.MediatR.SpyGame.Commands.ToggleReady;
 using HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
 using HiveHub.Application.MediatR.SpyGame.Commands.Vote;
 using HiveHub.Application.MediatR.SpyGame.Commands.VoteStopTimer;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
 using MediatR;
 
 namespace HiveHub.API.Hubs;

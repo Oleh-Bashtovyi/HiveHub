@@ -42,12 +42,12 @@ public class VoteStopTimerHandler(
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.VoteToStopTimerAvailvableOnlyMidGame);
             }
 
-            if (room.RoundTimerState.IsTimerStopped)
+            if (room.GameState.RoundTimerState.IsTimerStopped)
             {
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.TimerHasAlreadyStoped);
             }
 
-            if (room.RoundTimerState.GetRemainingSeconds() <= 0.02)
+            if (room.GameState.RoundTimerState.GetRemainingSeconds() <= 0.02)
             {
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.TimeHasPassed);
             }
@@ -74,7 +74,7 @@ public class VoteStopTimerHandler(
 
             if (votesCount >= requiredVotes)
             {
-                room.RoundTimerState.Pause();
+                room.GameState.RoundTimerState.Pause();
                 timerStopped = true;
 
                 var timerTask = new ScheduledTask(TaskType.SpyGameRoundTimeUp, request.RoomCode, null);

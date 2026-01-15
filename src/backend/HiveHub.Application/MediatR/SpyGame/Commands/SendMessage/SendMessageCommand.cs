@@ -5,7 +5,7 @@ using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

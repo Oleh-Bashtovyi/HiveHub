@@ -1,5 +1,5 @@
 ﻿using HiveHub.Application.Interfaces;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;

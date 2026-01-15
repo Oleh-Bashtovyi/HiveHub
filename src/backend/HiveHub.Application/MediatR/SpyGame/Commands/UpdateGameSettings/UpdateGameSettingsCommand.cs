@@ -5,7 +5,7 @@ using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -78,7 +78,7 @@ public class UpdateGameSettingsHandler(
             }
 
             // Apply changes
-            room.GameSettings.TimerMinutes = request.NewSettings.TimerMinutes;
+            room.GameSettings.RoundDurationMinutes = request.NewSettings.TimerMinutes;
             room.GameSettings.MinSpiesCount = request.NewSettings.MinSpiesCount;
             room.GameSettings.MaxSpiesCount = request.NewSettings.MaxSpiesCount;
             room.GameSettings.SpiesKnowEachOther = request.NewSettings.SpiesKnowEachOther;

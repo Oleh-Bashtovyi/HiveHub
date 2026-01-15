@@ -8,7 +8,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models;
+using HiveHub.Domain.Models.Shared;
+using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -51,14 +52,14 @@ public class MakeGuessHandler(
                 return Results.Forbidden(ProjectMessages.SpyGameMakeGuess.OnlySpyCanGuess);
             }
 
-            if (room.CurrentPhase == SpyGamePhase.SpyLastChance)
+            if (room.GameState.CurrentPhase == SpyGamePhase.SpyLastChance)
             {
-                if (room.CaughtSpyId != player.IdInRoom)
+                if (room.GameState.CaughtSpyId != player.IdInRoom)
                 {
                     return Results.Forbidden(ProjectMessages.SpyGameMakeGuess.OnlyCaughtSpyCanGuessInFinalPhase);
                 }
             }
-            else if (room.CurrentPhase == SpyGamePhase.Search)
+            else if (room.GameState.CurrentPhase == SpyGamePhase.Search)
             {
                 // Ok
             }
@@ -67,40 +68,40 @@ public class MakeGuessHandler(
                 return Results.ActionFailed(ProjectMessages.SpyGameMakeGuess.GuessNotAllowedInCurrentPhase);
             }
 
-            var isCorrect = string.Equals(request.Word, room.CurrentSecretWord, StringComparison.OrdinalIgnoreCase);
+            var isCorrect = string.Equals(request.Word, room.GameState.CurrentSecretWord, StringComparison.OrdinalIgnoreCase);
 
             room.Status = RoomStatus.Ended;
-            room.ActiveVoting = null;
+            room.GameState.ActiveVoting = null;
 
             context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null));
             context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, request.RoomCode, null));
 
             if (isCorrect)
             {
-                room.WinnerTeam = SpyTeam.Spies;
-                room.GameEndReason = SpyGameEndReason.SpyGuessedWord;
+                room.GameState.WinnerTeam = SpyTeam.Spies;
+                room.GameState.GameEndReason = SpyGameEndReason.SpyGuessedWord;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 
                     SpyTeam.Spies, 
                     SpyGameEndReason.SpyGuessedWord,
                     SpiesReveal: room.GetSpyRevealDto(),
-                    $"Spy guessed correctly! The word was {room.CurrentSecretWord}"));
+                    $"Spy guessed correctly! The word was {room.GameState.CurrentSecretWord}"));
             }
             else
             {
-                room.WinnerTeam = SpyTeam.Civilians;
-                room.GameEndReason = room.CurrentPhase == SpyGamePhase.SpyLastChance ? SpyGameEndReason.SpyFound : SpyGameEndReason.SpyWrongGuess;
+                room.GameState.WinnerTeam = SpyTeam.Civilians;
+                room.GameState.GameEndReason = room.GameState.CurrentPhase == SpyGamePhase.SpyLastChance ? SpyGameEndReason.SpyFound : SpyGameEndReason.SpyWrongGuess;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 
                     SpyTeam.Civilians, 
-                    room.GameEndReason.Value,
+                    room.GameState.GameEndReason.Value,
                     SpiesReveal: room.GetSpyRevealDto(),
-                    $"Wrong guess! The word was {room.CurrentSecretWord}"));
+                    $"Wrong guess! The word was {room.GameState.CurrentSecretWord}"));
             }
 
-            winnerTeam = room.WinnerTeam;
+            winnerTeam = room.GameState.WinnerTeam;
 
             return Result.Ok();
         });
