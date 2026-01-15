@@ -68,10 +68,11 @@
   &__category-badge {
     display: inline-block;
     background: rgba(0,0,0,0.3);
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 15px;
     font-size: 12px;
     margin-top: 10px;
+    margin-bottom: 10px;
   }
 
   &__category-text {
@@ -81,5 +82,10 @@
     @media (max-width: 768px) {
       font-size: 13px;
     }
+  }
+
+  &__guess-btn {
+    margin-top: 15px;
+    width: 100%;
   }
 }

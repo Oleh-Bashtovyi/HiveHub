@@ -1,0 +1,105 @@
+@use '../../../../styles/variables' as *;
+
+.guess-word {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__warning {
+    background: rgba($color-spy-primary, 0.1);
+    border: 2px solid $color-spy-primary;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      padding: 15px;
+    }
+  }
+
+  &__warning-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+
+  &__warning-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: $color-text-main;
+    margin: 0;
+
+    strong {
+      color: $color-spy-primary;
+    }
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
+  }
+
+  &__category {
+    background: $color-spy-panel-light;
+    padding: 12px 16px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__category-label {
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+
+  &__category-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: $color-spy-primary;
+  }
+
+  &__input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 14px;
+    color: $color-text-muted;
+    font-weight: 600;
+  }
+
+  &__input {
+    background: $color-spy-panel-light;
+    border: 2px solid #444;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: $color-spy-primary;
+    }
+
+    &::placeholder {
+      color: #666;
+    }
+
+    @media (max-width: 768px) {
+      font-size: 14px;
+      padding: 10px 14px;
+    }
+  }
+
+  &__buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+
+    @media (max-width: 768px) {
+      flex-direction: column-reverse;
+    }
+  }
+}

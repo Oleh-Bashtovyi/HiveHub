@@ -1,0 +1,55 @@
+@use '../../../../styles/variables' as *;
+
+.spy-game-rules {
+  background: $color-spy-panel;
+  padding: 20px;
+  border-radius: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+
+  &__title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
+
+    @media (max-width: 768px) {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+  }
+
+  &__list {
+    padding-left: 20px;
+    color: #B0B0B0;
+    line-height: 1.6;
+    font-size: 14px;
+    margin: 0;
+
+    li {
+      margin-bottom: 8px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    strong {
+      color: $color-text-main;
+    }
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+      padding-left: 18px;
+
+      li {
+        margin-bottom: 6px;
+      }
+    }
+  }
+}

@@ -1,0 +1,129 @@
+@use '../../../../styles/variables' as *;
+
+.final-voting {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  &__header {
+    text-align: center;
+    padding: 20px;
+    background: rgba($color-spy-primary, 0.1);
+    border-radius: 15px;
+  }
+
+  &__icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: $color-spy-primary;
+    margin: 0 0 10px 0;
+  }
+
+  &__desc {
+    font-size: 14px;
+    color: $color-text-muted;
+    margin: 0;
+  }
+
+  &__players {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+  }
+
+  &__player {
+    background: $color-spy-panel-light;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: left;
+
+    &:hover:not(:disabled) {
+      background: rgba($color-spy-primary, 0.2);
+      border-color: $color-spy-primary;
+      transform: translateX(5px);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__player-avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.2);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__player-name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: $color-text-main;
+  }
+
+  &__player-vote {
+    font-size: 24px;
+    opacity: 0.5;
+  }
+
+  &__voted {
+    text-align: center;
+    padding: 30px;
+    background: rgba($color-spy-success, 0.1);
+    border: 1px solid $color-spy-success;
+    border-radius: 15px;
+  }
+
+  &__voted-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+  }
+
+  &__voted-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: $color-spy-success;
+    margin-bottom: 10px;
+  }
+
+  &__voted-info {
+    font-size: 14px;
+    color: $color-text-muted;
+    margin: 0;
+  }
+}

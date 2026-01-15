@@ -3,7 +3,7 @@ import {
     RoomStatus,
     type SpyPlayerDto,
     type SpyRoomGameSettingsDto,
-    type GameStateDto,
+    type SpyGameStateDto,
     type ChatMessageDto,
     type SpyGameEndReason,
     type SpyGameTeam,
@@ -22,7 +22,7 @@ interface SpyGameContextType {
     players: SpyPlayerDto[];
     settings: SpyRoomGameSettingsDto | null;
     roomState: RoomStatus;
-    gameState: GameStateDto | null;
+    gameState: SpyGameStateDto | null;
     messages: ChatMessageDto[];
 
     // Game End Info
@@ -62,7 +62,7 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [players, setPlayers] = useState<SpyPlayerDto[]>([]);
     const [settings, setSettings] = useState<SpyRoomGameSettingsDto | null>(null);
     const [roomState, setRoomState] = useState<RoomStatus>(RoomStatus.Lobby);
-    const [gameState, setGameState] = useState<GameStateDto | null>(null);
+    const [gameState, setGameState] = useState<SpyGameStateDto | null>(null);
     const [messages, setMessages] = useState<ChatMessageDto[]>([]);
 
     const [winnerTeam, setWinnerTeam] = useState<SpyGameTeam | null>(null);

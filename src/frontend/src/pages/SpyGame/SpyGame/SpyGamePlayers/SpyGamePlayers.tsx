@@ -1,42 +1,70 @@
 import { AVATAR_MAP } from '../../../../const/avatars';
+import { Button } from '../../../../components/ui/Button/Button';
+import type { SpyPlayerDto } from '../../../../models/spy-game';
 import './SpyGamePlayers.scss';
-import type { PlayerDto } from "../../../../models/spy-game.ts";
 
 interface SpyGamePlayersProps {
-    players: PlayerDto[];
+    players: SpyPlayerDto[];
     currentPlayerId: string;
     isTimerStopped: boolean;
+    caughtSpyId: string | null;
+    canAccuse: boolean;
+    onAccuse: (playerId: string) => void;
 }
 
-export const SpyGamePlayers = ({ players, currentPlayerId, isTimerStopped }: SpyGamePlayersProps) => {
+export const SpyGamePlayers = ({
+                                   players,
+                                   currentPlayerId,
+                                   isTimerStopped,
+                                   caughtSpyId,
+                                   canAccuse,
+                                   onAccuse
+                               }: SpyGamePlayersProps) => {
     return (
         <div className="spy-game-players">
-            <h3 className="spy-game-players__title">Гравці</h3>
+            <h3 className="spy-game-players__title">👥 Гравці</h3>
             <div className="spy-game-players__list">
-                {players.map(p => (
-                    <div
-                        key={p.id}
-                        className="spy-game-players__item"
-                        style={{ opacity: p.isConnected ? 1 : 0.5 }}
-                    >
-                        <div className="spy-game-players__avatar">
-                            {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
-                        </div>
-                        <div className="spy-game-players__info">
-                            <div className="spy-game-players__name-row">
-                                <span className="spy-game-players__name">
-                                    {p.name} {p.id === currentPlayerId && '(Ви)'}
-                                </span>
-                                {p.isHost && <span title="Хост">👑</span>}
-                                {!isTimerStopped && p.isVotedToStopTimer && (
-                                    <span title="Голосував за стоп" className="spy-game-players__vote-hand">✋</span>
-                                )}
-                                {p.isSpy && <span title="Шпигун">🥷</span>}
+                {players.map(p => {
+                    const isMe = p.id === currentPlayerId;
+                    const isCaught = p.id === caughtSpyId;
+                    const canAccuseThis = canAccuse && !isMe && p.isConnected && !isCaught;
+
+                    return (
+                        <div
+                            key={p.id}
+                            className={`spy-game-players__item ${isCaught ? 'spy-game-players__item--caught' : ''}`}
+                            style={{ opacity: p.isConnected ? 1 : 0.5 }}
+                        >
+                            <div className="spy-game-players__avatar">
+                                {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
                             </div>
-                            {!p.isConnected && <span className="spy-game-players__offline">🔌 Офлайн</span>}
+                            <div className="spy-game-players__info">
+                                <div className="spy-game-players__name-row">
+                                    <span className="spy-game-players__name">
+                                        {p.name} {isMe && '(Ви)'}
+                                    </span>
+                                    {p.isHost && <span title="Хост">👑</span>}
+                                    {!isTimerStopped && p.isVotedToStopTimer && (
+                                        <span title="Голосував за стоп" className="spy-game-players__vote-hand">✋</span>
+                                    )}
+                                    {isCaught && <span title="Спійманий шпигун" className="spy-game-players__caught-badge">🔒</span>}
+                                </div>
+                                {!p.isConnected && <span className="spy-game-players__offline">🔌 Офлайн</span>}
+
+                                {canAccuseThis && (
+                                    <Button
+                                        size="small"
+                                        variant="danger"
+                                        onClick={() => onAccuse(p.id)}
+                                        className="spy-game-players__accuse-btn"
+                                    >
+                                        ⚠️ Звинуватити
+                                    </Button>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

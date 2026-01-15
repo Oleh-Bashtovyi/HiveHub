@@ -10,9 +10,13 @@
   flex: 1;
   min-height: 0;
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
     flex: none;
     max-height: 400px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 15px;
   }
 
   &__title {
@@ -22,6 +26,10 @@
     border-bottom: 1px solid rgba(255,255,255,0.1);
     padding-bottom: 10px;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      font-size: 16px;
+    }
   }
 
   &__list {
@@ -50,7 +58,7 @@
   &__item {
     flex-shrink: 0;
     background: $color-spy-panel-light;
-    padding: 10px;
+    padding: 12px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -59,6 +67,16 @@
 
     &:hover {
       background: lighten($color-spy-panel-light, 5%);
+    }
+
+    &--caught {
+      background: rgba($color-spy-primary, 0.2);
+      border: 1px solid rgba($color-spy-primary, 0.5);
+    }
+
+    @media (max-width: 768px) {
+      padding: 10px;
+      gap: 10px;
     }
   }
 
@@ -72,6 +90,12 @@
     background: rgba(0,0,0,0.2);
     border-radius: 50%;
     flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
+    }
   }
 
   &__info {
@@ -79,6 +103,7 @@
     flex-direction: column;
     flex: 1;
     min-width: 0;
+    gap: 6px;
   }
 
   &__name-row {
@@ -92,16 +117,29 @@
     font-weight: 600;
     font-size: 14px;
     word-break: break-word;
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
   }
 
   &__vote-hand {
     animation: wave 0.5s ease-in-out infinite;
   }
 
+  &__caught-badge {
+    color: $color-spy-primary;
+    filter: drop-shadow(0 0 3px rgba($color-spy-primary, 0.5));
+  }
+
   &__offline {
     font-size: 12px;
     color: $color-text-muted;
-    margin-top: 2px;
+  }
+
+  &__accuse-btn {
+    margin-top: 4px;
+    align-self: flex-start;
   }
 }
 

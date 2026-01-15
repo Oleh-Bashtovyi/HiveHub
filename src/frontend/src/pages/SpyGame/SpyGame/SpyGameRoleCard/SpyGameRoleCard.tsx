@@ -1,12 +1,14 @@
+import { Button } from '../../../../components/ui/Button/Button';
 import './SpyGameRoleCard.scss';
 
 interface SpyGameRoleCardProps {
     isSpy: boolean;
     secretWord: string | null;
     category: string | null;
+    onGuessWord?: () => void;
 }
 
-export const SpyGameRoleCard = ({ isSpy, secretWord, category }: SpyGameRoleCardProps) => {
+export const SpyGameRoleCard = ({ isSpy, secretWord, category, onGuessWord }: SpyGameRoleCardProps) => {
     return (
         <div className={`spy-role-card ${isSpy ? 'spy-role-card--spy' : 'spy-role-card--civilian'}`}>
             <div className="spy-role-card__icon">{isSpy ? '🥷' : '🕵️'}</div>
@@ -23,7 +25,19 @@ export const SpyGameRoleCard = ({ isSpy, secretWord, category }: SpyGameRoleCard
             </div>
 
             {isSpy ? (
-                category && <div className="spy-role-card__category-badge">Категорія: {category}</div>
+                <>
+                    {category && <div className="spy-role-card__category-badge">Категорія: {category}</div>}
+                    {onGuessWord && (
+                        <Button
+                            size="small"
+                            variant="secondary"
+                            onClick={onGuessWord}
+                            className="spy-role-card__guess-btn"
+                        >
+                            💡 Вгадати слово
+                        </Button>
+                    )}
+                </>
             ) : (
                 <>
                     <div className="spy-role-card__secret-word">{secretWord}</div>

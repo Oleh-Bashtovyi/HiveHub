@@ -1,0 +1,66 @@
+@use '../../../../styles/variables' as *;
+
+.accusation-voting {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 10px 0;
+
+  &__target {
+    text-align: center;
+    padding: 20px;
+    background: rgba($color-spy-primary, 0.1);
+    border: 2px dashed rgba($color-spy-primary, 0.5);
+    border-radius: 15px;
+  }
+
+  &__icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+  }
+
+  &__name {
+    font-size: 24px;
+    font-weight: 700;
+    color: $color-spy-primary;
+    margin-bottom: 5px;
+  }
+
+  &__label {
+    font-size: 14px;
+    color: $color-text-muted;
+    font-style: italic;
+  }
+
+  &__buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__voted {
+    text-align: center;
+    padding: 30px;
+    background: rgba($color-spy-success, 0.1);
+    border: 1px solid $color-spy-success;
+    border-radius: 15px;
+  }
+
+  &__voted-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+  }
+
+  &__voted-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: $color-spy-success;
+    margin-bottom: 10px;
+  }
+
+  &__voted-info {
+    font-size: 14px;
+    color: $color-text-muted;
+    margin: 0;
+  }
+}
