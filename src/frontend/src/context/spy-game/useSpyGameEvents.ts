@@ -3,23 +3,23 @@ import { SpyHubEvents } from '../../const/spy-game-events';
 import {
     RoomStatus,
     type SpyPlayerDto,
-    type PlayerJoinedEventDto,
+    type SpyPlayerJoinedEventDto,
     type PlayerLeftEventDto,
     type PlayerChangedNameEventDto,
     type PlayerKickedEventDto,
     type PlayerReadyStatusChangedEventDto,
     type PlayerChangedAvatarEventDto,
     type HostChangedEventDto,
-    type GameSettingsUpdatedEventDto,
-    type GameStartedEventDto,
+    type SpyGameSettingsUpdatedEventDto,
+    type SpyGameStartedEventDto,
     type ChatMessageEventDto,
-    type TimerStoppedEventDto,
+    type PlayerVotedToStopTimerEventDto,
     type PlayerConnectionChangedEventDto,
     type VotingStartedEventDto,
     type VoteCastEventDto,
     type VotingResultEventDto,
-    type GameEndedEventDto,
-    type GameStateDto,
+    type SpyGameEndedEventDto,
+    type SpyGameStateDto,
     SpyVotingType, type ChatMessageDto
 } from '../../models/spy-game';
 import { SpySignalRService } from "../../api/spy-signal-r-service";
@@ -55,7 +55,7 @@ export function useSpyGameEvents({
         const svc = getService();
         const meId = me?.id;
 
-        const handlePlayerJoined = (e: PlayerJoinedEventDto) => {
+        const handlePlayerJoined = (e: SpyPlayerJoinedEventDto) => {
             stateSetters.setPlayers((prev: SpyPlayerDto[]) => {
                 if (prev.some(p => p.id === e.player.id)) return prev;
                 return [...prev, e.player];
@@ -123,11 +123,11 @@ export function useSpyGameEvents({
             });
         };
 
-        const handleSettingsUpdated = (e: GameSettingsUpdatedEventDto) => {
+        const handleSettingsUpdated = (e: SpyGameSettingsUpdatedEventDto) => {
             stateSetters.setSettings(e.settings);
         };
 
-        const handleGameStarted = (e: GameStartedEventDto) => {
+        const handleGameStarted = (e: SpyGameStartedEventDto) => {
             const newState = e.state;
             stateSetters.setRoomState(newState.status);
             stateSetters.setGameState(newState.gameState);
@@ -152,11 +152,11 @@ export function useSpyGameEvents({
             );
         };
 
-        const handleTimerStopped = (e: TimerStoppedEventDto) => {
+        const handleTimerStopped = (e: PlayerVotedToStopTimerEventDto) => {
             stateSetters.setPlayers((prev: SpyPlayerDto[]) =>
                 prev.map(p => p.id === e.playerId ? { ...p, isVotedToStopTimer: true } : p)
             );
-            stateSetters.setGameState((prev: GameStateDto | null) => {
+            stateSetters.setGameState((prev: SpyGameStateDto | null) => {
                 if (!prev) return null;
                 const isStopped = e.votesCount >= e.requiredVotes;
                 return {
@@ -169,7 +169,7 @@ export function useSpyGameEvents({
         };
 
         const handleVotingStarted = (e: VotingStartedEventDto) => {
-            stateSetters.setGameState((prev: GameStateDto | null) => {
+            stateSetters.setGameState((prev: SpyGameStateDto | null) => {
                 if (!prev) return null;
                 return {
                     ...prev,
@@ -189,7 +189,7 @@ export function useSpyGameEvents({
         };
 
         const handleVoteCast = (e: VoteCastEventDto) => {
-            stateSetters.setGameState((prev: GameStateDto | null) => {
+            stateSetters.setGameState((prev: SpyGameStateDto | null) => {
                 if (!prev || !prev.activeVoting) return prev;
 
                 const newActiveVoting = { ...prev.activeVoting };
@@ -217,7 +217,7 @@ export function useSpyGameEvents({
 
         const handleVotingResult = (e: VotingResultEventDto) => {
             console.log("Voting Result:", e.resultMessage);
-            stateSetters.setGameState((prev: GameStateDto | null) => {
+            stateSetters.setGameState((prev: SpyGameStateDto | null) => {
                 if (!prev) return null;
                 return {
                     ...prev,
@@ -228,11 +228,17 @@ export function useSpyGameEvents({
             });
         };
 
-        const handleGameEnded = (e: GameEndedEventDto) => {
+        const handleGameEnded = (e: SpyGameEndedEventDto) => {
             stateSetters.setRoomState(RoomStatus.Ended);
             stateSetters.setWinnerTeam(e.winnerTeam);
             stateSetters.setGameEndReason(e.reason);
             stateSetters.setGameEndMessage(e.reasonMessage);
+            stateSetters.setPlayers(prev =>
+                prev.map(p => {
+                    const reveal = e.spiesReveal.find(r => r.playerId === p.id);
+                    return reveal ? { ...p, isSpy: reveal.isSpy } : p;
+                })
+            );
             refreshState();
         };
 

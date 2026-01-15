@@ -1,30 +1,53 @@
-// _spy-shared.scss
 @use '../../../styles/variables' as *;
 
-// Обгортка сторінки (центрування)
-.spy-page-wrapper {
+// Обгортка сторінки результатів
+.spy-results {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
   background: linear-gradient(135deg, #1a0000 0%, $color-spy-bg 50%, #1a0000 100%);
+
+  &__content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    align-items: start;
+
+    // На мобільних - вертикальний стек
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+      max-width: 600px;
+    }
+  }
+
+  &__chat {
+    height: 100%;
+    min-height: 600px;
+
+    @media (max-width: 1024px) {
+      min-height: 400px;
+      max-height: 500px;
+    }
+  }
 }
 
 // Картка
 .spy-card {
   background: $color-spy-panel;
   border-radius: 20px;
-  padding: 40px; // Трохи зменшив для мобільних
+  padding: 40px;
   box-shadow: 0 20px 60px rgba($color-spy-primary, 0.3);
-  max-width: 600px; // Трохи ширше для списків
   width: 100%;
   animation: fadeIn 0.5s ease-in;
   border: 1px solid rgba($color-spy-primary, 0.2);
 
-  // Якщо треба вирівняти вміст по центру
-  &.text-center {
-    text-align: center;
+  @media (max-width: 768px) {
+    padding: 30px 20px;
+    border-radius: 15px;
   }
 }
 
@@ -38,37 +61,63 @@
     margin-bottom: 10px;
     display: inline-block;
     filter: drop-shadow(0 0 10px rgba($color-spy-primary, 0.5));
+
+    @media (max-width: 768px) {
+      font-size: 48px;
+    }
   }
 
   h1 {
     color: $color-text-main;
     font-size: 32px;
     margin: 0 0 10px 0;
+
+    @media (max-width: 768px) {
+      font-size: 26px;
+    }
   }
 
-  p {
+  .winner-text {
+    color: $color-spy-primary;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 10px 0;
+    text-shadow: 0 0 10px rgba($color-spy-primary, 0.5);
+
+    @media (max-width: 768px) {
+      font-size: 18px;
+    }
+  }
+
+  .reason-text {
     color: $color-text-muted;
     font-size: 16px;
-    margin: 0;
+    margin: 5px 0 0 0;
+
+    @media (max-width: 768px) {
+      font-size: 14px;
+    }
   }
 }
 
 // Група кнопок
 .spy-actions {
   display: flex;
+  flex-direction: column;
   gap: 15px;
   margin-top: 30px;
 
-  // На мобільних - вертикально, на десктопі - горизонтально
-  flex-direction: column;
-  @media (min-width: 480px) {
-    flex-direction: row;
+  .host-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
   }
-}
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  @media (max-width: 768px) {
+    margin-top: 20px;
+    gap: 12px;
+  }
 }
 
 // Стилі списку гравців
@@ -77,6 +126,11 @@
   flex-direction: column;
   gap: 12px;
   margin-bottom: 30px;
+
+  @media (max-width: 768px) {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
 }
 
 .result-item {
@@ -86,8 +140,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid transparent; // Щоб не стрибало при ховері/зміні
+  border: 1px solid transparent;
   transition: all 0.2s ease;
+
+  @media (max-width: 768px) {
+    padding: 12px 15px;
+  }
 
   // Ліва частина (іконка + ім'я)
   .player-info {
@@ -95,14 +153,26 @@
     align-items: center;
     gap: 12px;
 
+    @media (max-width: 768px) {
+      gap: 10px;
+    }
+
     .role-icon {
       font-size: 24px;
+
+      @media (max-width: 768px) {
+        font-size: 20px;
+      }
     }
 
     .player-name {
       font-weight: 600;
       color: $color-text-main;
       font-size: 1.1rem;
+
+      @media (max-width: 768px) {
+        font-size: 1rem;
+      }
     }
   }
 
@@ -112,24 +182,40 @@
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 1px;
+    white-space: nowrap;
+
+    @media (max-width: 768px) {
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
+    }
   }
 
   // --- Модифікатор для ШПИГУНА ---
   &.is-spy {
-    background: rgba($color-spy-primary, 0.15); // Прозорий червоний фон
-    border-color: rgba($color-spy-primary, 0.6); // Червона рамка
+    background: rgba($color-spy-primary, 0.15);
+    border-color: rgba($color-spy-primary, 0.6);
     box-shadow: 0 0 15px rgba($color-spy-primary, 0.1);
 
     .role-label {
-      color: $color-spy-primary; // Червоний текст
+      color: $color-spy-primary;
       text-shadow: 0 0 5px rgba($color-spy-primary, 0.4);
     }
   }
 
-  // --- Модифікатор для МИРНОГО ---
   &.is-civilian {
     .role-label {
-      color: $color-spy-success; // Зелений текст
+      color: $color-spy-success;
     }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

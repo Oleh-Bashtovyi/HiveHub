@@ -100,7 +100,7 @@ export interface VotingStateDto {
     endsAt: string;
 }
 
-export interface GameStateDto {
+export interface SpyGameStateDto {
     currentSecretWord: string | null;
     category: string | null;
     gameStartTime: string;
@@ -114,14 +114,19 @@ export interface GameStateDto {
     caughtSpyName: string | null;
 }
 
-export interface RoomStateDto {
+export interface SpyRoomStateDto {
     roomCode: string;
     status: RoomStatus;
     players: SpyPlayerDto[];
     messages: ChatMessageDto[];
     settings: SpyRoomGameSettingsDto;
-    gameState: GameStateDto | null;
+    gameState: SpyGameStateDto | null;
     version: number;
+}
+
+export interface SpyRevealDto {
+    playerId: string;
+    isSpy: boolean;
 }
 
 // --- API Responses ---
@@ -134,16 +139,16 @@ export interface ApiResponse<T> {
 
 export interface CreateRoomResponseDto {
     me: SpyPlayerDto;
-    roomState: RoomStateDto;
+    roomState: SpyRoomStateDto;
 }
 
 export interface JoinRoomResponseDto {
     me: SpyPlayerDto;
-    roomState: RoomStateDto;
+    roomState: SpyRoomStateDto;
 }
 
 // --- Events DTOs ---
-export interface PlayerJoinedEventDto {
+export interface SpyPlayerJoinedEventDto {
     roomCode: string;
     player: SpyPlayerDto;
 }
@@ -171,27 +176,33 @@ export interface PlayerChangedAvatarEventDto {
     playerId: string;
     newAvatarId: string;
 }
+
 export interface HostChangedEventDto {
     roomCode: string;
     newHostId: string;
 }
-export interface GameSettingsUpdatedEventDto {
+
+export interface SpyGameSettingsUpdatedEventDto {
     roomCode: string;
     settings: SpyRoomGameSettingsDto;
 }
-export interface GameStartedEventDto {
-    state: RoomStateDto;
+
+export interface SpyGameStartedEventDto {
+    state: SpyRoomStateDto;
 }
+
 export interface ChatMessageEventDto {
     roomCode: string;
     message: ChatMessageDto;
 }
-export interface TimerStoppedEventDto {
+
+export interface PlayerVotedToStopTimerEventDto {
     roomCode: string;
     playerId: string;
     votesCount: number;
     requiredVotes: number;
 }
+
 export interface PlayerConnectionChangedEventDto {
     roomCode: string;
     playerId: string;
@@ -226,29 +237,30 @@ export interface VotingResultEventDto {
     accusedId: string | null;
 }
 
-export interface GameEndedEventDto {
+export interface SpyGameEndedEventDto {
     roomCode: string;
     winnerTeam: SpyGameTeam;
     reason: SpyGameEndReason;
+    spiesReveal: SpyRevealDto[];
     reasonMessage: string | null;
 }
 
 export interface SpyGameEventMap {
-    [SpyHubEvents.PlayerJoined]: PlayerJoinedEventDto;
+    [SpyHubEvents.PlayerJoined]: SpyPlayerJoinedEventDto;
     [SpyHubEvents.PlayerLeft]: PlayerLeftEventDto;
     [SpyHubEvents.PlayerChangedName]: PlayerChangedNameEventDto;
     [SpyHubEvents.PlayerKicked]: PlayerKickedEventDto;
     [SpyHubEvents.PlayerReadyStatusChanged]: PlayerReadyStatusChangedEventDto;
     [SpyHubEvents.PlayerChangedAvatar]: PlayerChangedAvatarEventDto;
     [SpyHubEvents.HostChanged]: HostChangedEventDto;
-    [SpyHubEvents.GameSettingsUpdated]: GameSettingsUpdatedEventDto;
-    [SpyHubEvents.GameStarted]: GameStartedEventDto;
+    [SpyHubEvents.GameSettingsUpdated]: SpyGameSettingsUpdatedEventDto;
+    [SpyHubEvents.GameStarted]: SpyGameStartedEventDto;
     [SpyHubEvents.ChatMessageReceived]: ChatMessageEventDto;
-    [SpyHubEvents.TimerVoteUpdated]: TimerStoppedEventDto;
+    [SpyHubEvents.TimerVoteUpdated]: PlayerVotedToStopTimerEventDto;
     [SpyHubEvents.ReturnedToLobby]: ReturnToLobbyEventDto;
     [SpyHubEvents.PlayerConnectionStatusChanged]: PlayerConnectionChangedEventDto;
     [SpyHubEvents.VotingStarted]: VotingStartedEventDto;
     [SpyHubEvents.VoteCast]: VoteCastEventDto;
     [SpyHubEvents.VotingResult]: VotingResultEventDto;
-    [SpyHubEvents.GameEnded]: GameEndedEventDto;
+    [SpyHubEvents.GameEnded]: SpyGameEndedEventDto;
 }

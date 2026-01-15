@@ -5,10 +5,14 @@
   padding: 20px;
   background: linear-gradient(135deg, #1a0000 0%, $color-spy-bg 50%, #1a0000 100%);
   color: $color-text-main;
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 }
 
 .lobby-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -24,6 +28,10 @@
   border: 1px solid rgba($color-spy-primary, 0.2);
   flex-wrap: wrap;
   gap: 15px;
+
+  @media (max-width: 768px) {
+    padding: 15px 20px;
+  }
 }
 
 .room-code-group {
@@ -31,7 +39,14 @@
   align-items: center;
   gap: 15px;
 
-  h2 { font-size: 24px; margin: 0; }
+  h2 {
+    font-size: 24px;
+    margin: 0;
+
+    @media (max-width: 768px) {
+      font-size: 20px;
+    }
+  }
 }
 
 .code-badge {
@@ -48,27 +63,55 @@
 
   &:hover { transform: scale(1.05); }
   &:active { transform: scale(0.95); }
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+    padding: 8px 16px;
+  }
 }
 
-// --- Layout ---
+// --- Main Layout (Grid) ---
 .lobby-content {
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 20px;
+  height: calc(100vh - 180px); // Фіксована висота (100vh - header - paddings)
+  min-height: 600px;
 
-  @media (max-width: 968px) {
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr 350px;
+  }
+
+  @media (max-width: 900px) {
     grid-template-columns: 1fr;
+    height: auto; // На мобілках авто-висота
+    min-height: 0;
   }
 }
 
-// --- Player Grid ---
+// --- Common Panel Styles ---
 .section-panel {
   background: $color-spy-panel;
   border-radius: 15px;
-  padding: 30px;
   border: 1px solid rgba($color-spy-primary, 0.2);
   display: flex;
   flex-direction: column;
+  overflow: hidden; // Важливо для правильного скролу
+}
+
+// --- Left Panel: Players ---
+.players-panel {
+  padding: 30px;
+  height: 100%; // Займає всю висоту grid
+
+  @media (max-width: 900px) {
+    height: auto;
+    min-height: 500px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px;
+  }
 }
 
 .section-title {
@@ -77,23 +120,50 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0; // Не стискається
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
 }
 
 .player-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 15px;
+  margin-bottom: 20px;
+  overflow-y: auto; // Скрол якщо багато гравців
+  flex: 1; // Займає весь доступний простір
+  padding-right: 5px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
 }
 
 .player-card {
   background: $color-spy-panel-light;
   border-radius: 12px;
-  padding: 20px;
+  padding: 15px;
   text-align: center;
   transition: all 0.3s;
   border: 2px solid transparent;
   position: relative;
-  min-height: 180px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -115,9 +185,15 @@
     cursor: default;
   }
 
+  @media (max-width: 768px) {
+    padding: 12px;
+    min-height: 140px;
+  }
+
   .host-badge {
     position: absolute;
-    top: 10px; right: 10px;
+    top: 5px;
+    right: 5px;
     background: $color-spy-primary;
     color: white;
     padding: 2px 6px;
@@ -126,13 +202,23 @@
     font-weight: 700;
   }
 
+  .offline-icon {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    z-index: 10;
+  }
+
   .edit-profile-btn {
     position: absolute;
-    top: 10px; left: 10px;
+    top: 5px;
+    left: 5px;
     background: rgba(0,0,0,0.5);
     border: none;
     color: white;
-    width: 24px; height: 24px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 12px;
@@ -140,26 +226,33 @@
     align-items: center;
     justify-content: center;
     opacity: 0.7;
-    transition: all 0.2s;
 
     &:hover {
       opacity: 1;
       background: $color-spy-primary;
-      transform: scale(1.1);
     }
   }
 }
 
 .player-avatar {
-  width: 80px; height: 80px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: linear-gradient(135deg, $color-spy-primary, $color-spy-dark);
-  margin-bottom: 15px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 35px;
 
   &.avatar-placeholder {
     background: #333;
+  }
+
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
   }
 }
 
@@ -170,35 +263,38 @@
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  font-size: 0.95rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
 }
 
 .ready-badge {
   display: inline-block;
   background: $color-spy-success;
   color: white;
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  margin-top: 5px;
 }
 
 .not-ready-text {
-  font-size: 12px;
+  font-size: 11px;
   color: $color-text-muted;
-  margin-top: 5px;
-  display: block;
 }
 
 .player-actions {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   justify-content: center;
   gap: 5px;
 }
 
 .icon-btn {
-  width: 30px; height: 30px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 6px;
   background: rgba(255,255,255,0.1);
@@ -207,13 +303,116 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
 
-  &:hover { background: $color-spy-primary; }
+  &:hover {
+    background: $color-spy-primary;
+  }
 }
 
+.lobby-actions-area {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0; // Не стискається
 
-// --- Settings ---
+  .mt-2 {
+    margin-top: 10px;
+  }
+}
+
+.lobby-footer-msg {
+  text-align: center;
+  font-size: 12px;
+  color: $color-text-muted;
+  margin-top: 5px;
+}
+
+// --- Right Panel: Sidebar (Tabs) ---
+.sidebar-panel {
+  padding: 0;
+  height: 100%; // Займає всю висоту grid
+
+  @media (max-width: 900px) {
+    height: auto;
+    min-height: 500px;
+    max-height: 600px;
+  }
+}
+
+.sidebar-tabs {
+  display: flex;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba($color-spy-primary, 0.2);
+  flex-shrink: 0; // Не стискається
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 15px;
+  color: $color-text-muted;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  font-size: 16px;
+
+  &:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+  }
+
+  &.active {
+    color: $color-spy-primary;
+    background: rgba($color-spy-primary, 0.1);
+    border-bottom: 2px solid $color-spy-primary;
+  }
+
+  .tab-badge {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    width: 8px;
+    height: 8px;
+    background: $color-spy-success;
+    border-radius: 50%;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+.sidebar-content {
+  flex: 1; // Займає весь доступний простір
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; // Важливо для flex child з overflow
+}
+
+// --- Tab: Settings Content ---
+.settings-container {
+  padding: 20px;
+  overflow-y: auto; // Скрол при переповненні
+  flex: 1;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
+}
+
 .settings-list {
   display: flex;
   flex-direction: column;
@@ -224,9 +423,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px;
+  padding: 12px;
   background: $color-spy-panel-light;
   border-radius: 10px;
+  font-size: 0.9rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    padding: 10px;
+  }
 }
 
 .setting-control {
@@ -235,7 +440,7 @@
   gap: 10px;
 
   .val-display {
-    min-width: 30px;
+    min-width: 25px;
     text-align: center;
     font-weight: bold;
     color: $color-spy-primary;
@@ -243,7 +448,8 @@
 }
 
 .btn-mini {
-  width: 28px; height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   border: none;
   background: $color-spy-primary;
@@ -254,22 +460,36 @@
   align-items: center;
   justify-content: center;
 
-  &:hover { background: $color-spy-dark; }
-  &:disabled { background: #444; cursor: not-allowed; }
+  &:hover {
+    background: $color-spy-dark;
+  }
+
+  &:disabled {
+    background: #444;
+    cursor: not-allowed;
+  }
 }
 
 // Switch
 .switch {
   position: relative;
   display: inline-block;
-  width: 46px; height: 24px;
+  width: 40px;
+  height: 22px;
 
-  input { opacity: 0; width: 0; height: 0; }
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
 
   .slider {
     position: absolute;
     cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background-color: #333;
     transition: .4s;
     border-radius: 34px;
@@ -277,49 +497,57 @@
     &:before {
       position: absolute;
       content: "";
-      height: 18px; width: 18px;
-      left: 3px; bottom: 3px;
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
       background-color: white;
       transition: .4s;
       border-radius: 50%;
     }
   }
 
-  input:checked + .slider { background-color: $color-spy-primary; }
-  input:checked + .slider:before { transform: translateX(22px); }
-  input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+  input:checked + .slider {
+    background-color: $color-spy-primary;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+
+  input:disabled + .slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 // Categories
+.categories-section {
+  margin-top: 5px;
+}
+
 .categories-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .category-list {
   margin-top: 5px;
-  max-height: 200px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-
-  // Scrollbar styling
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-  &::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 }
 
 .category-item {
   background: rgba(0,0,0,0.2);
-  padding: 10px 15px;
+  padding: 8px 12px;
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: background 0.2s;
 
   &:hover {
@@ -332,8 +560,8 @@
 
   .cat-count {
     color: $color-text-muted;
-    font-size: 0.8rem;
-    margin-left: 8px;
+    font-size: 0.75rem;
+    margin-left: 6px;
   }
 
   .cat-actions {
@@ -342,26 +570,29 @@
   }
 }
 
-.category-edit-btn {
-  background: none;
-  border: none;
-  color: $color-text-muted;
-  cursor: pointer;
-  font-size: 1.1rem;
-  padding: 0;
-
-  &:hover { color: #fff; }
-}
-
+.category-edit-btn,
 .category-remove-btn {
   background: none;
   border: none;
-  color: $color-spy-primary;
   cursor: pointer;
-  font-size: 1.1rem;
   padding: 0;
+  font-size: 1rem;
+}
 
-  &:hover { color: $color-spy-dark; }
+.category-edit-btn {
+  color: $color-text-muted;
+
+  &:hover {
+    color: white;
+  }
+}
+
+.category-remove-btn {
+  color: $color-spy-primary;
+
+  &:hover {
+    color: $color-spy-dark;
+  }
 }
 
 .empty-categories-msg {
@@ -369,29 +600,33 @@
   font-style: italic;
   padding: 10px;
   text-align: center;
+  font-size: 0.8rem;
 }
 
 .add-category-btn-wrapper {
-  margin-top: 15px;
+  margin-top: 10px;
 }
 
-// Footer
-.lobby-footer {
-  margin-top: auto;
-  padding-top: 20px;
+// --- Tab: Chat Content ---
+.chat-tab-container {
+  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  overflow: hidden;
+
+  .spy-game-chat {
+    height: 100%;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    padding: 20px;
+  }
 }
 
-.lobby-footer-msg {
-  text-align: center;
-  font-size: 12px;
-  color: $color-text-muted;
-}
-
-// --- Modal Content Styles ---
-.category-modal-content {
+// --- Modals ---
+.category-modal-content,
+.profile-modal-content {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -426,8 +661,8 @@
   border-radius: 8px;
   padding: 10px;
   background: rgba(0,0,0,0.2);
-  min-height: 150px;
-  max-height: 250px;
+  min-height: 100px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
@@ -440,18 +675,18 @@
 .word-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .word-chip {
   background: $color-spy-panel;
   border: 1px solid #444;
   border-radius: 15px;
-  padding: 4px 10px;
-  font-size: 13px;
+  padding: 3px 8px;
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 
   button {
     background: none;
@@ -462,7 +697,9 @@
     padding: 0;
     line-height: 1;
 
-    &:hover { color: $color-spy-dark; }
+    &:hover {
+      color: $color-spy-dark;
+    }
   }
 }
 
@@ -473,13 +710,7 @@
   margin-top: 10px;
 }
 
-// --- Profile Modal Styles ---
-.profile-modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
+// Avatar Selection
 .avatar-selection-section {
   h4 {
     margin: 0 0 10px 0;
@@ -490,7 +721,7 @@
 
 .avatar-grid-select {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
   gap: 10px;
 }
 
@@ -499,7 +730,7 @@
   background: $color-spy-panel-light;
   border: 2px solid transparent;
   border-radius: 10px;
-  font-size: 30px;
+  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -514,7 +745,6 @@
   &.selected {
     border-color: $color-spy-success;
     background: rgba($color-spy-success, 0.1);
-    box-shadow: 0 0 10px rgba($color-spy-success, 0.3);
   }
 }
 
@@ -525,8 +755,5 @@
 
   .input-wrapper {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
   }
 }

@@ -6,7 +6,7 @@ import type {
     CreateRoomResponseDto,
     JoinRoomResponseDto,
     SpyGameEventMap,
-    RoomStateDto
+    SpyRoomStateDto
 } from "../models/spy-game";
 
 type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => void;
@@ -93,7 +93,7 @@ export class SpySignalRService {
     }
 
     public async reconnect(roomCode: string, oldPlayerId: string) {
-        return this.invoke<RoomStateDto>(SpyHubMethods.Reconnect, roomCode, oldPlayerId);
+        return this.invoke<SpyRoomStateDto>(SpyHubMethods.Reconnect, roomCode, oldPlayerId);
     }
 
     public async leaveRoom(roomCode: string) {

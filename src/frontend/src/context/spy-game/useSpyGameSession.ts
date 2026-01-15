@@ -3,7 +3,7 @@ import {
     RoomStatus,
     type SpyPlayerDto,
     type SpyRoomGameSettingsDto,
-    type GameStateDto,
+    type SpyGameStateDto,
     type ChatMessageDto,
     type SpyGameEndReason,
     type SpyGameTeam,
@@ -21,7 +21,7 @@ export interface StateSetters {
     setSettings: React.Dispatch<React.SetStateAction<SpyRoomGameSettingsDto | null>>;
     setPlayers: React.Dispatch<React.SetStateAction<SpyPlayerDto[]>>;
     setMessages: React.Dispatch<React.SetStateAction<ChatMessageDto[]>>;
-    setGameState: React.Dispatch<React.SetStateAction<GameStateDto | null>>;
+    setGameState: React.Dispatch<React.SetStateAction<SpyGameStateDto | null>>;
     setMe: React.Dispatch<React.SetStateAction<SpyPlayerDto | null>>;
     setWinnerTeam: React.Dispatch<React.SetStateAction<SpyGameTeam | null>>;
     setGameEndReason: React.Dispatch<React.SetStateAction<SpyGameEndReason | null>>;

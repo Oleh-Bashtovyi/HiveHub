@@ -14,8 +14,9 @@ public record SpyGameStartedEventDto(
 
 public record SpyGameEndedEventDto(
     string RoomCode,
-    Team WinnerTeam,
+    SpyTeam WinnerTeam,
     SpyGameEndReason Reason,
+    List<SpyRevealDto> SpiesReveal,
     string? ReasonMessage
 ) : IRoomEvent;
 

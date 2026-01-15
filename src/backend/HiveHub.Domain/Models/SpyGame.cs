@@ -28,7 +28,7 @@ public enum SpyGameEndReason
     SpyFound
 }
 
-public enum Team
+public enum SpyTeam
 {
     Civilians,
     Spies
@@ -45,7 +45,7 @@ public sealed class SpyRoom : RoomBase<SpyRoomSettings, SpyPlayer, SpyPlayerStat
     // Only caught spy can guess word during last chance phase
     public string? CaughtSpyId { get; set; }
     public SpyGameEndReason? GameEndReason { get; set; }
-    public Team? WinnerTeam { get; set; }
+    public SpyTeam? WinnerTeam { get; set; }
 
     public SpyRoom(string code) : base(code)
     {

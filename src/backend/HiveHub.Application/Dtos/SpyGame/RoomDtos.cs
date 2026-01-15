@@ -20,6 +20,11 @@ public record SpyPlayerDto(
     bool? IsVotedToStopTimer
 ) : PlayerDto(Id, Name, AvatarId, IsHost, IsReady, IsConnected);
 
+public record SpyRevealDto(
+    string PlayerId,
+    bool IsSpy
+);
+
 public record SpyRoomStateDto(
     string RoomCode,
     RoomStatus Status,

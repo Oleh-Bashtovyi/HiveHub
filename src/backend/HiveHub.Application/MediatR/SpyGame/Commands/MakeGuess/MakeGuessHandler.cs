@@ -32,7 +32,7 @@ public class MakeGuessHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        Team? winnerTeam = null;
+        SpyTeam? winnerTeam = null;
 
         var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) => 
         {
@@ -77,24 +77,26 @@ public class MakeGuessHandler(
 
             if (isCorrect)
             {
-                room.WinnerTeam = Team.Spies;
+                room.WinnerTeam = SpyTeam.Spies;
                 room.GameEndReason = SpyGameEndReason.SpyGuessedWord;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 
-                    Team.Spies, 
-                    SpyGameEndReason.SpyGuessedWord, 
+                    SpyTeam.Spies, 
+                    SpyGameEndReason.SpyGuessedWord,
+                    SpiesReveal: room.GetSpyRevealDto(),
                     $"Spy guessed correctly! The word was {room.CurrentSecretWord}"));
             }
             else
             {
-                room.WinnerTeam = Team.Civilians;
+                room.WinnerTeam = SpyTeam.Civilians;
                 room.GameEndReason = room.CurrentPhase == SpyGamePhase.SpyLastChance ? SpyGameEndReason.SpyFound : SpyGameEndReason.SpyWrongGuess;
 
                 context.AddEvent(new SpyGameEndedEventDto(
                     room.RoomCode, 
-                    Team.Civilians, 
-                    room.GameEndReason.Value, 
+                    SpyTeam.Civilians, 
+                    room.GameEndReason.Value,
+                    SpiesReveal: room.GetSpyRevealDto(),
                     $"Wrong guess! The word was {room.CurrentSecretWord}"));
             }
 

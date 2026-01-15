@@ -74,7 +74,7 @@ public class HandleVotingTimeUpHandler(
             else if (room.CurrentPhase == SpyGamePhase.FinalVote)
             {
                 room.Status = RoomStatus.Ended;
-                room.WinnerTeam = Team.Spies;
+                room.WinnerTeam = SpyTeam.Spies;
                 room.GameEndReason = SpyGameEndReason.FinalVotingFailed;
                 room.ActiveVoting = null;
 
@@ -87,8 +87,9 @@ public class HandleVotingTimeUpHandler(
 
                 await publisher.PublishGameEndedAsync(new SpyGameEndedEventDto(
                     RoomCode: room.RoomCode, 
-                    WinnerTeam: Team.Spies,
+                    WinnerTeam: SpyTeam.Spies,
                     Reason: SpyGameEndReason.FinalVotingFailed,
+                    SpiesReveal: room.GetSpyRevealDto(),
                     ReasonMessage: "Timeout on final vote"));
             }
 

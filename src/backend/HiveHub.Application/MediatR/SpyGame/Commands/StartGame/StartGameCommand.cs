@@ -115,7 +115,7 @@ public class StartGameHandler(
 
                 var dto = new SpyGameStartedEventDto(personalState);
 
-                context.AddEvent(new SpyGameStartedEventDto(personalState));
+                context.AddEvent(new TargetedGameStartedEvent(player.ConnectionId, new(personalState)));
             }
 
             context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null, duration));
