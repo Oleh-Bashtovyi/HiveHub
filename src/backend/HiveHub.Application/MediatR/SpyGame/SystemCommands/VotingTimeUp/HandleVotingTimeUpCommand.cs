@@ -12,7 +12,7 @@ using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HiveHub.Application.MediatR.SpyGame.Commands.HandleVotingTimeUp;
+namespace HiveHub.Application.MediatR.SpyGame.Handlers.HandleVotingTimeUp;
 
 public record HandleVotingTimeUpCommand(string RoomCode) : IRequest<Result>;
 

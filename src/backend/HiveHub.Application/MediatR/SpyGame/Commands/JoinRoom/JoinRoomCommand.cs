@@ -39,14 +39,16 @@ public class JoinRoomHandler(
                 return Results.ActionFailed(ProjectMessages.JoinRoom.CanNotJoinMidGame);
             }
 
-            if (room.Players.Count >= ProjectConstants.SpyGame.MaxPlayersCount)
-            {
-                return Results.ActionFailed(ProjectMessages.SpyGameJoinRoom.ExceedingMaxPlayersCount);
-            }
-
             if (room.Players.Any(x => x.ConnectionId == request.ConnectionId))
             {
                 return Results.ActionFailed(ProjectMessages.JoinRoom.YouAreAlreadyInRoom);
+            }
+
+            var maxPlayersCount = Math.Min(ProjectConstants.SpyGame.MaxPlayersCount, room.GameSettings.MaxPlayerCount);
+
+            if (room.Players.Count >= maxPlayersCount)
+            {
+                return Results.ActionFailed(ProjectMessages.SpyGameJoinRoom.ExceedingMaxPlayersCount(maxPlayersCount));
             }
 
             var publicId = idGenerator.GenerateId(length: ProjectConstants.PlayerIdLength);
@@ -76,10 +78,10 @@ public class JoinRoomHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("User with connection id: {ConnectionId} and id: {UserId} joined to room with code: {RoomCode}",
+            logger.LogInformation("Room [{RoomCode}]: User with connection id: {ConnectionId} and id: {UserId} joined to room",
+                result.Value.RoomState.RoomCode,
                 request.ConnectionId,
-                result.Value.Me.Id,
-                result.Value.RoomState.RoomCode);
+                result.Value.Me.Id);
         }
 
         return result;

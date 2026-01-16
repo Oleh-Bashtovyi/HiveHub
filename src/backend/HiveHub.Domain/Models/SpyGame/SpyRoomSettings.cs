@@ -10,8 +10,10 @@ public sealed class SpyRoomSettings
     public bool ShowCategoryToSpy { get; set; } = false;
     // If some spy fail to guess word it is game over to all of them 
     public bool SpiesPlayAsTeam { get; set; } = false;
-    public bool RandomiseSettingsOnStart { get; set; } = false;
     public List<SpyGameWordsCategory> CustomCategories { get; set; } = new();
+   
+    // EXPERIMENTAL. TODO LATER
+    public bool RandomiseSettingsOnStart { get; private set; } = false;
 }
 
 public sealed class SpyGameWordsCategory

@@ -8,20 +8,20 @@ using HiveHub.Application.Utils;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HiveHub.Application.MediatR.SpyGame.Commands.HandleTimeout;
+namespace HiveHub.Application.MediatR.SpyGame.SystemCommands.HandlePlayerTimeout;
 
-public record HandlePlayerTimeoutCommand(
+public record ProcessInactivePlayerCommand(
     string RoomCode,
     string PlayerId
 ) : IRequest<Result>;
 
-public class HandlePlayerTimeoutHandler(
+public class InactivePlayerHandler(
     ISpyGameRepository repository,
     SpyGameEventsContext context,
-    ILogger<HandlePlayerTimeoutHandler> logger)
-    : IRequestHandler<HandlePlayerTimeoutCommand, Result>
+    ILogger<InactivePlayerHandler> logger)
+    : IRequestHandler<ProcessInactivePlayerCommand, Result>
 {
-    public async Task<Result> Handle(HandlePlayerTimeoutCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(ProcessInactivePlayerCommand request, CancellationToken cancellationToken)
     {
         if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {
@@ -37,13 +37,7 @@ public class HandlePlayerTimeoutHandler(
                 return Result.Ok();
             }
 
-            removalResult = SpyGamePlayerRemover.Remove(room, context, request.PlayerId);
-
-            if (!removalResult.ShouldDeleteRoom)
-            {
-                SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
-                SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
-            }
+            removalResult = SpyGamePlayerRemover.Remove(room, context, request.PlayerId, repository, logger);
 
             return Result.Ok();
         });

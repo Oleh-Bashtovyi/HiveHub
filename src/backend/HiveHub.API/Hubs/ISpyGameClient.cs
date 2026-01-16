@@ -1,6 +1,5 @@
 ﻿using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
-using Microsoft.AspNetCore.SignalR;
 
 namespace HiveHub.API.Hubs;
 
@@ -13,7 +12,8 @@ public interface ISpyGameClient
     Task PlayerReadyStatusChanged(PlayerReadyStatusChangedEventDto eventDto);
     Task PlayerChangedAvatar(PlayerChangedAvatarEventDto eventDto);
     Task HostChanged(HostChangedEventDto eventDto);
-    Task GameSettingsUpdated(SpyGameSettingsUpdatedEventDto eventDto);
+    Task RulesChanged(SpyGameRulesUpdatedEventDto eventDto);
+    Task WordPacksChanged(SpyGameWordPacksUpdatedEvent eventDto);
     Task GameStarted(SpyGameStartedEventDto eventDto);
     Task ChatMessageReceived(ChatMessageEventDto eventDto);
     Task TimerVoteUpdated(PlayerVotedToStopTimerEventDto eventDto);

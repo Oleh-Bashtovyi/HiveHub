@@ -13,9 +13,10 @@ public static class ProjectConstants
     public static class SpyGame
     {
         public static readonly short MaxPlayersCount = 8;
-        public static readonly short MaxGameDurationMinutes = 30;
+        public static readonly short MaxGameDurationMinutes = 10;
         public static readonly short MinGameDurationMinutes = 1;
         public static readonly short MaxCustomCategoriesCount = 10;
+        public static readonly short MaxWordInCategoryLength = 30;
         public static readonly short AccusationVoteDurationSeconds = 30;
         public static readonly short FinalVoteDurationSeconds = 60;
         public static readonly short FinacGuessingChanceDurationSeconds = 30;

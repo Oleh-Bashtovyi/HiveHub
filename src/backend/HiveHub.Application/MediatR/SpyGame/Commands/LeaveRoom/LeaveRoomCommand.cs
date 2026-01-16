@@ -37,25 +37,23 @@ public class LeaveRoomHandler(
                 return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
-            removalResult = SpyGamePlayerRemover.Remove(room, context, player.IdInRoom);
-
-            if (!removalResult.ShouldDeleteRoom)
-            {
-                SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
-                SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
-            }
+            removalResult = SpyGamePlayerRemover.Remove(room, context, player.IdInRoom, repository, logger);
 
             return Result.Ok();
         });
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Player {PlayerId} left room {RoomCode}", removalResult.RemovedPlayerId, request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} left room", 
+                request.RoomCode, 
+                removalResult.RemovedPlayerId);
         }
 
         if (removalResult != null && removalResult.ShouldDeleteRoom)
         {
             await repository.RemoveRoomAsync(request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: <DELETED>", 
+                request.RoomCode);
         }
 
         return result;

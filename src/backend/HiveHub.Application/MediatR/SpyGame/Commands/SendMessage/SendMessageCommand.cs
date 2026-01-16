@@ -66,9 +66,9 @@ public class SendMessageHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Chat message sent in room {RoomCode} by player {PlayerId}",
-                request.RoomCode,
-                messageDto.PlayerId);
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} sent a message in chat",
+                messageDto.PlayerId,
+                request.RoomCode);
         }
 
         return result;

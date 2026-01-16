@@ -48,6 +48,8 @@ public class ReconnectHandler(
             player.ConnectionId = request.NewConnectionId;
             player.IsConnected = true;
 
+            SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
+
             context.AddEvent(new RemovePlayerFromGroupEvent(oldConnectionId, request.RoomCode));
             context.AddEvent(new AddPlayerToGroupEvent(request.NewConnectionId, request.RoomCode));
             context.AddEvent(new PlayerConnectionChangedEventDto(request.RoomCode, request.OldPlayerId, true));
@@ -59,8 +61,9 @@ public class ReconnectHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Reconnect: player {PlayerId} in room {Room}",
-                playerId, request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: player {PlayerId} was reconnected",
+                request.RoomCode, 
+                playerId);
         }
 
         return result;

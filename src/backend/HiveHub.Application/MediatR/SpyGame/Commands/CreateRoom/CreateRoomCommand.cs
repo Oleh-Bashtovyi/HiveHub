@@ -39,7 +39,9 @@ public class CreateRoomHandler(
 
         room.GameSettings.MaxSpiesCount = 1;
         room.GameSettings.MinSpiesCount = 1;
-        room.GameSettings.SpiesKnowEachOther = true;
+        room.GameSettings.MaxPlayerCount = 5;
+        room.GameSettings.ShowCategoryToSpy = true;
+        room.GameSettings.SpiesKnowEachOther = false;
         room.GameSettings.CustomCategories = CreateDefaultCategories();
 
         room.Players.Add(hostPlayer);
@@ -54,7 +56,7 @@ public class CreateRoomHandler(
 
         var response = new CreateRoomResponseDto<SpyPlayerDto, SpyRoomStateDto>(meDto, roomStateDto);
 
-        logger.LogInformation("Room created: {RoomCode}", roomCode);
+        logger.LogInformation("Room [{RoomCode}]: <CREATED>", roomCode);
         await publisher.AddPlayerToRoomGroupAsync(request.ConnectionId, roomCode);
 
         return Result.Ok(response);

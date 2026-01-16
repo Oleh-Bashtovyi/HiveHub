@@ -1,6 +1,6 @@
-﻿using HiveHub.Application.MediatR.SpyGame.Commands.HandleTimeout;
-using HiveHub.Application.MediatR.SpyGame.Commands.HandleTimeUp;
-using HiveHub.Application.MediatR.SpyGame.Commands.HandleVotingTimeUp;
+﻿using HiveHub.Application.MediatR.SpyGame.Handlers.HandleVotingTimeUp;
+using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleGameTimeUp;
+using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandlePlayerTimeout;
 using HiveHub.Application.Models;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,11 +33,11 @@ public abstract class BaseTaskWorker : BackgroundService
             {
                 case TaskType.SpyGamePlayerDisconnectedTimeout:
                     if (task.TargetId != null)
-                        await mediator.Send(new HandlePlayerTimeoutCommand(task.RoomCode, task.TargetId));
+                        await mediator.Send(new ProcessInactivePlayerCommand(task.RoomCode, task.TargetId));
                     break;
 
                 case TaskType.SpyGameRoundTimeUp:
-                    await mediator.Send(new HandleGameTimeUpCommand(task.RoomCode));
+                    await mediator.Send(new ProcessRoundTimeUpCommand(task.RoomCode));
                     break;
 
                 case TaskType.SpyGameVotingTimeUp:

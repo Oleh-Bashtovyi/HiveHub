@@ -11,18 +11,18 @@ using HiveHub.Domain.Models.SpyGame;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace HiveHub.Application.MediatR.SpyGame.Commands.HandleTimeUp;
+namespace HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleGameTimeUp;
 
-public record HandleGameTimeUpCommand(string RoomCode) : IRequest<Result>;
+public record ProcessRoundTimeUpCommand(string RoomCode) : IRequest<Result>;
 
-public class HandleGameTimeUpHandler(
+public class ProcessRoundTimeUpHandler(
     ISpyGameRepository repository,
     ISpyGamePublisher publisher,
     ITaskScheduler scheduler,
-    ILogger<HandleGameTimeUpHandler> logger)
-    : IRequestHandler<HandleGameTimeUpCommand, Result>
+    ILogger<ProcessRoundTimeUpHandler> logger)
+    : IRequestHandler<ProcessRoundTimeUpCommand, Result>
 {
-    public async Task<Result> Handle(HandleGameTimeUpCommand request, CancellationToken cancellationToken)
+    public async Task<Result> Handle(ProcessRoundTimeUpCommand request, CancellationToken cancellationToken)
     {
         if (!repository.TryGetRoom(request.RoomCode, out var roomAccessor))
         {

@@ -67,7 +67,7 @@ public class KickPlayerHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Player {PlayerId} kicked from {RoomCode}", request.TargetPlayerId, request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} was kicked", request.RoomCode, request.TargetPlayerId);
         }
 
         return result;

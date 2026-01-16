@@ -100,13 +100,18 @@ public class VoteHandler(
         {
             if (request.VoteType.HasValue)
             {
-                logger.LogInformation("Player {PlayerId} susccessfuly voted in room {RoomId} against {TargetId} with vote type {VoteType}",
-                    voterId, request.RoomCode, request.TargetPlayerId, request.VoteType);
+                logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} voted against {TargetId} with vote type {VoteType}",
+                    request.RoomCode, 
+                    voterId, 
+                    request.TargetPlayerId, 
+                    request.VoteType);
             }
             else
             {
-                logger.LogInformation("Player {PlayerId} susccessfuly voted in room {RoomId} against {TargetId}",
-                    voterId, request.RoomCode, request.TargetPlayerId);
+                logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} susccessfuly voted against {TargetId}",
+                    request.RoomCode, 
+                    voterId, 
+                    request.TargetPlayerId);
             }
         }
 

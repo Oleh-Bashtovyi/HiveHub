@@ -61,7 +61,15 @@ public class StartAccusationHandler(
                 return Results.NotFound(ProjectMessages.Accusation.TargetNotFound);
             }
 
+            if (targetPlayer.PlayerState.IsDead)
+            {
+                return Results.ActionFailed(ProjectMessages.Accusation.CannotAccuseDeadPlayer);
+            }
+
             initiatorId = initiator.IdInRoom;
+
+            // WHAT WILL HAPPENED IF WE ACCUSE PLAYER WHEN ONLY TWO PLAYERS LEFT?
+
 
             // Stop main game timer
             if (!room.GameState.RoundTimerState.IsTimerStopped)

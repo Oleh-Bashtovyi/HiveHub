@@ -5,7 +5,6 @@ using HiveHub.Application.Extensions;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeAvatar;
 using HiveHub.Application.MediatR.SpyGame.Commands.ChangeHost;
 using HiveHub.Application.MediatR.SpyGame.Commands.CreateRoom;
-using HiveHub.Application.MediatR.SpyGame.Commands.HandleDisconnect;
 using HiveHub.Application.MediatR.SpyGame.Commands.JoinRoom;
 using HiveHub.Application.MediatR.SpyGame.Commands.KickPlayer;
 using HiveHub.Application.MediatR.SpyGame.Commands.LeaveRoom;
@@ -17,9 +16,10 @@ using HiveHub.Application.MediatR.SpyGame.Commands.SendMessage;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartAccusation;
 using HiveHub.Application.MediatR.SpyGame.Commands.StartGame;
 using HiveHub.Application.MediatR.SpyGame.Commands.ToggleReady;
-using HiveHub.Application.MediatR.SpyGame.Commands.UpdateSettings;
+using HiveHub.Application.MediatR.SpyGame.Commands.UpdateGameSettings;
 using HiveHub.Application.MediatR.SpyGame.Commands.Vote;
 using HiveHub.Application.MediatR.SpyGame.Commands.VoteStopTimer;
+using HiveHub.Application.MediatR.SpyGame.SystemCommands.PlayerDisconnect;
 using HiveHub.Domain.Models.Shared;
 using MediatR;
 
@@ -48,7 +48,7 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
 
         if (Context.Items.TryGetValue(RoomCodeKey, out var roomCodeObj) && roomCodeObj is string roomCode)
         {
-            await _mediator.Send(new HandleDisconnectCommand(Context.ConnectionId, roomCode));
+            await _mediator.Send(new ProcessPlayerDisconnectCommand(Context.ConnectionId, roomCode));
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -120,8 +120,11 @@ public class SpyGameHub : BaseGameHub<ISpyGameClient>
     public Task<ApiResponse> KickPlayer(string roomCode, string targetPlayerId)
         => HandleCommand(new KickPlayerCommand(roomCode, Context.ConnectionId, targetPlayerId));
 
-    public Task<ApiResponse> UpdateSettings(string roomCode, SpyRoomGameSettingsDto settings)
-        => HandleCommand(new UpdateGameSettingsCommand(roomCode, Context.ConnectionId, settings));
+    public Task<ApiResponse> UpdateRules(string roomCode, SpyGameRulesDto rules)
+        => HandleCommand(new UpdateGameRulesCommand(roomCode, Context.ConnectionId, rules));
+
+    public Task<ApiResponse> UpdateWordPacks(string roomCode, SpyGameWordPacksDto packs)
+        => HandleCommand(new UpdateWordPacksCommand(roomCode, Context.ConnectionId, packs));
 
     public Task<ApiResponse> ReturnToLobby(string roomCode)
         => HandleCommand(new ReturnToLobbyCommand(roomCode, Context.ConnectionId));

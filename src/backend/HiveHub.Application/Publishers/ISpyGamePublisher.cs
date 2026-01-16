@@ -19,7 +19,8 @@ public interface ISpyGamePublisher
     Task PublishPlayerChangedAvatarAsync(PlayerChangedAvatarEventDto eventDto);
     Task PublishPlayerReadyStatusChangedAsync(PlayerReadyStatusChangedEventDto eventDto);
     Task PublishGameStartedAsync(string connectionId, SpyGameStartedEventDto eventDto);
-    Task PublishGameSettingsUpdatedAsync(SpyGameSettingsUpdatedEventDto eventDto);
+    Task PublishGameRulesUpdatedAsync(SpyGameRulesUpdatedEventDto eventDto);
+    Task PublishWordPacksUpdatedAsync(SpyGameWordPacksUpdatedEvent eventDto);
 
     // Gameplay
     Task PublishTimerVoteAsync(PlayerVotedToStopTimerEventDto eventDto);

@@ -57,10 +57,10 @@ public class ChangeAvatarHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Player {PlayerId} changed avatar to {AvatarId} in room {RoomCode}",
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} changed avatar to {AvatarId}",
+                request.RoomCode,
                 playerId,
-                request.NewAvatarId,
-                request.RoomCode);
+                request.NewAvatarId);
         }
 
         return result;

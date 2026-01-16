@@ -17,17 +17,50 @@ public enum SpyGamePhase
 
 public enum SpyGameEndReason
 {
+    /// <summary>
+    /// Spies Win: The timer ran out, and civilians failed to identify the spies.
+    /// </summary>
     TimerExpired,
-    // Wrong accuse or final vote target
+
+    /// <summary>
+    /// Spies Win: Civilians voted to kick an innocent player.
+    /// </summary>
     CivilianKicked,
-    // Right guess during game or last chance of spy
+
+    /// <summary>
+    /// Spies Win: A spy correctly guessed the secret location.
+    /// </summary>
     SpyGuessedWord,
-    // Wrong guess during game
-    SpyWrongGuess,
-    // Players could not reach an agreement in final vote
+
+    /// <summary>
+    /// Spies Win: Civilians could not reach a consensus during the final vote.
+    /// </summary>
     FinalVotingFailed,
-    // Wrong guess during last chance of spy
-    SpyFound
+
+    /// <summary>
+    /// Civilians Win: A spy made a wrong guess during the game.
+    /// </summary>
+    SpyWrongGuess,
+
+    /// <summary>
+    /// Civilians Win: All spies have been eliminated (kicked via voting).
+    /// </summary>
+    AllSpiesEliminated,
+
+    /// <summary>
+    /// Civilians Win: A caught spy tried to guess the location as a "last chance" but failed.
+    /// </summary>
+    SpyLastChanceFailed,
+
+    /// <summary>
+    /// Paranoia Mode (No Spies): Civilians kicked a player, thinking they were a spy. (Technically a loss for civilians).
+    /// </summary>
+    ParanoiaSacrifice,
+
+    /// <summary>
+    /// Paranoia Mode (No Spies): Civilians survived until the timer expired without kicking anyone.
+    /// </summary>
+    ParanoiaSurvived
 }
 
 public enum SpyTeam
@@ -38,7 +71,6 @@ public enum SpyTeam
 
 public sealed class SpyRoom : RoomBase<SpyRoomGameState, SpyRoomSettings, SpyPlayer, SpyPlayerState>
 {
-
     public List<ChatMessage> ChatMessages { get; set; } = new();
 
     public SpyRoom(string code) : base(code)
@@ -61,9 +93,33 @@ public sealed class SpyRoomGameState
     public DateTime? SpyLastChanceEndsAt { get; set; }
     public SpyGameEndReason? GameEndReason { get; set; }
     public SpyTeam? WinnerTeam { get; set; }
+    // Store spy reveal results in case if somebody is leave
+    public int SpiesCountSnapshot { get; private set; } = 0;
+    public List<SpyReveal> SpyRevealSnapshot { get; private set; } = new ();
 
     public SpyRoomGameState()
     {
         RoundTimerState = new TimerState();
     }
+
+    public void SetResultSnapshot(IEnumerable<SpyPlayer> players)
+    {
+        SpiesCountSnapshot = players.Count(p => p.PlayerState.IsSpy);
+        SpyRevealSnapshot = players.Select(p => new SpyReveal() 
+        { 
+            IdInRoom = p.IdInRoom, 
+            Name = p.Name, 
+            IsSpy = p.PlayerState.IsSpy,
+            IsDead = p.PlayerState.IsDead,
+        }).ToList();
+    }
+}
+
+public sealed class SpyReveal
+{
+    public required string IdInRoom { get; init; }
+    public required string Name { get; init; }
+    public bool IsSpy { get; init; }
+    // Vote kick or wrong guess
+    public bool IsDead { get; set; }
 }

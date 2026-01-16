@@ -59,7 +59,9 @@ public class ChangeHostHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Host changed to {NewHostId} in room {RoomCode}", newHostId, request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: Host changed to {NewHostId}", 
+                request.RoomCode, 
+                newHostId);
         }
 
         return result;

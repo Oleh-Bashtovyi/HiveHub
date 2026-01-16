@@ -25,12 +25,6 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
         await _hub.Groups.RemoveFromGroupAsync(connectionId, roomCode);
     }
 
-    public Task PublishGameSettingsUpdatedAsync(SpyGameSettingsUpdatedEventDto eventDto)
-    {
-        return _hub.Clients.Group(eventDto.RoomCode)
-            .GameSettingsUpdated(eventDto);
-    }
-
     public async Task PublishGameStartedAsync(string connectionId, SpyGameStartedEventDto eventDto)
     {
         await _hub.Clients.Client(connectionId)
@@ -131,5 +125,17 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
     {
         return _hub.Clients.Group(eventDto.RoomCode)
             .RoundTimerStateChanged(eventDto);
+    }
+
+    public Task PublishGameRulesUpdatedAsync(SpyGameRulesUpdatedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .RulesChanged(eventDto);
+    }
+
+    public Task PublishWordPacksUpdatedAsync(SpyGameWordPacksUpdatedEvent eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .WordPacksChanged(eventDto);
     }
 }

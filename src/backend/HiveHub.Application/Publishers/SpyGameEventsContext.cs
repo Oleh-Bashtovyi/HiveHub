@@ -60,26 +60,26 @@ public class SpyGameEventsContext(
             // --- Connection ---
             case PlayerJoinedEventDto<SpyPlayerDto> e:
                 await publisher.PublishPlayerJoinedAsync(e);
-                logger.LogDebug("Publishing: Player {PlayerId} joined room {RoomId}", 
-                    e.Player.Id, e.RoomCode);
+/*                logger.LogDebug("Publishing: Player {PlayerId} joined room {RoomId}", 
+                    e.Player.Id, e.RoomCode);*/
                 break;
 
             case PlayerLeftEventDto e:
                 await publisher.PublishPlayerLeftAsync(e);
-                logger.LogDebug("Publishing: Player {PlayerId} left room {RoomId}", 
-                    e.PlayerId, e.RoomCode);
+/*                logger.LogDebug("Publishing: Player {PlayerId} left room {RoomId}", 
+                    e.PlayerId, e.RoomCode);*/
                 break;
 
             case PlayerKickedEventDto e:
                 await publisher.PublishPlayerKickedAsync(e);
-                logger.LogDebug("Publishing: Player {PlayerId} was kicked from room {RoomId}", 
-                    e.PlayerId, e.RoomCode);
+/*                logger.LogDebug("Publishing: Player {PlayerId} was kicked from room {RoomId}", 
+                    e.PlayerId, e.RoomCode);*/
                 break;
 
             case PlayerConnectionChangedEventDto e:
                 await publisher.PublishPlayerConnectionChangedAsync(e);
-                logger.LogDebug("Publishing: Player {PlayerId} changed connection to {IsConnected} in room {RoomId}", 
-                    e.PlayerId, e.IsConnected, e.RoomCode);
+/*                logger.LogDebug("Publishing: Player {PlayerId} changed connection to {IsConnected} in room {RoomId}", 
+                    e.PlayerId, e.IsConnected, e.RoomCode);*/
                 break;
 
             // --- Lobby ---
@@ -95,8 +95,12 @@ public class SpyGameEventsContext(
                 await publisher.PublishPlayerReadyStatusChangedAsync(e);
                 break;
 
-            case SpyGameSettingsUpdatedEventDto e:
-                await publisher.PublishGameSettingsUpdatedAsync(e);
+            case SpyGameWordPacksUpdatedEvent e:
+                await publisher.PublishWordPacksUpdatedAsync(e);
+                break;
+
+            case SpyGameRulesUpdatedEventDto e:
+                await publisher.PublishGameRulesUpdatedAsync(e);
                 break;
 
             // --- Game Started (Special case: Targeted message) ---
@@ -111,32 +115,32 @@ public class SpyGameEventsContext(
 
             case ReturnToLobbyEventDto e:
                 await publisher.PublishReturnToLobbyAsync(e);
-                logger.LogCritical("Published: Return to lobby in room {RoomCode}", 
-                    e.RoomCode);
+/*                logger.LogCritical("Published: Return to lobby in room {RoomCode}", 
+                    e.RoomCode);*/
                 break;
 
             case SpyGameEndedEventDto e:
                 await publisher.PublishGameEndedAsync(e);
-                logger.LogCritical("Publish: game ended in room {RoomCode}, reason: {Reason}", 
-                    e.RoomCode, e.Reason);
+/*                logger.LogCritical("Publish: game ended in room {RoomCode}, reason: {Reason}", 
+                    e.RoomCode, e.Reason);*/
                 break;
 
             case VotingStartedEventDto e:
                 await publisher.PublishVotingStartedAsync(e);
-                logger.LogCritical("Published: Voting started in room {RoomCode}, initiator {InitiatorId}, type {VoteType}",
-                    e.RoomCode, e.InitiatorId, e.VotingType);
+/*                logger.LogCritical("Published: Voting started in room {RoomCode}, initiator {InitiatorId}, type {VoteType}",
+                    e.RoomCode, e.InitiatorId, e.VotingType);*/
                 break;
 
             case VoteCastEventDto e:
                 await publisher.PublishVoteCastAsync(e);
-                logger.LogCritical("Published: Vote cast in room {RoomCode}, voter {VoterId}", 
-                    e.RoomCode, e.VoterId);
+/*                logger.LogCritical("Published: Vote cast in room {RoomCode}, voter {VoterId}", 
+                    e.RoomCode, e.VoterId);*/
                 break;
 
             case VotingResultEventDto e:
                 await publisher.PublishVotingResultAsync(e);
-                logger.LogCritical("Published: Voting result in room {RoomCode}, is success: {IsSuccess}, result message: {ResultMessage}", 
-                    e.RoomCode, e.IsSuccess, e.ResultMessage);
+/*                logger.LogCritical("Published: Voting result in room {RoomCode}, is success: {IsSuccess}, result message: {ResultMessage}", 
+                    e.RoomCode, e.IsSuccess, e.ResultMessage);*/
                 break;
 
             case ChatMessageEventDto e:
@@ -149,8 +153,8 @@ public class SpyGameEventsContext(
 
             case SpyGameRoundTimerStateChangedEventDto e:
                 await publisher.PublishTimerStateChangedAsync(e);
-                logger.LogCritical("Published: Round timer status changed to: {IsTimerStopped} in room {RoomCode}",
-                    e.IsRoundTimerStopped, e.RoomCode);
+/*                logger.LogCritical("Published: Round timer status changed to: {IsTimerStopped} in room {RoomCode}",
+                    e.IsRoundTimerStopped, e.RoomCode);*/
                 break;
 
             default:

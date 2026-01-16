@@ -9,6 +9,12 @@ public enum RoomStatus
     Ended
 }
 
+public enum MajorityBasis
+{
+    AllPlayers,
+    ConnectedOnly
+}
+
 public abstract class RoomBase<TGameState, TGameSettings, TPlayer, TPlayerState>(string code)
     where TPlayer : PlayerBase<TPlayerState>
 {
@@ -25,6 +31,22 @@ public abstract class RoomBase<TGameState, TGameSettings, TPlayer, TPlayerState>
     public bool IsInLobby() => Status == RoomStatus.Lobby;
     public bool IsInGame() => Status == RoomStatus.InGame;
 
+    public int GetMajorityRequiredVotes(MajorityBasis basis = MajorityBasis.AllPlayers)
+    {
+        int count = basis switch
+        {
+            MajorityBasis.ConnectedOnly => Players.Count(p => p.IsConnected),
+            MajorityBasis.AllPlayers => Players.Count,
+            _ => Players.Count
+        };
+
+        if (count == 0) return 1;
+
+        // 5 plyers -> 2.5 -> floor(2) + 1 = 3
+        // 4 plyers -> 2.0 -> floor(2) + 1 = 3
+        return (int)Math.Floor(count / 2.0) + 1;
+    }
+
     public bool TryGetPlayerByConnectionId(string connectionId, [NotNullWhen(true)] out TPlayer? player)
     {
         player = Players.FirstOrDefault(x => x.ConnectionId == connectionId);
@@ -35,6 +57,15 @@ public abstract class RoomBase<TGameState, TGameSettings, TPlayer, TPlayerState>
     {
         player = Players.FirstOrDefault(x => x.IdInRoom == idInRoom);
         return player != null;
+    }
+
+    public void ReturnToLobby(TGameState gameState)
+    {
+        if (gameState == null)
+            throw new ArgumentNullException(nameof(gameState));
+
+        GameState = gameState;
+        Status = RoomStatus.Lobby;
     }
 
     public void StartGame(TGameState initialState)

@@ -1,6 +1,7 @@
 ﻿using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
+using HiveHub.Application.Extensions;
 using HiveHub.Domain.Models.Shared;
 using HiveHub.Domain.Models.SpyGame;
 
@@ -10,13 +11,12 @@ public static class SpyGameStateMapper
 {
     public static SpyRoomStateDto GetRoomStateForPlayer(SpyRoom room, string playerId)
     {
-        var targetPlayer = room.Players.FirstOrDefault(x => x.IdInRoom == playerId);
-
-        if (targetPlayer == null)
+        if (!room.TryGetPlayerByIdInRoom(playerId, out var targetPlayer))
         {
             throw new Exception(ProjectMessages.RoomNotFound);
         }
 
+        // Map players
         var isTargetPlayerSpy = targetPlayer.PlayerState.IsSpy;
         var isSpiesKnowEachOther = room.GameSettings.SpiesKnowEachOther;
 
@@ -44,20 +44,27 @@ public static class SpyGameStateMapper
                 IsConnected: p.IsConnected,
                 HasUsedAccusation: p.PlayerState.HasUsedAccusation,
                 IsVotedToStopTimer: p.PlayerState.VotedToStopTimer,
+                IsDead: p.PlayerState.IsDead,
                 IsSpy: showIsSpy ? p.PlayerState.IsSpy : null
             );
         }).ToList();
 
-        var settingsDto = new SpyRoomGameSettingsDto(
+        // Map game settings
+        var rulesDto = new SpyGameRulesDto(
             TimerMinutes: room.GameSettings.RoundDurationMinutes,
             MaxSpiesCount: room.GameSettings.MaxSpiesCount,
             MinSpiesCount: room.GameSettings.MinSpiesCount,
-            SpiesKnowEachOther: room.GameSettings.SpiesKnowEachOther,
-            ShowCategoryToSpy: room.GameSettings.ShowCategoryToSpy,
-            CustomCategories: room.GameSettings.CustomCategories.Select(c => new WordsCategoryDto(c.Name, c.Words)).ToList()
+            MaxPlayersCount: room.GameSettings.MaxPlayerCount,
+            IsSpiesKnowEachOther: room.GameSettings.SpiesKnowEachOther,
+            IsShowCategoryToSpy: room.GameSettings.ShowCategoryToSpy,
+            IsSpiesPlayAsTeam: room.GameSettings.SpiesPlayAsTeam
         );
 
-        // 3. Map GameState (Only if active or ended)
+        var wordPacksDto = new SpyGameWordPacksDto(
+            CustomCategories: room.GameSettings.CustomCategories.Select(
+                c => new WordsCategoryDto(c.Name, c.Words)).ToList());
+
+        // Map game state
         SpyGameStateDto? gameState = null;
 
         if (room.Status == RoomStatus.InGame || room.Status == RoomStatus.Ended)
@@ -65,7 +72,7 @@ public static class SpyGameStateMapper
             string? secretWord;
             string? category;
 
-            // Логіка видимості слова та категорії
+            // Secret word and category
             if (room.Status == RoomStatus.Ended)
             {
                 secretWord = room.GameState.CurrentSecretWord;
@@ -73,10 +80,8 @@ public static class SpyGameStateMapper
             }
             else
             {
-                // Шпигун не бачить слово
                 secretWord = isTargetPlayerSpy ? null : room.GameState.CurrentSecretWord;
 
-                // Шпигун бачить категорію тільки якщо дозволено налаштуваннями
                 var canSeeCategory = !isTargetPlayerSpy || room.GameSettings.ShowCategoryToSpy;
                 category = canSeeCategory ? room.GameState.CurrentCategory : null;
             }
@@ -85,6 +90,7 @@ public static class SpyGameStateMapper
 
             VotingStateDto? votingDto = null;
 
+            // Voting state
             if (room.GameState.ActiveVoting != null)
             {
                 var activePlayersCount = room.Players.Count(p => p.IsConnected);
@@ -128,18 +134,21 @@ public static class SpyGameStateMapper
 
             gameState = new SpyGameStateDto(
                 CurrentSecretWord: secretWord,
-                Category: category,
+                CurrentCategory: category,
                 RoundStartedAt: room.GameState.RoundStartedAt ?? DateTime.UtcNow,
                 IsRoundTimerStopped: room.GameState.RoundTimerState.IsTimerStopped,
                 RoundTimerWillStopAt: room.GameState.RoundTimerState.TimerWillStopAt,
                 RoundTimerStartedAt: room.GameState.RoundTimerState.TimerStartedAt,
                 RoundTimerPausedAt: room.GameState.RoundTimerState.TimerPausedAt,
-                SpyLastChanceEndsAt: room.GameState.SpyLastChanceEndsAt,
-                TimerVotesCount: activeVotesCount,
+                PlayersVotedToStopTimer: room.Players.Count(p => p.PlayerState.VotedToStopTimer),
+                VotesRequiredToStopTimer: room.GetMajorityRequiredVotes(),
                 Phase: room.GameState.CurrentPhase,
                 ActiveVoting: votingDto,
                 CaughtSpyId: room.GameState.CaughtSpyId,
-                CaughtSpyName: caughtSpyName
+                CaughtSpyName: caughtSpyName,
+                SpyLastChanceEndsAt: room.GameState.SpyLastChanceEndsAt,
+                RoundEndReason: room.GameState.GameEndReason,
+                SpiecsReveal: room.GetSpyRevealDto()
             );
         }
 
@@ -152,7 +161,8 @@ public static class SpyGameStateMapper
             RoomCode: room.RoomCode,
             Status: room.Status,
             Players: playersDto,
-            Settings: settingsDto,
+            Rules: rulesDto,
+            WordPacks: wordPacksDto,
             GameState: gameState,
             Messages: messages,
             Version: room.StateVersion

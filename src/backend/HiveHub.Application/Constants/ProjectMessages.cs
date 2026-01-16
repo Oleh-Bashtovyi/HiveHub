@@ -90,6 +90,7 @@ public static class ProjectMessages
         public static readonly string VoteInProgress = "Голосування вже триває.";
         public static readonly string TargetNotFound = "Ціль звинувачення не знайдена.";
         public static readonly string CannotAccuseSelf = "Не можна звинуватити себе.";
+        public static readonly string CannotAccuseDeadPlayer = "Can not accuse dead player";
         public static readonly string InitiatorNotFound = "Initiator was not found";
         public static readonly string NoActiveVoting = "No active voting";
         public static readonly string UnknownVotingState = "Unknown voting state";
@@ -103,8 +104,8 @@ public static class ProjectMessages
 
     public static class SpyGameJoinRoom
     {
-        public static readonly string ExceedingMaxPlayersCount = 
-            $"Max players count reached. Only {ProjectConstants.SpyGame.MaxPlayersCount} can join game simultaneously.";
+        public static string ExceedingMaxPlayersCount(int maxCount) => 
+            $"Max players count reached. Only {maxCount} can join game.";
     }
 
     public static class SpyGameStartGame
@@ -124,12 +125,19 @@ public static class ProjectMessages
 
     public static class SpyGameUpdateSettings
     {
+        public static readonly string MustBeAtLeastThreePlayers = "Must be at least three players";
+        public static string ExceedingMaxPlayersCount(int maxCount) =>
+            $"Max players count can not exceed {maxCount}";
+
         public static readonly string MinSpiesMustBeNonNegative = "Minimum spies count must be 0 or more.";
         public static readonly string MaxSpiesMustBeAtLeastOne = "Maximum spies count must be at least 1.";
         public static readonly string MinSpiesCannotExceedMax = "Minimum spies count cannot be greater than maximum.";
 
         public static readonly string MaxSpiesCannotBeGraterThan = 
             $"Maximum spies count cannont be grater than {ProjectConstants.SpyGame.MaxPlayersCount}.";
+
+        public static readonly string SomeCustomWordsExceedingLengthLimit = 
+            $"Some custom words exceeding max length limits of {ProjectConstants.SpyGame.MaxWordInCategoryLength}";
 
         public static readonly string MaxCustomCategoriesCountCannotBeGraterThan =
             $"Maximum custom categories count cannont be grater than {ProjectConstants.SpyGame.MaxCustomCategoriesCount}.";

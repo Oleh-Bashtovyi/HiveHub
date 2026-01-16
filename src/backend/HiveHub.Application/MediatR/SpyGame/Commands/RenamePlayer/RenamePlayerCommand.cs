@@ -64,10 +64,10 @@ public class RenamePlayerHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Player {PlayerId} renamed to {NewName} in room {RoomCode}",
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} renamed to {NewName}",
+                request.RoomCode,
                 publicId,
-                request.NewName,
-                request.RoomCode);
+                request.NewName);
         }
 
         return result;

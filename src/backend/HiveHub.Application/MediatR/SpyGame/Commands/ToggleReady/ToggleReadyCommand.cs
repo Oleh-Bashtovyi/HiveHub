@@ -54,8 +54,10 @@ public class ToggleReadyHandler(
 
         if (result.IsFailed)
         {
-            logger.LogInformation("Player {PlayerId} ready status changed to {IsReady} in room {RoomCode}",
-                playerId, newReadyStatus, request.RoomCode);
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} changed ready status to {IsReady}",
+                 request.RoomCode, 
+                 playerId, 
+                 newReadyStatus);
         }
 
         return result;

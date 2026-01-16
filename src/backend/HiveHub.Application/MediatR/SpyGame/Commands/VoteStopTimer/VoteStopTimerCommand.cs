@@ -1,7 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Application.Models;
+using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -17,8 +17,7 @@ public record VoteStopTimerCommand(
 
 public class VoteStopTimerHandler(
     ISpyGameRepository repository,
-    ISpyGamePublisher publisher,
-    ITaskScheduler scheduler,
+    SpyGameEventsContext context,
     ILogger<VoteStopTimerHandler> logger)
     : IRequestHandler<VoteStopTimerCommand, Result>
 {
@@ -62,39 +61,30 @@ public class VoteStopTimerHandler(
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.YouHaveAlreadyVoted);
             }
 
-            votedPlayerId = player.IdInRoom;
             player.PlayerState.VotedToStopTimer = true;
-            votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer);
+            votedPlayerId = player.IdInRoom;
 
-            var activePlayers = room.Players.Count(p => p.IsConnected);
-            requiredVotes = (int)Math.Ceiling(activePlayers / 2.0);
+            SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
 
-            if (requiredVotes < 1) 
-                requiredVotes = 1;
+            var votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer && p.IsConnected);
+            var requiredVotes = (int)Math.Ceiling(room.Players.Count(p => p.IsConnected) / 2.0);
 
-            if (votesCount >= requiredVotes)
-            {
-                room.GameState.RoundTimerState.Pause();
-                timerStopped = true;
-
-                var timerTask = new ScheduledTask(TaskType.SpyGameRoundTimeUp, request.RoomCode, null);
-                await scheduler.CancelAsync(timerTask);
-            }
+            context.AddEvent(new PlayerVotedToStopTimerEventDto(request.RoomCode, player.IdInRoom, votesCount, requiredVotes));
 
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            return result;
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} voted to stop round timer. " +
+                "Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
+                request.RoomCode, 
+                votedPlayerId, 
+                votesCount, 
+                requiredVotes, 
+                timerStopped);
         }
 
-        logger.LogInformation("Vote to stop timer in room {RoomCode}. Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
-            request.RoomCode, votesCount, requiredVotes, timerStopped);
-
-        var eventDto = new PlayerVotedToStopTimerEventDto(request.RoomCode, votedPlayerId, votesCount, requiredVotes);
-        await publisher.PublishTimerVoteAsync(eventDto);
-
-        return Result.Ok();
+        return result;
     }
 }

@@ -29,9 +29,14 @@ public record SpyGameRoundTimerStateChangedEventDto(
     DateTime? RoundTimerPausedAt
 ) : IRoomEvent;
 
-public record SpyGameSettingsUpdatedEventDto(
+public record SpyGameRulesUpdatedEventDto(
     string RoomCode,
-    SpyRoomGameSettingsDto Settings
+    SpyGameRulesDto Rules
+) : IRoomEvent;
+
+public record SpyGameWordPacksUpdatedEvent(
+    string RoomCode,
+    SpyGameWordPacksDto Packs
 ) : IRoomEvent;
 
 public record PlayerVotedToStopTimerEventDto(

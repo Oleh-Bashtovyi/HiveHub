@@ -32,6 +32,7 @@ public class StartGameHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
+        var secretCategory = string.Empty;
         var secretWord = string.Empty;
 
         var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
@@ -88,6 +89,7 @@ public class StartGameHandler(
             foreach (var player in room.Players)
             {
                 player.PlayerState.IsSpy = false;
+                player.PlayerState.IsDead = false;
                 player.PlayerState.VotedToStopTimer = false;
                 player.PlayerState.HasUsedAccusation = false;
             }
@@ -101,7 +103,8 @@ public class StartGameHandler(
             var roundDuration = TimeSpan.FromMinutes(room.GameSettings.RoundDurationMinutes);
             newGameState.RoundTimerState.Start(roundDuration);
             newGameState.CurrentPhase = SpyGamePhase.Search;
-
+            newGameState.SetResultSnapshot(room.Players);
+            
             room.StartGame(newGameState);
 
             foreach (var player in room.Players)
@@ -115,6 +118,7 @@ public class StartGameHandler(
 
             context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameRoundTimeUp, request.RoomCode, null, roundDuration));
 
+            secretCategory = room.GameState.CurrentCategory;
             secretWord = room.GameState.CurrentSecretWord;
 
             return Result.Ok();
@@ -122,7 +126,10 @@ public class StartGameHandler(
 
         if (result.IsSuccess)
         {
-            logger.LogInformation("Game started in room {RoomCode}. Word: {Word}", request.RoomCode, secretWord);
+            logger.LogInformation("Room [{RoomCode}]: <GAME STARTED> - Category {SecretCategory} Word: {Word}", 
+                request.RoomCode, 
+                secretCategory, 
+                secretWord);
         }
 
         return result;
