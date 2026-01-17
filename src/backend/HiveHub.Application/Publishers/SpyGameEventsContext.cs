@@ -157,6 +157,10 @@ public class SpyGameEventsContext(
                     e.IsRoundTimerStopped, e.RoomCode);*/
                 break;
 
+            case SpyMadeGuessEventDto e:
+                await publisher.PublishSpyMadeGuessAsync(e);
+                break;
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(roomEvent), roomEvent, "Unknown event type in SpyGameEventsContext");
         }

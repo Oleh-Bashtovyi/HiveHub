@@ -24,4 +24,5 @@ public interface ISpyGameClient
     Task VoteCast(VoteCastEventDto eventDto);
     Task VotingResult(VotingResultEventDto eventDto);
     Task RoundTimerStateChanged(SpyGameRoundTimerStateChangedEventDto eventDto);
+    Task SpyMadeGuess(SpyMadeGuessEventDto eventDto);
 }

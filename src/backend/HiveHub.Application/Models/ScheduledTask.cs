@@ -4,6 +4,7 @@ public enum TaskType
 {
     SpyGameRoundTimeUp,
     SpyGameVotingTimeUp,
+    SpyGameLastChanceTimeUp,
     SpyGamePlayerDisconnectedTimeout,
 }
 

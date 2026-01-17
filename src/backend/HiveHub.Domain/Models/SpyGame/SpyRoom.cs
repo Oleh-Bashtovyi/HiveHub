@@ -18,49 +18,54 @@ public enum SpyGamePhase
 public enum SpyGameEndReason
 {
     /// <summary>
-    /// Spies Win: The timer ran out, and civilians failed to identify the spies.
+    /// Spies Win: Round timer expired and civilians failed to identify spies
     /// </summary>
-    TimerExpired,
+    RoundTimeExpired,
 
     /// <summary>
-    /// Spies Win: Civilians voted to kick an innocent player.
+    /// Spies Win: Civilians voted to kick an innocent player
     /// </summary>
     CivilianKicked,
 
     /// <summary>
-    /// Spies Win: A spy correctly guessed the secret location.
+    /// Spies Win: A spy correctly guessed the secret location
     /// </summary>
     SpyGuessedWord,
 
     /// <summary>
-    /// Spies Win: Civilians could not reach a consensus during the final vote.
+    /// Spies Win: Civilians could not reach consensus during final vote
     /// </summary>
-    FinalVotingFailed,
+    FinalVoteFailed,
 
     /// <summary>
-    /// Civilians Win: A spy made a wrong guess during the game.
+    /// Civilians Win: A spy made wrong guess during the game
     /// </summary>
     SpyWrongGuess,
 
     /// <summary>
-    /// Civilians Win: All spies have been eliminated (kicked via voting).
+    /// Civilians Win: All spies eliminated via voting
     /// </summary>
     AllSpiesEliminated,
 
     /// <summary>
-    /// Civilians Win: A caught spy tried to guess the location as a "last chance" but failed.
+    /// Civilians Win: Caught spy failed last chance guess
     /// </summary>
     SpyLastChanceFailed,
 
     /// <summary>
-    /// Paranoia Mode (No Spies): Civilians kicked a player, thinking they were a spy. (Technically a loss for civilians).
+    /// Paranoia Mode: Civilians kicked a player thinking they were spy
     /// </summary>
     ParanoiaSacrifice,
 
     /// <summary>
-    /// Paranoia Mode (No Spies): Civilians survived until the timer expired without kicking anyone.
+    /// Paranoia Mode: Civilians survived until timer expired without kicking anyone
     /// </summary>
-    ParanoiaSurvived
+    ParanoiaSurvived,
+
+    /// <summary>
+    /// Technical: Not enough players to continue
+    /// </summary>
+    InsufficientPlayers
 }
 
 public enum SpyTeam
@@ -77,6 +82,26 @@ public sealed class SpyRoom : RoomBase<SpyRoomGameState, SpyRoomSettings, SpyPla
     {
         GameSettings = new SpyRoomSettings();
         GameState = new SpyRoomGameState();
+    }
+
+    public int CountVotedForTimerStop() => Players.Count(p => p.PlayerState.VotedToStopTimer);
+    public bool IsParanoyaMode() => GameState.SpiesCountSnapshot > 0 && GameState.SpyRevealSnapshot.Count(p => p.IsSpy) == 0;
+
+    public void EliminatePlayer(string playerId)
+    {
+        // Update player state
+        var player = Players.FirstOrDefault(p => p.IdInRoom == playerId);
+        if (player != null)
+        {
+            player.PlayerState.IsDead = true;
+        }
+
+        // Update history record
+        var snapshotRecord = GameState.SpyRevealSnapshot.FirstOrDefault(x => x.IdInRoom == playerId);
+        if (snapshotRecord != null)
+        {
+            snapshotRecord.IsDead = true;
+        }
     }
 }
 

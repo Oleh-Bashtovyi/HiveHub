@@ -41,6 +41,11 @@ public class StartAccusationHandler(
                 return Results.ActionFailed(ProjectMessages.Accusation.VotaCanBeDoneOnlyDuringSearch);
             }
 
+            if (room.GameState.RoundTimerState.IsFinished)
+            {
+                return Results.ActionFailed(ProjectMessages.Accusation.CanNotAccuseAfterRoundTimeUp);
+            }
+
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var initiator))
             {
                 return Results.NotFound(ProjectMessages.PlayerNotFound);
@@ -68,20 +73,17 @@ public class StartAccusationHandler(
 
             initiatorId = initiator.IdInRoom;
 
-            // WHAT WILL HAPPENED IF WE ACCUSE PLAYER WHEN ONLY TWO PLAYERS LEFT?
-
-
-            // Stop main game timer
-            if (!room.GameState.RoundTimerState.IsTimerStopped)
+            // Pause main game timer
+            if (room.GameState.RoundTimerState.IsRunning)
             {
                 room.GameState.RoundTimerState.Pause();
+
                 context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
+
                 context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
-                    room.RoomCode,
-                    IsRoundTimerStopped: room.GameState.RoundTimerState.IsTimerStopped,
-                    RoundTimerPausedAt: room.GameState.RoundTimerState.TimerPausedAt,
-                    RoundTimerStartedAt: room.GameState.RoundTimerState.TimerStartedAt,
-                    RoundTimerWillStopAt: room.GameState.RoundTimerState.TimerWillStopAt));
+                    RoomCode: room.RoomCode,
+                    TimerStatus: room.GameState.RoundTimerState.Status,
+                    RemainingSeconds: room.GameState.RoundTimerState.GetRemainingSeconds()));
             }
 
             // Start accusation process
@@ -103,7 +105,6 @@ public class StartAccusationHandler(
                 }
             };
 
-            // Start voting timer
             context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null, votingDuration));
 
             context.AddEvent(new VotingStartedEventDto(
@@ -119,9 +120,9 @@ public class StartAccusationHandler(
             return Result.Ok();
         });
 
-        if (result.IsFailed)
+        if (result.IsSuccess)
         {
-            logger.LogInformation("Accusation started in room {Room}: {Initiator} -> {Target}",
+            logger.LogInformation("Room [{RoomCode}]: Accusation started - {Initiator} -> {Target}",
                 request.RoomCode, initiatorId, request.TargetPlayerId);
         }
 

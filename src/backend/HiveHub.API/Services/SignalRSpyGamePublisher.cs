@@ -138,4 +138,10 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
         return _hub.Clients.Group(eventDto.RoomCode)
             .WordPacksChanged(eventDto);
     }
+
+    public Task PublishSpyMadeGuessAsync(SpyMadeGuessEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .SpyMadeGuess(eventDto);
+    }
 }

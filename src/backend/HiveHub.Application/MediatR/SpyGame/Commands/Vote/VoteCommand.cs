@@ -34,7 +34,7 @@ public class VoteHandler(
 
         var voterId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) => 
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (room.GameState.ActiveVoting == null)
             {
@@ -43,76 +43,81 @@ public class VoteHandler(
 
             if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var voter))
             {
-                return Results.NotFound(ProjectMessages.Accusation.InitiatorNotFound);
-            }
-
-            if (string.IsNullOrEmpty(request.TargetPlayerId))
-            {
-                return Results.ActionFailed(ProjectMessages.Accusation.TargetPlayerIdrequiredForFinalVote);
-            }
-
-            if (!room.TryGetPlayerByIdInRoom(request.TargetPlayerId, out var targetPlayer))
-            {
-                return Results.NotFound(ProjectMessages.Accusation.TargetNotFound);
+                return Results.NotFound(ProjectMessages.PlayerNotFound);
             }
 
             voterId = voter.IdInRoom;
 
-            if (room.GameState.CurrentPhase == SpyGamePhase.Accusation && room.GameState.ActiveVoting is AccusationVotingState accusationState)
+            if (room.GameState.CurrentPhase == SpyGamePhase.Accusation &&
+                room.GameState.ActiveVoting is AccusationVotingState accusationState)
             {
                 if (request.VoteType == null)
                 {
                     return Results.ActionFailed(ProjectMessages.Accusation.VoteTypeWasNotSpecified);
                 }
-                if (request.TargetPlayerId != accusationState.TargetId)
+
+                if (!string.IsNullOrEmpty(request.TargetPlayerId) &&
+                    request.TargetPlayerId != accusationState.TargetId)
                 {
                     return Results.ActionFailed(ProjectMessages.Accusation.VotingTargetMismatch);
                 }
+
                 if (!accusationState.TryVote(voter.IdInRoom, request.VoteType.Value))
                 {
                     return Results.ActionFailed(ProjectMessages.Accusation.YouAlreadyVoted);
                 }
+
+                context.AddEvent(new VoteCastEventDto(
+                    RoomCode: request.RoomCode,
+                    VoterId: voterId,
+                    TargetVoteType: request.VoteType,
+                    AgainstPlayerId: accusationState.TargetId));
             }
-            else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote && room.GameState.ActiveVoting is GeneralVotingState finalState)
+            else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote &&
+                     room.GameState.ActiveVoting is GeneralVotingState finalState)
             {
-                if (!finalState.TryVote(voter.IdInRoom, targetPlayer.IdInRoom))
+                var targetId = request.TargetPlayerId ?? "SKIP";
+
+                if (!string.IsNullOrEmpty(request.TargetPlayerId) &&
+                    request.TargetPlayerId != "SKIP")
+                {
+                    if (!room.TryGetPlayerByIdInRoom(request.TargetPlayerId, out var targetPlayer))
+                    {
+                        return Results.NotFound(ProjectMessages.Accusation.TargetNotFound);
+                    }
+
+                    if (targetPlayer.PlayerState.IsDead)
+                    {
+                        return Results.ActionFailed(ProjectMessages.Accusation.CannotAccuseDeadPlayer);
+                    }
+                }
+
+                if (!finalState.TryVote(voter.IdInRoom, targetId))
                 {
                     return Results.ActionFailed(ProjectMessages.Accusation.YouAlreadyVoted);
                 }
+
+                context.AddEvent(new VoteCastEventDto(
+                    RoomCode: request.RoomCode,
+                    VoterId: voterId,
+                    TargetVoteType: null,
+                    AgainstPlayerId: targetId));
             }
             else
             {
                 return Results.ActionFailed(ProjectMessages.Accusation.UnknownVotingState);
             }
 
-            context.AddEvent(new VoteCastEventDto(
-                RoomCode: request.RoomCode,
-                VoterId: voterId,
-                TargetVoteType: request.VoteType,
-                AgainstPlayerId: request.TargetPlayerId));
-
-            SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
+            Voting.CheckAndResolveVoting(room, context);
 
             return Result.Ok();
         });
 
         if (result.IsSuccess)
         {
-            if (request.VoteType.HasValue)
-            {
-                logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} voted against {TargetId} with vote type {VoteType}",
-                    request.RoomCode, 
-                    voterId, 
-                    request.TargetPlayerId, 
-                    request.VoteType);
-            }
-            else
-            {
-                logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} susccessfuly voted against {TargetId}",
-                    request.RoomCode, 
-                    voterId, 
-                    request.TargetPlayerId);
-            }
+            logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} voted",
+                request.RoomCode,
+                voterId);
         }
 
         return result;

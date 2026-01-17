@@ -1,7 +1,7 @@
 ﻿using FluentResults;
 using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
+using HiveHub.Application.Extensions;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
@@ -29,19 +29,19 @@ public class VoteStopTimerHandler(
             return Results.NotFound(ProjectMessages.RoomNotFound);
         }
 
-        string votedPlayerId = null!;
-        bool timerStopped = false;
-        int votesCount = 0;
-        int requiredVotes = 0;
+        var voterId = string.Empty;
+        var timerStopped = false;
+        var votesCount = 0;
+        var requiredVotes = 0;
 
-        var result = await roomAccessor.ExecuteAsync(async (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
             if (!room.IsInGame())
             {
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.VoteToStopTimerAvailvableOnlyMidGame);
             }
 
-            if (room.GameState.RoundTimerState.IsTimerStopped)
+            if (room.GameState.RoundTimerState.IsStopped)
             {
                 return Results.ActionFailed(ProjectMessages.VoteToStopTimer.TimerHasAlreadyStoped);
             }
@@ -62,14 +62,18 @@ public class VoteStopTimerHandler(
             }
 
             player.PlayerState.VotedToStopTimer = true;
-            votedPlayerId = player.IdInRoom;
+            voterId = player.IdInRoom;
 
-            SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
+            var votesCount = room.CountVotedForTimerStop();
+            var requiredVotes = room.GetMajorityRequiredVotes();
 
-            var votesCount = room.Players.Count(p => p.PlayerState.VotedToStopTimer && p.IsConnected);
-            var requiredVotes = (int)Math.Ceiling(room.Players.Count(p => p.IsConnected) / 2.0);
+            context.AddEvent(new PlayerVotedToStopTimerEventDto(
+                request.RoomCode,
+                voterId,
+                votesCount,
+                requiredVotes));
 
-            context.AddEvent(new PlayerVotedToStopTimerEventDto(request.RoomCode, player.IdInRoom, votesCount, requiredVotes));
+            RoundTimer.CheckAndResolveTimerStop(room, context);
 
             return Result.Ok();
         });
@@ -78,8 +82,8 @@ public class VoteStopTimerHandler(
         {
             logger.LogInformation("Room [{RoomCode}]: Player {PlayerId} voted to stop round timer. " +
                 "Votes: {VotesCount}/{RequiredVotes}. Stopped: {IsStopped}",
-                request.RoomCode, 
-                votedPlayerId, 
+                request.RoomCode,
+                voterId, 
                 votesCount, 
                 requiredVotes, 
                 timerStopped);

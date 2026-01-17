@@ -1,74 +1,87 @@
 ﻿namespace HiveHub.Domain.Models.Shared;
 
+public enum TimerStatus
+{
+    Stopped,
+    Running,
+    Paused
+}
+
 public sealed class TimerState
 {
-    public bool IsTimerStopped { get; private set; } = true;
+    public TimerStatus Status { get; private set; } = TimerStatus.Stopped;
     public DateTime? TimerStartedAt { get; private set; }
     public DateTime? TimerWillStopAt { get; private set; }
     public DateTime? TimerPausedAt { get; private set; }
 
-    public bool IsRunning() => !IsTimerStopped;
-    public bool IsPaused() => IsTimerStopped && TimerPausedAt.HasValue;
-    public bool IsStopped() => IsTimerStopped && !TimerPausedAt.HasValue;
-
+    public bool IsTimeUp => GetRemainingSeconds() <= 0.001;
+    public bool IsFinished => Status == TimerStatus.Stopped || IsTimeUp;
+    public bool IsRunning => Status == TimerStatus.Running;
+    public bool IsPaused => Status == TimerStatus.Paused;
+    public bool IsStopped => Status == TimerStatus.Stopped;
 
     public void Start(TimeSpan duration, DateTime? now = null)
     {
-        now = now ?? DateTime.UtcNow;
-        IsTimerStopped = false;
+        var currentTime = now ?? DateTime.UtcNow;
+
+        Status = TimerStatus.Running;
+        TimerStartedAt = currentTime;
         TimerPausedAt = null;
-        TimerStartedAt = now;
-        TimerWillStopAt = now.Value.Add(duration);
+        TimerWillStopAt = currentTime.Add(duration);
     }
 
-    public void Clear()
+    public void Stop()
     {
-        IsTimerStopped = true;
-        TimerPausedAt = null;
+        Status = TimerStatus.Stopped;
         TimerStartedAt = null;
         TimerWillStopAt = null;
+        TimerPausedAt = null;
     }
 
-    public void Pause()
+    public void Pause(DateTime? now = null)
     {
-        if (IsTimerStopped) return;
+        if (Status != TimerStatus.Running) 
+            return;
 
-        IsTimerStopped = true;
-        TimerPausedAt = DateTime.UtcNow;
+        var currentTime = now ?? DateTime.UtcNow;
+
+        Status = TimerStatus.Paused;
+        TimerPausedAt = currentTime;
     }
 
-    public void Resume()
+    public void Resume(DateTime? now = null)
     {
-        if (!IsTimerStopped || !TimerPausedAt.HasValue || !TimerWillStopAt.HasValue) return;
+        if (Status != TimerStatus.Paused || !TimerPausedAt.HasValue || !TimerWillStopAt.HasValue) 
+            return;
 
-        var now = DateTime.UtcNow;
-
-        var timeSpentPaused = now - TimerPausedAt.Value;
+        var currentTime = now ?? DateTime.UtcNow;
+        var timeSpentPaused = currentTime - TimerPausedAt.Value;
 
         TimerWillStopAt = TimerWillStopAt.Value.Add(timeSpentPaused);
 
-        IsTimerStopped = false;
+        Status = TimerStatus.Running;
         TimerPausedAt = null;
     }
 
-    public double GetRemainingSeconds()
+    public double GetRemainingSeconds(DateTime? now = null)
     {
-        if (!TimerWillStopAt.HasValue)
+        if (Status == TimerStatus.Stopped || !TimerWillStopAt.HasValue)
         {
             return 0;
         }
 
+        var currentTime = now ?? DateTime.UtcNow;
         TimeSpan remaining;
 
-        if (IsTimerStopped && TimerPausedAt.HasValue)
+        if (Status == TimerStatus.Paused && TimerPausedAt.HasValue)
         {
             remaining = TimerWillStopAt.Value - TimerPausedAt.Value;
         }
         else
         {
-            remaining = TimerWillStopAt.Value - DateTime.UtcNow;
+            remaining = TimerWillStopAt.Value - currentTime;
         }
 
-        return remaining.TotalSeconds > 0 ? remaining.TotalSeconds : 0;
+        return Math.Max(0, remaining.TotalSeconds);
     }
 }

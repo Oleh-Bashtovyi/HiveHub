@@ -1,6 +1,7 @@
-﻿using HiveHub.Application.MediatR.SpyGame.Handlers.HandleVotingTimeUp;
-using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleGameTimeUp;
+﻿using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleLastChanceTimeUp;
 using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandlePlayerTimeout;
+using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleRoundTimeUp;
+using HiveHub.Application.MediatR.SpyGame.SystemCommands.HandleVotingTimeUp;
 using HiveHub.Application.Models;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,11 @@ public abstract class BaseTaskWorker : BackgroundService
 
                 case TaskType.SpyGameVotingTimeUp:
                     await mediator.Send(new HandleVotingTimeUpCommand(task.RoomCode));
+                    break;
+
+                case TaskType.SpyGameLastChanceTimeUp:
+                    if (task.TargetId != null)
+                        await mediator.Send(new HandleLastChanceTimeUpCommand(task.RoomCode, task.TargetId));
                     break;
             }
         }

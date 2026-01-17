@@ -32,22 +32,18 @@ public static class SpyGamePlayerRemover
         }
 
         var wasHost = player.IsHost;
-        var wasSpy = player.PlayerState.IsSpy;
 
-        // 1. Remove Player
         room.Players.Remove(player);
 
         context.AddEvent(new PlayerLeftEventDto(room.RoomCode, player.IdInRoom));
         context.AddEvent(new RemovePlayerFromGroupEvent(player.ConnectionId, room.RoomCode));
 
-        // 2. Handle Empty Room
         if (room.Players.Count == 0)
         {
             room.MarkAsDeleted();
             return new PlayerRemovalResult(playerId, null, true, room.RoomCode);
         }
 
-        // 3. Handle Host Migration
         string? newHostId = null;
         if (wasHost)
         {
@@ -60,68 +56,70 @@ public static class SpyGamePlayerRemover
             }
         }
 
-        // 4. Handle In-Game Logic
         if (room.IsInGame())
         {
-            // A. Check Active Voting Disruption
-            if (room.GameState.ActiveVoting != null)
-            {
-                var shouldCancelVoting = false;
-                var cancelReason = "";
-
-                if (room.GameState.ActiveVoting is AccusationVotingState accState)
-                {
-                    // If Initiator left -> Cancel
-                    if (accState.InitiatorId == playerId)
-                    {
-                        shouldCancelVoting = true;
-                        cancelReason = "Accuser left the game.";
-                    }
-                    // If Target left -> Cancel (Cannot accuse someone who is gone)
-                    else if (accState.TargetId == playerId)
-                    {
-                        shouldCancelVoting = true;
-                        cancelReason = "Accused player left the game.";
-                    }
-                }
-
-                if (shouldCancelVoting)
-                {
-                    room.GameState.ActiveVoting = null;
-                    context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null));
-                    context.AddEvent(new VotingResultEventDto(room.RoomCode, false, SpyGamePhase.Search, cancelReason, null, null, null));
-
-                    // Resume timer if it was paused
-                    SpyGameLogicHelper.ResumeGameTimer(room, context);
-                }
-                else
-                {
-                    // Update voting thresholds if voting persists (e.g. final vote or unrelated accusation)
-                    SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
-                }
-            }
-
-            // B. Handle Special Phases (Spy Last Chance)
-            if (room.GameState.CurrentPhase == SpyGamePhase.SpyLastChance && room.GameState.CaughtSpyId == playerId)
-            {
-                // Caught spy left without guessing -> Treat as Fail
-                context.AddEvent(new ChatMessageEventDto(
-                    RoomCode: room.RoomCode,
-                    Message: new ChatMessageDto(
-                        PlayerId: "System", 
-                        PlayerName: "System", 
-                        Message: "Caught spy left! Treating as wrong guess.",
-                        Timestamp: DateTime.UtcNow)));
-
-                SpyGameLogicHelper.HandleSpyGuessedWrong(room, context);
-            }
-
-            // C. Check if Game Should End (e.g. only 1 player left, or all spies left)
-            SpyGameLogicHelper.CheckAndResolveTimerStop(room, context, logger);
-            SpyGameLogicHelper.CheckAndResolveVoting(room, context, repository, logger);
-            SpyGameLogicHelper.CheckGameEndConditions(room, context, logger);
+            HandleInGamePlayerRemoval(room, context, playerId, logger);
         }
 
         return new PlayerRemovalResult(playerId, newHostId, false, room.RoomCode);
+    }
+
+    private static void HandleInGamePlayerRemoval(
+        SpyRoom room,
+        SpyGameEventsContext context,
+        string playerId,
+        ILogger logger)
+    {
+        // Handle last chance phase
+        if (room.GameState.CurrentPhase == SpyGamePhase.SpyLastChance)
+        {
+            MakeGuess.HandleSpyLeftDuringLastChance(room, context, playerId);
+        }
+
+        // Handle active voting
+        if (room.GameState.ActiveVoting != null)
+        {
+            var shouldCancelVoting = false;
+            var cancelReason = "";
+
+            if (room.GameState.ActiveVoting is AccusationVotingState accState)
+            {
+                if (accState.InitiatorId == playerId)
+                {
+                    shouldCancelVoting = true;
+                    cancelReason = "Accuser left the game.";
+                }
+                else if (accState.TargetId == playerId)
+                {
+                    shouldCancelVoting = true;
+                    cancelReason = "Accused player left the game.";
+                }
+            }
+
+            if (shouldCancelVoting)
+            {
+                room.GameState.ActiveVoting = null;
+                room.GameState.CurrentPhase = SpyGamePhase.Search;
+
+                context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null));
+                context.AddEvent(new VotingResultEventDto(
+                    room.RoomCode,
+                    false,
+                    SpyGamePhase.Search,
+                    cancelReason,
+                    null,
+                    null,
+                    null));
+
+                RoundTimer.ResumeGameTimer(room, context);
+            }
+            else
+            {
+                Voting.CheckAndResolveVoting(room, context);
+            }
+        }
+
+        RoundTimer.CheckAndResolveTimerStop(room, context);
+        RoundEnd.CheckGameEndConditions(room, context);
     }
 }

@@ -1,5 +1,7 @@
 ﻿using FluentResults;
+using HiveHub.Application.Constants;
 using HiveHub.Application.Models;
+using HiveHub.Application.Utils;
 using HiveHub.Domain.Models.SpyGame;
 
 namespace HiveHub.Infrastructure.Models;
@@ -17,6 +19,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound<T>(ProjectMessages.RoomNotFound);
+            }
+
             var result = action(_room);
 
             if (result.IsSuccess)
@@ -37,6 +44,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound<T>(ProjectMessages.RoomNotFound);
+            }
+
             var data = selector(_room);
             return Result.Ok(data);
         }
@@ -51,6 +63,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound<T>(ProjectMessages.RoomNotFound);
+            }
+
             return action(_room);
         }
         finally
@@ -64,6 +81,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound(ProjectMessages.RoomNotFound);
+            }
+
             var result = action(_room);
 
             if (result.IsSuccess)
@@ -84,6 +106,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound(ProjectMessages.RoomNotFound);
+            }
+
             action(_room);
             _room.IncrementVersion();
             return Result.Ok();
@@ -99,6 +126,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound<T>(ProjectMessages.RoomNotFound);
+            }
+
             var result = await action(_room);
 
             if (result.IsSuccess)
@@ -119,6 +151,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return Results.NotFound(ProjectMessages.RoomNotFound);
+            }
+
             var result = await action(_room);
 
             if (result.IsSuccess)
@@ -139,6 +176,11 @@ public sealed class InMemorySpyRoomAccessor(SpyRoom room) : IRoomAccessor<SpyRoo
         await _semaphore.WaitAsync();
         try
         {
+            if (_room.IsMarkedAsDeleted)
+            {
+                return true;
+            }
+
             var now = DateTime.UtcNow;
             return _room.Players.Count == 0 && (now - _room.CreatedAt) > expirationThreshold;
         }

@@ -97,7 +97,9 @@ public static class ProjectMessages
 
         public static readonly string VoteTypeWasNotSpecified = "Vote type was not specified";
         public static readonly string VotingTargetMismatch = "Voting target mismatch";
-        public static readonly string VotaCanBeDoneOnlyDuringSearch = "Голосування можливе лише під час пошуку.";
+        public static readonly string VotaCanBeDoneOnlyDuringSearch = "Звинуватити можливо лише під час пошуку.";
+        public static readonly string CanNotAccuseAfterRoundTimeUp = "Неможливо звинуватити, раунд досяг кінця.";
+
         public static readonly string YouAlreadyVoted = "Ви вже проголосували";
         public static readonly string TargetPlayerIdrequiredForFinalVote = "Target player required for final vote";
     }

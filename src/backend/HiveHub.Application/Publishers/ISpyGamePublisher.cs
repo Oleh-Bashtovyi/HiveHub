@@ -35,5 +35,6 @@ public interface ISpyGamePublisher
     Task PublishChatMessageAsync(ChatMessageEventDto eventDto);
     Task PublishHostChangedAsync(HostChangedEventDto eventDto);
     Task PublishPlayerConnectionChangedAsync(PlayerConnectionChangedEventDto eventDto);
+    Task PublishSpyMadeGuessAsync(SpyMadeGuessEventDto e);
 }
 

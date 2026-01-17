@@ -21,12 +21,18 @@ public record SpyGameEndedEventDto(
     string? ReasonMessage
 ) : IRoomEvent;
 
+public record SpyMadeGuessEventDto(
+    string RoomCode,
+    string PlayerId,
+    string Word,
+    bool IsGuessCorrect,
+    bool IsSpyDead
+) : IRoomEvent;
+
 public record SpyGameRoundTimerStateChangedEventDto(
     string RoomCode,
-    bool IsRoundTimerStopped,
-    DateTime? RoundTimerStartedAt,
-    DateTime? RoundTimerWillStopAt,
-    DateTime? RoundTimerPausedAt
+    TimerStatus TimerStatus,
+    double RemainingSeconds
 ) : IRoomEvent;
 
 public record SpyGameRulesUpdatedEventDto(

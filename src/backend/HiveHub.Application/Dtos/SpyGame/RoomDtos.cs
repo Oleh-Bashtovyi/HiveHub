@@ -65,11 +65,9 @@ public record SpyGameStateDto(
     // Voting
     VotingStateDto? ActiveVoting,
     // Round timer
-    bool IsRoundTimerStopped,
     DateTime RoundStartedAt,
-    DateTime? RoundTimerStartedAt,
-    DateTime? RoundTimerWillStopAt,
-    DateTime? RoundTimerPausedAt,
+    TimerStatus RoundTimerStatus,
+    double RoundRemainingSeconds,
     DateTime? SpyLastChanceEndsAt,
     // Timer stop requirements
     int PlayersVotedToStopTimer,
