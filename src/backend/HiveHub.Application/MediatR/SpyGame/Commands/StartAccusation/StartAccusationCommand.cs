@@ -101,7 +101,12 @@ public class StartAccusationHandler(
                 VotingEndsAt = endsAt,
                 Votes = new Dictionary<string, TargetVoteType>
                 {
-                    { initiator.IdInRoom, TargetVoteType.Yes }
+                    {
+                        targetPlayer.IdInRoom, TargetVoteType.No
+                    },
+                    { 
+                        initiator.IdInRoom, TargetVoteType.Yes 
+                    }
                 }
             };
 

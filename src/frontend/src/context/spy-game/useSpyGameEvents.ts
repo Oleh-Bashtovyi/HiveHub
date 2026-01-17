@@ -1,29 +1,36 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { SpyHubEvents } from '../../const/spy-game-events';
 import {
-    RoomStatus,
     type SpyPlayerDto,
     type SpyPlayerJoinedEventDto,
-    type PlayerLeftEventDto,
-    type PlayerChangedNameEventDto,
-    type PlayerKickedEventDto,
-    type PlayerReadyStatusChangedEventDto,
-    type PlayerChangedAvatarEventDto,
-    type HostChangedEventDto,
-    type SpyGameSettingsUpdatedEventDto,
+    type SpyGameRulesUpdatedEventDto,
+    type SpyGameWordPacksUpdatedEventDto,
     type SpyGameStartedEventDto,
-    type ChatMessageEventDto,
     type PlayerVotedToStopTimerEventDto,
-    type PlayerConnectionChangedEventDto,
     type VotingStartedEventDto,
     type VoteCastEventDto,
     type VotingResultEventDto,
     type SpyGameEndedEventDto,
     type SpyGameRoundTimerStateChangedEventDto,
-    SpyVotingType, type SpyGameStateDto, type ChatMessageDto, TargetVoteType
+    SpyVotingType,
+    type SpyGameStateDto,
+    type SpyMadeGuessEventDto,
 } from '../../models/spy-game';
 import { SpySignalRService } from "../../api/spy-signal-r-service";
 import type { StateSetters } from './useSpyGameSession';
+import {
+    type ChatMessageDto,
+    type ChatMessageEventDto,
+    type HostChangedEventDto,
+    type PlayerChangedAvatarEventDto,
+    type PlayerChangedNameEventDto,
+    type PlayerConnectionChangedEventDto,
+    type PlayerKickedEventDto,
+    type PlayerLeftEventDto,
+    type PlayerReadyStatusChangedEventDto,
+    RoomStatus,
+    TargetVoteType
+} from "../../models/shared.ts";
 
 interface UseSpyGameEventsProps {
     isConnected: boolean;
@@ -42,13 +49,7 @@ export function useSpyGameEvents({
                                      stateSetters,
                                      clearSession,
                                      resetState,
-                                     reconnect,
                                  }: UseSpyGameEventsProps) {
-    const refreshState = useCallback(async () => {
-        const svc = getService();
-        await reconnect(svc);
-    }, [getService, reconnect]);
-
     useEffect(() => {
         if (!isConnected) return;
 
@@ -77,7 +78,7 @@ export function useSpyGameEvents({
 
         const handlePlayerKicked = (e: PlayerKickedEventDto) => {
             if (meId === e.playerId) {
-                alert("Вас було вигнано з кімнати.");
+                alert("You have been kicked from the room.");
                 clearSession();
                 resetState();
             } else {
@@ -113,8 +114,12 @@ export function useSpyGameEvents({
             });
         };
 
-        const handleSettingsUpdated = (e: SpyGameSettingsUpdatedEventDto) => {
-            stateSetters.setSettings(e.settings);
+        const handleRulesUpdated = (e: SpyGameRulesUpdatedEventDto) => {
+            stateSetters.setRules(e.rules);
+        };
+
+        const handleWordPacksUpdated = (e: SpyGameWordPacksUpdatedEventDto) => {
+            stateSetters.setWordPacks(e.packs);
         };
 
         const handleGameStarted = (e: SpyGameStartedEventDto) => {
@@ -122,7 +127,8 @@ export function useSpyGameEvents({
             stateSetters.setRoomState(newState.status);
             stateSetters.setGameState(newState.gameState);
             stateSetters.setPlayers(newState.players);
-            stateSetters.setSettings(newState.settings);
+            stateSetters.setRules(newState.rules);
+            stateSetters.setWordPacks(newState.wordPacks);
 
             const myNewState = newState.players.find(p => p.id === me?.id);
             if (myNewState) stateSetters.setMe(myNewState);
@@ -130,6 +136,7 @@ export function useSpyGameEvents({
             stateSetters.setWinnerTeam(null);
             stateSetters.setGameEndReason(null);
             stateSetters.setGameEndMessage(null);
+            stateSetters.setSpiesReveal([]);
         };
 
         const handleChatMessage = (e: ChatMessageEventDto) => {
@@ -150,7 +157,8 @@ export function useSpyGameEvents({
                 if (!prev) return null;
                 return {
                     ...prev,
-                    timerVotesCount: e.votesCount
+                    playersVotedToStopTimer: e.votesCount,
+                    votesRequiredToStopTimer: e.requiredVotes
                 };
             });
         };
@@ -160,10 +168,8 @@ export function useSpyGameEvents({
                 if (!prev) return null;
                 return {
                     ...prev,
-                    isRoundTimerStopped: e.isRoundTimerStopped,
-                    roundTimerStartedAt: e.roundTimerStartedAt ?? prev.roundTimerStartedAt,
-                    roundTimerWillStopAt: e.roundTimerWillStopAt,
-                    roundTimerPausedAt: e.roundTimerPausedAt
+                    roundTimerStatus: e.timerStatus,
+                    roundRemainingSeconds: e.remainingSeconds
                 };
             });
         };
@@ -197,7 +203,7 @@ export function useSpyGameEvents({
                         type: e.votingType,
                         accusedPlayerId: e.targetId,
                         accusedPlayerName: e.targetName,
-                        startedAt: new Date().toISOString(),
+                        startedAt: e.startedAt,
                         endsAt: e.endsAt,
                         targetVoting: initialTargetVoting,
                         againstVoting: e.votingType === SpyVotingType.Final ? {} : null,
@@ -242,7 +248,7 @@ export function useSpyGameEvents({
                     activeVoting: null,
                     phase: e.currentGamePhase,
                     caughtSpyId: (e.isSuccess && e.accusedId) ? e.accusedId : prev.caughtSpyId,
-                    lastChanceEndsAt: e.lastChanceEndsAt ?? null
+                    spyLastChanceEndsAt: e.lastChanceEndsAt ?? null
                 };
             });
 
@@ -251,18 +257,41 @@ export function useSpyGameEvents({
             }
         };
 
+        const handleSpyMadeGuess = (e: SpyMadeGuessEventDto) => {
+            if (e.isSpyDead) {
+                stateSetters.setPlayers(prev =>
+                    prev.map(p => p.id === e.playerId ? { ...p, isDead: true } : p)
+                );
+
+                // Update me if I'm the spy who failed
+                if (me?.id === e.playerId) {
+                    stateSetters.setMe(prev => prev ? { ...prev, isDead: true } : null);
+                }
+            }
+
+            console.log(`Spy ${e.playerId} guessed: ${e.word} - ${e.isGuessCorrect ? 'Correct!' : 'Wrong'}`);
+        };
+
         const handleGameEnded = (e: SpyGameEndedEventDto) => {
             stateSetters.setRoomState(RoomStatus.Ended);
             stateSetters.setWinnerTeam(e.winnerTeam);
             stateSetters.setGameEndReason(e.reason);
             stateSetters.setGameEndMessage(e.reasonMessage);
+            stateSetters.setSpiesReveal(e.spiesReveal);
             stateSetters.setPlayers(prev =>
                 prev.map(p => {
                     const reveal = e.spiesReveal.find(r => r.playerId === p.id);
-                    return reveal ? { ...p, isSpy: reveal.isSpy } : p;
+                    return reveal ? { ...p, isSpy: reveal.isSpy, isDead: reveal.isDead } : p;
                 })
             );
-            refreshState();
+            stateSetters.setGameState(prev => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    spiecsReveal: e.spiesReveal,
+                    roundEndReason: e.reason
+                };
+            });
         };
 
         const handleReturnToLobby = () => {
@@ -271,13 +300,16 @@ export function useSpyGameEvents({
             stateSetters.setWinnerTeam(null);
             stateSetters.setGameEndReason(null);
             stateSetters.setGameEndMessage(null);
+            stateSetters.setSpiesReveal([]);
 
             stateSetters.setPlayers((prev) =>
                 prev.map(p => ({
                     ...p,
                     isReady: false,
                     isVotedToStopTimer: false,
-                    isSpy: null
+                    isSpy: null,
+                    isDead: false,
+                    hasUsedAccusation: false
                 }))
             );
 
@@ -286,7 +318,9 @@ export function useSpyGameEvents({
                     ...prev,
                     isReady: false,
                     isVotedToStopTimer: false,
-                    isSpy: null
+                    isSpy: null,
+                    isDead: false,
+                    hasUsedAccusation: false
                 } : null
             );
         };
@@ -298,16 +332,18 @@ export function useSpyGameEvents({
         svc.on(SpyHubEvents.PlayerReadyStatusChanged, handleReadyChanged);
         svc.on(SpyHubEvents.PlayerChangedAvatar, handleAvatarChanged);
         svc.on(SpyHubEvents.HostChanged, handleHostChanged);
-        svc.on(SpyHubEvents.GameSettingsUpdated, handleSettingsUpdated);
+        svc.on(SpyHubEvents.RulesChanged, handleRulesUpdated);
+        svc.on(SpyHubEvents.WordPacksChanged, handleWordPacksUpdated);
         svc.on(SpyHubEvents.GameStarted, handleGameStarted);
         svc.on(SpyHubEvents.ChatMessageReceived, handleChatMessage);
         svc.on(SpyHubEvents.PlayerConnectionStatusChanged, handleConnectionChanged);
         svc.on(SpyHubEvents.TimerVoteUpdated, handleTimerVote);
-        svc.on(SpyHubEvents.RoundTimerStateChanged, handleRoundTimerStateChanged); // ADDED
+        svc.on(SpyHubEvents.RoundTimerStateChanged, handleRoundTimerStateChanged);
         svc.on(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
         svc.on(SpyHubEvents.VotingStarted, handleVotingStarted);
         svc.on(SpyHubEvents.VoteCast, handleVoteCast);
         svc.on(SpyHubEvents.VotingResult, handleVotingResult);
+        svc.on(SpyHubEvents.SpyMadeGuess, handleSpyMadeGuess);
         svc.on(SpyHubEvents.GameEnded, handleGameEnded);
 
         return () => {
@@ -318,17 +354,19 @@ export function useSpyGameEvents({
             svc.off(SpyHubEvents.PlayerReadyStatusChanged, handleReadyChanged);
             svc.off(SpyHubEvents.PlayerChangedAvatar, handleAvatarChanged);
             svc.off(SpyHubEvents.HostChanged, handleHostChanged);
-            svc.off(SpyHubEvents.GameSettingsUpdated, handleSettingsUpdated);
+            svc.off(SpyHubEvents.RulesChanged, handleRulesUpdated);
+            svc.off(SpyHubEvents.WordPacksChanged, handleWordPacksUpdated);
             svc.off(SpyHubEvents.GameStarted, handleGameStarted);
             svc.off(SpyHubEvents.ChatMessageReceived, handleChatMessage);
             svc.off(SpyHubEvents.PlayerConnectionStatusChanged, handleConnectionChanged);
             svc.off(SpyHubEvents.TimerVoteUpdated, handleTimerVote);
-            svc.off(SpyHubEvents.RoundTimerStateChanged, handleRoundTimerStateChanged); // ADDED
+            svc.off(SpyHubEvents.RoundTimerStateChanged, handleRoundTimerStateChanged);
             svc.off(SpyHubEvents.ReturnedToLobby, handleReturnToLobby);
             svc.off(SpyHubEvents.VotingStarted, handleVotingStarted);
             svc.off(SpyHubEvents.VoteCast, handleVoteCast);
             svc.off(SpyHubEvents.VotingResult, handleVotingResult);
+            svc.off(SpyHubEvents.SpyMadeGuess, handleSpyMadeGuess);
             svc.off(SpyHubEvents.GameEnded, handleGameEnded);
         };
-    }, [isConnected, me?.id, getService, clearSession, resetState, stateSetters, refreshState]);
+    }, [isConnected, me?.id, getService, clearSession, resetState, stateSetters]);
 }

@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSpyGame } from '../../../context/spy-game/SpyGameContext';
 import { Button } from '../../../components/ui/Button/Button';
-import { RoomStatus } from '../../../models/spy-game';
 import { SpyGameChat } from '../SpyGame/SpyGameChat/SpyGameChat';
 import './SpyLobby.scss';
-import {LobbySettings} from "./LobbySettings/LobbySettings.tsx";
-import {PlayersPanel} from "./PlayersPanel/PlayersPanel.tsx";
+import { LobbySettings } from "./LobbySettings/LobbySettings.tsx";
+import { PlayersPanel } from "./PlayersPanel/PlayersPanel.tsx";
+import {RoomStatus} from "../../../models/shared.ts";
 
 type TabType = 'settings' | 'chat';
 
@@ -17,12 +17,14 @@ export const SpyLobby = () => {
         roomCode,
         me,
         players,
-        settings,
+        rules,
+        wordPacks,
         roomState,
         messages,
         leaveRoom,
         toggleReady,
-        updateSettings,
+        updateRules,
+        updateWordPacks,
         startGame,
         kickPlayer,
         changeHost,
@@ -32,6 +34,8 @@ export const SpyLobby = () => {
     } = useSpyGame();
 
     const [activeTab, setActiveTab] = useState<TabType>('settings');
+    const [lastSeenMessageCount, setLastSeenMessageCount] = useState(0);
+    const hasUnreadMessages = messages.length > lastSeenMessageCount;
 
     const safeExecute = async (action: () => Promise<void>) => {
         try {
@@ -42,6 +46,14 @@ export const SpyLobby = () => {
             alert(`Помилка: ${msg}`);
         }
     };
+
+    // Mark messages as read when chat tab is opened
+    useEffect(() => {
+        if (activeTab === 'chat') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLastSeenMessageCount(messages.length);
+        }
+    }, [activeTab, messages.length]);
 
     useEffect(() => {
         if (isInitializing) return;
@@ -57,7 +69,7 @@ export const SpyLobby = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
-    if (!roomCode || !settings || !me) return <div>Loading Lobby...</div>;
+    if (!roomCode || !rules || !wordPacks || !me) return <div>Loading Lobby...</div>;
 
     const copyCode = () => {
         navigator.clipboard.writeText(roomCode);
@@ -103,6 +115,7 @@ export const SpyLobby = () => {
                     <PlayersPanel
                         players={players}
                         me={me}
+                        maxPlayersCount={rules.maxPlayersCount}
                         isHost={me.isHost}
                         isReady={me.isReady}
                         allReady={allReady}
@@ -128,17 +141,21 @@ export const SpyLobby = () => {
                                 onClick={() => setActiveTab('chat')}
                             >
                                 💬 Чат
-                                {messages.length > 0 && <span className="tab-badge"></span>}
+                                {hasUnreadMessages && <span className="tab-badge"></span>}
                             </button>
                         </div>
 
                         <div className="sidebar-content">
                             {activeTab === 'settings' && (
                                 <LobbySettings
-                                    settings={settings}
+                                    rules={rules}
+                                    wordPacks={wordPacks}
                                     isHost={me.isHost}
-                                    onUpdateSettings={(updates) =>
-                                        safeExecute(async () => await updateSettings({ ...settings, ...updates }))
+                                    onUpdateRules={(updates) =>
+                                        safeExecute(async () => await updateRules({ ...rules, ...updates }))
+                                    }
+                                    onUpdateWordPacks={(packs) =>
+                                        safeExecute(async () => await updateWordPacks(packs))
                                     }
                                 />
                             )}

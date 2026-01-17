@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
-    RoomStatus,
     type SpyPlayerDto,
-    type SpyRoomGameSettingsDto,
+    type SpyGameRulesDto,
+    type SpyGameWordPacksDto,
     type SpyGameStateDto,
-    type ChatMessageDto,
     type SpyGameEndReason,
-    type SpyGameTeam,
+    type SpyGameTeam, type SpyRevealDto,
 } from '../../models/spy-game';
 import { SpySignalRService } from "../../api/spy-signal-r-service";
+import {type ChatMessageDto, RoomStatus} from "../../models/shared.ts";
 
 const SESSION_KEYS = {
     ROOM: 'hive_room',
@@ -18,7 +18,8 @@ const SESSION_KEYS = {
 export interface StateSetters {
     setRoomCode: React.Dispatch<React.SetStateAction<string | null>>;
     setRoomState: React.Dispatch<React.SetStateAction<RoomStatus>>;
-    setSettings: React.Dispatch<React.SetStateAction<SpyRoomGameSettingsDto | null>>;
+    setRules: React.Dispatch<React.SetStateAction<SpyGameRulesDto | null>>;
+    setWordPacks: React.Dispatch<React.SetStateAction<SpyGameWordPacksDto | null>>;
     setPlayers: React.Dispatch<React.SetStateAction<SpyPlayerDto[]>>;
     setMessages: React.Dispatch<React.SetStateAction<ChatMessageDto[]>>;
     setGameState: React.Dispatch<React.SetStateAction<SpyGameStateDto | null>>;
@@ -26,6 +27,7 @@ export interface StateSetters {
     setWinnerTeam: React.Dispatch<React.SetStateAction<SpyGameTeam | null>>;
     setGameEndReason: React.Dispatch<React.SetStateAction<SpyGameEndReason | null>>;
     setGameEndMessage: React.Dispatch<React.SetStateAction<string | null>>;
+    setSpiesReveal: React.Dispatch<React.SetStateAction<SpyRevealDto[]>>;
     setIsReconnecting: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -66,7 +68,8 @@ export function useSpyGameSession({
         stateSetters.setRoomCode(null);
         stateSetters.setMe(null);
         stateSetters.setPlayers([]);
-        stateSetters.setSettings(null);
+        stateSetters.setRules(null);
+        stateSetters.setWordPacks(null);
         stateSetters.setRoomState(RoomStatus.Lobby);
         stateSetters.setGameState(null);
         stateSetters.setWinnerTeam(null);
@@ -88,9 +91,12 @@ export function useSpyGameSession({
 
                 stateSetters.setRoomCode(fullState.roomCode);
                 stateSetters.setRoomState(fullState.status);
-                stateSetters.setSettings(fullState.settings);
+                stateSetters.setRules(fullState.rules);
+                stateSetters.setWordPacks(fullState.wordPacks);
                 stateSetters.setPlayers(fullState.players);
                 stateSetters.setMessages(fullState.messages);
+                stateSetters.setSpiesReveal(fullState.gameState?.spiecsReveal ?? []);
+                stateSetters.setGameEndReason(fullState.gameState?.roundEndReason ?? null);
 
                 if (fullState.gameState) {
                     stateSetters.setGameState({ ...fullState.gameState });
@@ -102,6 +108,7 @@ export function useSpyGameSession({
                 if (myPlayer) stateSetters.setMe(myPlayer);
 
                 saveSession(fullState.roomCode, savedPlayer);
+                console.log(fullState)
                 console.log("[Session] Reconnect success");
             } catch (error) {
                 console.warn("[Session] Reconnect failed. Clearing session.", error);

@@ -1,44 +1,59 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
 import { Modal } from '../../../../components/ui/Modal/Modal';
-import type { SpyRoomGameSettingsDto, WordsCategoryDto } from '../../../../models/spy-game';
+import type { SpyGameRulesDto, SpyGameWordPacksDto, WordsCategoryDto } from '../../../../models/spy-game';
+
+const PROJECT_CONSTANTS = {
+    SPY_GAME: {
+        MAX_PLAYERS_COUNT: 8,
+        MAX_GAME_DURATION_MINUTES: 10,
+        MIN_GAME_DURATION_MINUTES: 1,
+        MAX_CUSTOM_CATEGORIES_COUNT: 10,
+        MAX_WORD_IN_CATEGORY_LENGTH: 30,
+    }
+};
 
 interface LobbySettingsProps {
-    settings: SpyRoomGameSettingsDto;
+    rules: SpyGameRulesDto;
+    wordPacks: SpyGameWordPacksDto;
     isHost: boolean;
-    onUpdateSettings: (updates: Partial<SpyRoomGameSettingsDto>) => void;
+    onUpdateRules: (updates: Partial<SpyGameRulesDto>) => void;
+    onUpdateWordPacks: (packs: SpyGameWordPacksDto) => void;
 }
 
-export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySettingsProps) => {
+export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdateWordPacks }: LobbySettingsProps) => {
     const [isCatModalOpen, setCatModalOpen] = useState(false);
+    const [isViewCatModalOpen, setViewCatModalOpen] = useState(false);
+    const [viewingCategory, setViewingCategory] = useState<WordsCategoryDto | null>(null);
     const [editingCatName, setEditingCatName] = useState('');
     const [editingCatWords, setEditingCatWords] = useState<string[]>([]);
     const [editingOriginalName, setEditingOriginalName] = useState<string | null>(null);
     const [newWordInput, setNewWordInput] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const modifyNumber = (
-        key: keyof SpyRoomGameSettingsDto,
+        key: keyof SpyGameRulesDto,
         delta: number,
         minLimit: number,
         maxLimit: number
     ) => {
         if (!isHost) return;
 
-        const currentValue = settings[key];
+        const currentValue = rules[key];
         if (typeof currentValue !== 'number') return;
 
         let nextValue = currentValue + delta;
         nextValue = Math.max(minLimit, Math.min(maxLimit, nextValue));
 
-        if (key === 'minSpiesCount' && nextValue > settings.maxSpiesCount) {
-            nextValue = settings.maxSpiesCount;
+        if (key === 'minSpiesCount' && nextValue > rules.maxSpiesCount) {
+            nextValue = rules.maxSpiesCount;
         }
-        if (key === 'maxSpiesCount' && nextValue < settings.minSpiesCount) {
-            nextValue = settings.minSpiesCount;
+        if (key === 'maxSpiesCount' && nextValue < rules.minSpiesCount) {
+            nextValue = rules.minSpiesCount;
         }
 
         if (nextValue !== currentValue) {
-            onUpdateSettings({ [key]: nextValue });
+            onUpdateRules({ [key]: nextValue });
         }
     };
 
@@ -56,16 +71,28 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
         setCatModalOpen(true);
     };
 
+    const openViewCategory = (cat: WordsCategoryDto) => {
+        setViewingCategory(cat);
+        setViewCatModalOpen(true);
+    };
+
     const handleDeleteCategory = (nameToRemove: string) => {
-        if (!isHost || !confirm(`Delete category "${nameToRemove}"?`)) return;
-        const newCats = settings.customCategories.filter(c => c.name !== nameToRemove);
-        onUpdateSettings({ customCategories: newCats });
+        if (!isHost || !confirm(`Видалити категорію "${nameToRemove}"?`)) return;
+        const newCats = wordPacks.customCategories.filter(c => c.name !== nameToRemove);
+        onUpdateWordPacks({ customCategories: newCats });
     };
 
     const handleAddWordToBuffer = () => {
         if (!newWordInput.trim()) return;
-        if (editingCatWords.includes(newWordInput.trim())) return;
-        setEditingCatWords([...editingCatWords, newWordInput.trim()]);
+        const word = newWordInput.trim();
+
+        if (word.length > PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH) {
+            alert(`Слово занадто довге (макс. ${PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH} символів)`);
+            return;
+        }
+
+        if (editingCatWords.includes(word)) return;
+        setEditingCatWords([...editingCatWords, word]);
         setNewWordInput('');
     };
 
@@ -74,10 +101,14 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
     };
 
     const handleSaveCategory = () => {
-        if (!editingCatName.trim()) return alert("Category name required");
-        if (editingCatWords.length < 3) return alert("Add at least 3 words");
+        if (!editingCatName.trim()) return alert("Введіть назву категорії");
+        if (editingCatWords.length < 3) return alert("Додайте щонайменше 3 слова");
 
-        let newCategories = [...settings.customCategories];
+        if (wordPacks.customCategories.length >= PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT && !editingOriginalName) {
+            return alert(`Максимум ${PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT} категорій`);
+        }
+
+        let newCategories = [...wordPacks.customCategories];
 
         if (editingOriginalName) {
             newCategories = newCategories.map(c =>
@@ -87,13 +118,92 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
             );
         } else {
             if (newCategories.some(c => c.name.toLowerCase() === editingCatName.toLowerCase())) {
-                return alert("Category already exists");
+                return alert("Категорія з такою назвою вже існує");
             }
             newCategories.push({ name: editingCatName, words: editingCatWords });
         }
 
-        onUpdateSettings({ customCategories: newCategories });
+        onUpdateWordPacks({ customCategories: newCategories });
         setCatModalOpen(false);
+    };
+
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.txt')) {
+            alert('Будь ласка, виберіть TXT файл');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target?.result as string;
+                const parsedCategories = parseWordsFile(content);
+
+                if (parsedCategories.length === 0) {
+                    alert('Не знайдено категорій у файлі');
+                    return;
+                }
+
+                const totalCategories = wordPacks.customCategories.length + parsedCategories.length;
+                if (totalCategories > PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT) {
+                    alert(`Перевищено ліміт категорій (макс. ${PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT})`);
+                    return;
+                }
+
+                const newCategories = [...wordPacks.customCategories];
+                let addedCount = 0;
+
+                for (const cat of parsedCategories) {
+                    if (newCategories.some(c => c.name.toLowerCase() === cat.name.toLowerCase())) {
+                        continue; // Skip duplicates
+                    }
+                    newCategories.push(cat);
+                    addedCount++;
+                }
+
+                if (addedCount > 0) {
+                    onUpdateWordPacks({ customCategories: newCategories });
+                    alert(`Додано ${addedCount} категорій`);
+                } else {
+                    alert('Всі категорії з файлу вже існують');
+                }
+            } catch (error) {
+                alert('Помилка читання файлу. Перевірте формат.');
+                console.error(error);
+            }
+        };
+        reader.readAsText(file);
+
+        // Reset input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const parseWordsFile = (content: string): WordsCategoryDto[] => {
+        const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+        const categories: WordsCategoryDto[] = [];
+
+        for (const line of lines) {
+            if (!line.includes(':')) continue;
+
+            const [categoryName, wordsStr] = line.split(':').map(s => s.trim());
+            if (!categoryName || !wordsStr) continue;
+
+            const words = wordsStr
+                .split(',')
+                .map(w => w.trim())
+                .filter(w => w.length > 0 && w.length <= PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH);
+
+            if (words.length >= 3) {
+                categories.push({ name: categoryName, words });
+            }
+        }
+
+        return categories;
     };
 
     return (
@@ -104,15 +214,40 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                     <div className="setting-control">
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('timerMinutes', -1, 1, 30)}
+                            onClick={() => modifyNumber('timerMinutes', -1,
+                                PROJECT_CONSTANTS.SPY_GAME.MIN_GAME_DURATION_MINUTES,
+                                PROJECT_CONSTANTS.SPY_GAME.MAX_GAME_DURATION_MINUTES)}
                             disabled={!isHost}
                         >
                             -
                         </button>
-                        <span className="val-display">{settings.timerMinutes}</span>
+                        <span className="val-display">{rules.timerMinutes}</span>
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('timerMinutes', 1, 1, 30)}
+                            onClick={() => modifyNumber('timerMinutes', 1,
+                                PROJECT_CONSTANTS.SPY_GAME.MIN_GAME_DURATION_MINUTES,
+                                PROJECT_CONSTANTS.SPY_GAME.MAX_GAME_DURATION_MINUTES)}
+                            disabled={!isHost}
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <div className="setting-item">
+                    <span>Макс. гравців</span>
+                    <div className="setting-control">
+                        <button
+                            className="btn-mini"
+                            onClick={() => modifyNumber('maxPlayersCount', -1, 3, PROJECT_CONSTANTS.SPY_GAME.MAX_PLAYERS_COUNT)}
+                            disabled={!isHost}
+                        >
+                            -
+                        </button>
+                        <span className="val-display">{rules.maxPlayersCount}</span>
+                        <button
+                            className="btn-mini"
+                            onClick={() => modifyNumber('maxPlayersCount', 1, 3, PROJECT_CONSTANTS.SPY_GAME.MAX_PLAYERS_COUNT)}
                             disabled={!isHost}
                         >
                             +
@@ -125,15 +260,15 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                     <div className="setting-control">
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('minSpiesCount', -1, 0, 7)}
+                            onClick={() => modifyNumber('minSpiesCount', -1, 1, rules.maxSpiesCount)}
                             disabled={!isHost}
                         >
                             -
                         </button>
-                        <span className="val-display">{settings.minSpiesCount}</span>
+                        <span className="val-display">{rules.minSpiesCount}</span>
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('minSpiesCount', 1, 1, 8)}
+                            onClick={() => modifyNumber('minSpiesCount', 1, 1, rules.maxSpiesCount)}
                             disabled={!isHost}
                         >
                             +
@@ -146,15 +281,15 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                     <div className="setting-control">
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('maxSpiesCount', -1, 1, 5)}
+                            onClick={() => modifyNumber('maxSpiesCount', -1, rules.minSpiesCount, 5)}
                             disabled={!isHost}
                         >
                             -
                         </button>
-                        <span className="val-display">{settings.maxSpiesCount}</span>
+                        <span className="val-display">{rules.maxSpiesCount}</span>
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('maxSpiesCount', 1, 1, 5)}
+                            onClick={() => modifyNumber('maxSpiesCount', 1, rules.minSpiesCount, 5)}
                             disabled={!isHost}
                         >
                             +
@@ -167,8 +302,8 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                     <label className="switch">
                         <input
                             type="checkbox"
-                            checked={settings.spiesKnowEachOther}
-                            onChange={(e) => onUpdateSettings({ spiesKnowEachOther: e.target.checked })}
+                            checked={rules.isSpiesKnowEachOther}
+                            onChange={(e) => onUpdateRules({ isSpiesKnowEachOther: e.target.checked })}
                             disabled={!isHost}
                         />
                         <span className="slider"></span>
@@ -176,12 +311,25 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                 </div>
 
                 <div className="setting-item">
-                    <span>Категорія для шпигунів</span>
+                    <span>Шпигуни бачать категорію</span>
                     <label className="switch">
                         <input
                             type="checkbox"
-                            checked={settings.showCategoryToSpy}
-                            onChange={(e) => onUpdateSettings({ showCategoryToSpy: e.target.checked })}
+                            checked={rules.isShowCategoryToSpy}
+                            onChange={(e) => onUpdateRules({ isShowCategoryToSpy: e.target.checked })}
+                            disabled={!isHost}
+                        />
+                        <span className="slider"></span>
+                    </label>
+                </div>
+
+                <div className="setting-item">
+                    <span>Шпигуни грають командою</span>
+                    <label className="switch">
+                        <input
+                            type="checkbox"
+                            checked={rules.isSpiesPlayAsTeam}
+                            onChange={(e) => onUpdateRules({ isSpiesPlayAsTeam: e.target.checked })}
                             disabled={!isHost}
                         />
                         <span className="slider"></span>
@@ -193,9 +341,9 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                         <span>📚 Категорії слів</span>
                     </div>
                     <div className="category-list">
-                        {settings.customCategories.map((cat, idx) => (
+                        {wordPacks.customCategories.map((cat, idx) => (
                             <div key={idx} className="category-item">
-                                <div>
+                                <div className="cat-info" onClick={() => openViewCategory(cat)} style={{ cursor: 'pointer' }}>
                                     <span className="cat-name">{cat.name}</span>
                                     <span className="cat-count">({cat.words.length})</span>
                                 </div>
@@ -211,22 +359,41 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                                 )}
                             </div>
                         ))}
-                        {settings.customCategories.length === 0 && (
+                        {wordPacks.customCategories.length === 0 && (
                             <div className="empty-categories-msg">Немає категорій</div>
                         )}
                     </div>
 
                     {isHost && (
-                        <div className="add-category-btn-wrapper">
+                        <div className="category-actions-wrapper">
                             <Button size="small" variant="secondary" fullWidth onClick={openAddCategory}>
                                 + Додати категорію
                             </Button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".txt"
+                                onChange={handleFileUpload}
+                                style={{ display: 'none' }}
+                            />
+                            <Button
+                                size="small"
+                                variant="secondary"
+                                fullWidth
+                                onClick={() => fileInputRef.current?.click()}
+                                className="mt-1"
+                            >
+                                📁 Завантажити з файлу
+                            </Button>
+                            <div className="file-format-hint">
+                                Формат: категорія: слово1, слово2, слово3
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Edit Category Modal */}
+            {/* Edit/Add Category Modal */}
             <Modal
                 isOpen={isCatModalOpen}
                 onClose={() => setCatModalOpen(false)}
@@ -248,6 +415,7 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                                 value={newWordInput}
                                 onChange={(e) => setNewWordInput(e.target.value)}
                                 placeholder="Нове слово..."
+                                maxLength={PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH}
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddWordToBuffer()}
                             />
                             <Button size="small" onClick={handleAddWordToBuffer}>+</Button>
@@ -265,6 +433,28 @@ export const LobbySettings = ({ settings, isHost, onUpdateSettings }: LobbySetti
                     <div className="modal-actions">
                         <Button variant="secondary" onClick={() => setCatModalOpen(false)}>Скасувати</Button>
                         <Button onClick={handleSaveCategory}>Зберегти</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* View Category Modal */}
+            <Modal
+                isOpen={isViewCatModalOpen}
+                onClose={() => setViewCatModalOpen(false)}
+                title={viewingCategory?.name || 'Категорія'}
+            >
+                <div className="view-category-content">
+                    <div className="words-view-grid">
+                        {viewingCategory?.words.map((word, idx) => (
+                            <div key={idx} className="word-view-chip">
+                                {word}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="modal-actions">
+                        <Button variant="secondary" fullWidth onClick={() => setViewCatModalOpen(false)}>
+                            Закрити
+                        </Button>
                     </div>
                 </div>
             </Modal>

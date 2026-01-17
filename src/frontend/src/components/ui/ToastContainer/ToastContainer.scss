@@ -1,0 +1,40 @@
+@use '../../../styles/variables' as *;
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  animation: slideDown 0.3s ease;
+
+  &__message {
+    background: linear-gradient(135deg, $color-spy-primary, $color-spy-dark);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: 250px;
+    text-align: center;
+
+    @media (max-width: 768px) {
+      font-size: 14px;
+      padding: 12px 24px;
+      min-width: 200px;
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

@@ -75,7 +75,7 @@
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 20px;
-  height: calc(100vh - 180px); // Фіксована висота (100vh - header - paddings)
+  height: calc(100vh - 180px);
   min-height: 600px;
 
   @media (max-width: 1100px) {
@@ -84,7 +84,7 @@
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    height: auto; // На мобілках авто-висота
+    height: auto;
     min-height: 0;
   }
 }
@@ -96,13 +96,13 @@
   border: 1px solid rgba($color-spy-primary, 0.2);
   display: flex;
   flex-direction: column;
-  overflow: hidden; // Важливо для правильного скролу
+  overflow: hidden;
 }
 
 // --- Left Panel: Players ---
 .players-panel {
   padding: 30px;
-  height: 100%; // Займає всю висоту grid
+  height: 100%;
 
   @media (max-width: 900px) {
     height: auto;
@@ -120,7 +120,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-shrink: 0; // Не стискається
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
     font-size: 18px;
@@ -132,8 +132,8 @@
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 15px;
   margin-bottom: 20px;
-  overflow-y: auto; // Скрол якщо багато гравців
-  flex: 1; // Займає весь доступний простір
+  overflow-y: auto;
+  flex: 1;
   padding-right: 5px;
 
   &::-webkit-scrollbar {
@@ -313,7 +313,7 @@
   margin-top: auto;
   padding-top: 20px;
   border-top: 1px solid rgba(255,255,255,0.1);
-  flex-shrink: 0; // Не стискається
+  flex-shrink: 0;
 
   .mt-2 {
     margin-top: 10px;
@@ -330,7 +330,7 @@
 // --- Right Panel: Sidebar (Tabs) ---
 .sidebar-panel {
   padding: 0;
-  height: 100%; // Займає всю висоту grid
+  height: 100%;
 
   @media (max-width: 900px) {
     height: auto;
@@ -343,7 +343,7 @@
   display: flex;
   background: rgba(0,0,0,0.2);
   border-bottom: 1px solid rgba($color-spy-primary, 0.2);
-  flex-shrink: 0; // Не стискається
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -377,6 +377,7 @@
     height: 8px;
     background: $color-spy-success;
     border-radius: 50%;
+    animation: pulse 2s infinite;
   }
 
   @media (max-width: 768px) {
@@ -385,18 +386,23 @@
   }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
 .sidebar-content {
-  flex: 1; // Займає весь доступний простір
+  flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 0; // Важливо для flex child з overflow
+  min-height: 0;
 }
 
 // --- Tab: Settings Content ---
 .settings-container {
   padding: 20px;
-  overflow-y: auto; // Скрол при переповненні
+  overflow-y: auto;
   flex: 1;
 
   &::-webkit-scrollbar {
@@ -554,6 +560,12 @@
     background: rgba(0,0,0,0.4);
   }
 
+  .cat-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
   .cat-name {
     font-weight: 500;
   }
@@ -603,8 +615,23 @@
   font-size: 0.8rem;
 }
 
-.add-category-btn-wrapper {
+.category-actions-wrapper {
   margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .mt-1 {
+    margin-top: 4px;
+  }
+}
+
+.file-format-hint {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  text-align: center;
+  margin-top: 5px;
+  font-style: italic;
 }
 
 // --- Tab: Chat Content ---
@@ -708,6 +735,42 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
+}
+
+// View Category Modal
+.view-category-content {
+  .words-view-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    margin-bottom: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+  }
+
+  .word-view-chip {
+    background: $color-spy-panel-light;
+    border: 1px solid rgba($color-spy-primary, 0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    text-align: center;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba($color-spy-primary, 0.1);
+      border-color: $color-spy-primary;
+    }
+  }
 }
 
 // Avatar Selection

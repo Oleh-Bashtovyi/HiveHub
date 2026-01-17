@@ -7,6 +7,7 @@ import type { SpyPlayerDto } from '../../../../models/spy-game';
 interface PlayersPanelProps {
     players: SpyPlayerDto[];
     me: SpyPlayerDto;
+    maxPlayersCount: number;
     isHost: boolean;
     isReady: boolean;
     allReady: boolean;
@@ -21,6 +22,7 @@ interface PlayersPanelProps {
 export const PlayersPanel = ({
                                  players,
                                  me,
+                                 maxPlayersCount,
                                  isHost,
                                  isReady,
                                  allReady,
@@ -40,7 +42,7 @@ export const PlayersPanel = ({
     };
 
     const handleSaveName = () => {
-        if (!tempName.trim()) return alert("Name cannot be empty");
+        if (!tempName.trim()) return alert("Ім'я не може бути порожнім");
         if (tempName === me.name) return;
         onChangeName(tempName.trim());
     };
@@ -50,10 +52,12 @@ export const PlayersPanel = ({
         onChangeAvatar(avatarId);
     };
 
+    const emptySlots = Math.max(0, maxPlayersCount - players.length);
+
     return (
         <div className="section-panel players-panel">
             <div className="section-title">
-                👥 Гравці ({players.length})
+                👥 Гравці ({players.length}/{maxPlayersCount})
             </div>
 
             <div className="player-grid">
@@ -110,7 +114,7 @@ export const PlayersPanel = ({
                     </div>
                 ))}
 
-                {Array.from({ length: Math.max(0, 8 - players.length) }).map((_, i) => (
+                {Array.from({ length: emptySlots }).map((_, i) => (
                     <div key={`empty-${i}`} className="player-card empty-slot">
                         <div className="player-avatar avatar-placeholder">❓</div>
                         <div className="player-name">Очікування...</div>
@@ -148,7 +152,7 @@ export const PlayersPanel = ({
                                     value={tempName}
                                     onChange={(e) => setTempName(e.target.value)}
                                     placeholder="Введіть ім'я"
-                                    maxLength={15}
+                                    maxLength={50}
                                 />
                             </div>
                             <Button size="small" onClick={handleSaveName}>Зберегти</Button>

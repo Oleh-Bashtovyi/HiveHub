@@ -1,13 +1,12 @@
 import * as signalR from "@microsoft/signalr";
 import { type SpyHubEvent, SpyHubMethods, SpyHubEvents } from "../const/spy-game-events";
 import type {
-    ApiResponse,
-    SpyRoomGameSettingsDto,
     CreateRoomResponseDto,
     JoinRoomResponseDto,
-    SpyGameEventMap,
+    SpyGameEventMap, SpyGameRulesDto, SpyGameWordPacksDto,
     SpyRoomStateDto
 } from "../models/spy-game";
+import type {ApiResponse} from "../models/shared.ts";
 
 type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => void;
 
@@ -120,8 +119,12 @@ export class SpySignalRService {
         return this.invoke<void>(SpyHubMethods.KickPlayer, roomCode, targetPlayerId);
     }
 
-    public async updateSettings(roomCode: string, settings: SpyRoomGameSettingsDto) {
-        return this.invoke<void>(SpyHubMethods.UpdateSettings, roomCode, settings);
+    public async updateRules(roomCode: string, rules: SpyGameRulesDto) {
+        return this.invoke<void>(SpyHubMethods.UpdateRules, roomCode, rules);
+    }
+
+    public async updateWordPacks(roomCode: string, packs: SpyGameWordPacksDto) {
+        return this.invoke<void>(SpyHubMethods.UpdateWordPacks, roomCode, packs);
     }
 
     public async returnToLobby(roomCode: string) {
@@ -144,7 +147,7 @@ export class SpySignalRService {
         return this.invoke<void>(SpyHubMethods.StartAccusation, roomCode, targetPlayerId);
     }
 
-    public async vote(roomCode: string, targetPlayerId: string, voteType: string | null) {
+    public async vote(roomCode: string, targetPlayerId: string | null, voteType: string | null) {
         const voteTypeString = voteType?.toString();
 
         console.log("Sending Vote:", { roomCode, targetPlayerId, voteTypeString });

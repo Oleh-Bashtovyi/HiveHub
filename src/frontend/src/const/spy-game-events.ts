@@ -15,6 +15,8 @@ export const SpyHubMethods = {
     SendMessage: "SendMessage",
     VoteStopTimer: "VoteStopTimer",
     StartAccusation: "StartAccusation",
+    UpdateRules: "UpdateRules",
+    UpdateWordPacks: "UpdateWordPacks",
     Vote: "Vote",
     MakeGuess: "MakeGuess"
 } as const;
@@ -28,7 +30,8 @@ export const SpyHubEvents = {
     PlayerReadyStatusChanged: "PlayerReadyStatusChanged",
     PlayerChangedAvatar: "PlayerChangedAvatar",
     HostChanged: "HostChanged",
-    GameSettingsUpdated: "GameSettingsUpdated",
+    WordPacksChanged: "WordPacksChanged",
+    RulesChanged: "RulesChanged",
     GameStarted: "GameStarted",
     ChatMessageReceived: "ChatMessageReceived",
     TimerVoteUpdated: "TimerVoteUpdated",
@@ -39,6 +42,7 @@ export const SpyHubEvents = {
     VotingResult: "VotingResult",
     GameEnded: "GameEnded",
     RoundTimerStateChanged: "RoundTimerStateChanged",
+    SpyMadeGuess: "SpyMadeGuess"
 } as const;
 
 export type SpyHubMethod = typeof SpyHubMethods[keyof typeof SpyHubMethods];
