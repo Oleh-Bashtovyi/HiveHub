@@ -5,10 +5,11 @@ import {
     type SpyGameWordPacksDto,
     type SpyGameStateDto,
     type SpyGameEndReason,
-    type SpyGameTeam, type SpyRevealDto,
+    type SpyGameTeam,
+    type SpyRevealDto,
 } from '../../models/spy-game';
 import { SpySignalRService } from "../../api/spy-signal-r-service";
-import {type ChatMessageDto, RoomStatus} from "../../models/shared.ts";
+import { type ChatMessageDto, RoomStatus } from "../../models/shared";
 
 const SESSION_KEYS = {
     ROOM: 'hive_room',
@@ -75,6 +76,7 @@ export function useSpyGameSession({
         stateSetters.setWinnerTeam(null);
         stateSetters.setGameEndReason(null);
         stateSetters.setGameEndMessage(null);
+        stateSetters.setSpiesReveal([]);
     }, [stateSetters]);
 
     const reconnect = useCallback(async (svc: SpySignalRService) => {
@@ -109,7 +111,6 @@ export function useSpyGameSession({
                 if (myPlayer) stateSetters.setMe(myPlayer);
 
                 saveSession(fullState.roomCode, savedPlayer);
-                console.log(fullState)
                 console.log("[Session] Reconnect success");
             } catch (error) {
                 console.warn("[Session] Reconnect failed. Clearing session.", error);
@@ -135,7 +136,6 @@ export function useSpyGameSession({
         setIsConnecting(false);
     }, [isConnected, isConnecting, reconnect, setIsConnecting, setIsConnected]);
 
-    // Bootstrap: connect and try to reconnect on mount
     useEffect(() => {
         if (isInitialized.current) return;
         isInitialized.current = true;

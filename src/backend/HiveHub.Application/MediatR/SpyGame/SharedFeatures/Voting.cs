@@ -62,6 +62,13 @@ public static class Voting
 
         if (yesVotes >= requiredVotes)
         {
+            // Голосування успішне
+            context.AddEvent(new VotingCompletedEventDto(
+                RoomCode: room.RoomCode,
+                IsSuccess: true,
+                VotingType: SpyVotingType.Accusation,
+                ResultMessage: "Vote passed"));
+
             PlayerKick.HandlePlayerKick(room, context, accState.TargetId);
             return true;
         }
@@ -71,17 +78,19 @@ public static class Voting
 
         if (isTimeUp || isImpossibleToWin)
         {
-            room.GameState.CurrentPhase = SpyGamePhase.Search;
-
-            context.AddEvent(new VotingResultEventDto(
+            // Голосування провалилося
+            context.AddEvent(new VotingCompletedEventDto(
                 RoomCode: room.RoomCode,
                 IsSuccess: false,
-                CurrentGamePhase: SpyGamePhase.Search,
-                ResultMessage: isTimeUp ? "Voting time expired." : "Not enough votes. Game resumes.",
-                AccusedId: accState.TargetId,
-                IsAccusedSpy: null,
-                AccusedSpyName: null,
-                LastChanceEndsAt: null));
+                VotingType: SpyVotingType.Accusation,
+                ResultMessage: isTimeUp ? "Voting time expired" : "Not enough votes"));
+
+            room.GameState.CurrentPhase = SpyGamePhase.Search;
+
+            context.AddEvent(new GamePhaseChangedEventDto(
+                RoomCode: room.RoomCode,
+                NewPhase: SpyGamePhase.Search,
+                PreviousPhase: SpyGamePhase.Accusation));
 
             RoundTimer.ResumeGameTimer(room, context);
             return true;
@@ -115,6 +124,12 @@ public static class Voting
 
         if (totalSkips == totalPlayers)
         {
+            context.AddEvent(new VotingCompletedEventDto(
+                RoomCode: room.RoomCode,
+                IsSuccess: false,
+                VotingType: SpyVotingType.Final,
+                ResultMessage: "Everyone skipped"));
+
             if (room.IsParanoyaMode())
             {
                 RoundEnd.EndGame(
@@ -138,6 +153,12 @@ public static class Voting
 
         if (!validVotes.Any() || validVotes.First().Count() < requiredVotes)
         {
+            context.AddEvent(new VotingCompletedEventDto(
+                RoomCode: room.RoomCode,
+                IsSuccess: false,
+                VotingType: SpyVotingType.Final,
+                ResultMessage: "Consensus not reached"));
+
             RoundEnd.EndGame(
                 room,
                 SpyTeam.Spies,
@@ -148,6 +169,13 @@ public static class Voting
         }
 
         var targetId = validVotes.First().Key;
+
+        context.AddEvent(new VotingCompletedEventDto(
+            RoomCode: room.RoomCode,
+            IsSuccess: true,
+            VotingType: SpyVotingType.Final,
+            ResultMessage: "Vote passed"));
+
         PlayerKick.HandlePlayerKick(room, context, targetId);
         return true;
     }

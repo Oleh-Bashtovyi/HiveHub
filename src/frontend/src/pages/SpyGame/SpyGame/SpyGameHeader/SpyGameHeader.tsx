@@ -1,7 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
 import { TimerStatus } from '../../../../models/spy-game';
 import './SpyGameHeader.scss';
-import {useEffect, useState} from "react";
 
 interface SpyGameHeaderProps {
     roomCode: string;
@@ -24,10 +24,12 @@ export const SpyGameHeader = ({
                               }: SpyGameHeaderProps) => {
     const [localSeconds, setLocalSeconds] = useState(remainingSeconds);
 
+    // Sync with backend time whenever it pushes an update
     useEffect(() => {
         setLocalSeconds(remainingSeconds);
     }, [remainingSeconds]);
 
+    // Local countdown
     useEffect(() => {
         if (timerStatus !== TimerStatus.Running) return;
 
@@ -39,7 +41,6 @@ export const SpyGameHeader = ({
     }, [timerStatus]);
 
     const formatTime = (sec: number) => {
-        // Round down to remove decimals
         const val = Math.floor(sec);
         const m = Math.floor(val / 60);
         const s = val % 60;
@@ -49,15 +50,21 @@ export const SpyGameHeader = ({
     const isRunning = timerStatus === TimerStatus.Running;
     const isPaused = timerStatus === TimerStatus.Paused;
     const isStopped = timerStatus === TimerStatus.Stopped;
+    const isExpired = timerStatus === 'Expired'; // Check against string literal if needed or enum
 
     const showWarning = localSeconds < 60 && isRunning;
+
+    let statusText = formatTime(localSeconds);
+    if (isPaused) statusText = "ПАУЗА";
+    if (isStopped) statusText = "ЗУПИНЕНО";
+    if (isExpired) statusText = "00:00";
 
     return (
         <div className="spy-game-header">
             <div className="spy-game-header__timer-section">
                 <div className="spy-game-header__timer-wrapper">
                     <div className={`spy-game-header__timer-display ${showWarning ? 'warning' : ''} ${!isRunning ? 'paused' : ''}`}>
-                        {isStopped || isPaused ? "PAUSED" : formatTime(localSeconds)}
+                        {statusText}
                     </div>
                     <div className="spy-game-header__timer-label">
                         {isStopped || isPaused ? "Таймер зупинено" : "Залишилось часу"}

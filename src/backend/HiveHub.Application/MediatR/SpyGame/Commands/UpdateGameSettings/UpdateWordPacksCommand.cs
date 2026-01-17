@@ -62,7 +62,7 @@ public class UpdateWordPacksHandler(
                 })
                 .ToList();
 
-            context.AddEvent(new SpyGameWordPacksUpdatedEvent(request.RoomCode, request.Packs));
+            context.AddEvent(new SpyGameWordPacksUpdatedEventDto(request.RoomCode, request.Packs));
 
             return Result.Ok();
         });

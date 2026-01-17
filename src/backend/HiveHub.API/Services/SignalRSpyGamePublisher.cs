@@ -115,12 +115,6 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .VoteCast(eventDto);
     }
 
-    public Task PublishVotingResultAsync(VotingResultEventDto eventDto)
-    {
-        return _hub.Clients.Group(eventDto.RoomCode)
-            .VotingResult(eventDto);
-    }
-
     public Task PublishTimerStateChangedAsync(SpyGameRoundTimerStateChangedEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)
@@ -133,15 +127,46 @@ public class SignalRSpyGamePublisher : ISpyGamePublisher
             .RulesChanged(eventDto);
     }
 
-    public Task PublishWordPacksUpdatedAsync(SpyGameWordPacksUpdatedEvent eventDto)
+    public Task PublishWordPacksUpdatedAsync(SpyGameWordPacksUpdatedEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)
             .WordPacksChanged(eventDto);
     }
 
-    public Task PublishSpyMadeGuessAsync(SpyMadeGuessEventDto eventDto)
+    public Task PublishVotingCompletedAsync(VotingCompletedEventDto eventDto)
     {
         return _hub.Clients.Group(eventDto.RoomCode)
-            .SpyMadeGuess(eventDto);
+            .VotingCompleted(eventDto);
     }
+
+    public Task PublishGamePhaseChangedAsync(GamePhaseChangedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .GamePhaseChanged(eventDto);
+    }
+
+    public Task PublishPlayerEliminatedAsync(PlayerEliminatedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .PlayerEliminated(eventDto);
+    }
+
+    public Task PublishSpyRevealedAsync(SpyRevealedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .SpyRevealed(eventDto);
+    }
+
+    public Task PublishSpyLastChanceStartedAsync(SpyLastChanceStartedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .SpyLastChanceStarted(eventDto);
+    }
+
+    public Task PublishSpyGuessAttemptedAsync(SpyGuessAttemptedEventDto eventDto)
+    {
+        return _hub.Clients.Group(eventDto.RoomCode)
+            .SpyGuessAttempted(eventDto);
+    }
+
 }

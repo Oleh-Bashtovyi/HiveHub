@@ -70,8 +70,12 @@ public class VoteHandler(
                 context.AddEvent(new VoteCastEventDto(
                     RoomCode: request.RoomCode,
                     VoterId: voterId,
+                    VoterName: voter.Name,
                     TargetVoteType: request.VoteType,
-                    AgainstPlayerId: accusationState.TargetId));
+                    AgainstPlayerId: accusationState.TargetId,
+                    CurrentVotes: accusationState.Votes.Count,
+                    RequiredVotes: room.GetMajorityRequiredVotes()
+                ));
             }
             else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote &&
                      room.GameState.ActiveVoting is GeneralVotingState finalState)
@@ -100,7 +104,10 @@ public class VoteHandler(
                 context.AddEvent(new VoteCastEventDto(
                     RoomCode: request.RoomCode,
                     VoterId: voterId,
+                    VoterName: voter.Name,
                     TargetVoteType: null,
+                    CurrentVotes: finalState.Votes.Count,
+                    RequiredVotes: room.GetMajorityRequiredVotes(),
                     AgainstPlayerId: targetId));
             }
             else

@@ -7,22 +7,36 @@ using HiveHub.Application.Publishers;
 using HiveHub.Domain.Models.Shared;
 using HiveHub.Domain.Models.SpyGame;
 
+namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
+
 public static class RoundEnd
 {
     public static void BeginFinalVoting(SpyRoom room, SpyGameEventsContext context)
     {
+        var previousPhase = room.GameState.CurrentPhase;
+
+        // 1. Зупиняємо таймер
         room.GameState.RoundTimerState.Stop();
-        room.GameState.CurrentPhase = SpyGamePhase.FinalVote;
-        room.GameState.CaughtSpyId = null;
 
         context.AddEvent(new CancelTaskEvent(TaskType.SpyGameRoundTimeUp, room.RoomCode, null));
         context.AddEvent(new CancelTaskEvent(TaskType.SpyGameLastChanceTimeUp, room.RoomCode, null));
 
         context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
             RoomCode: room.RoomCode,
-            TimerStatus: room.GameState.RoundTimerState.Status,
-            RemainingSeconds: 0));
+            Status: room.GameState.RoundTimerState.Status,
+            RemainingSeconds: 0,
+            Reason: TimerChangeReason.Stopped));
 
+        // 2. Змінюємо фазу
+        room.GameState.CurrentPhase = SpyGamePhase.FinalVote;
+        room.GameState.CaughtSpyId = null;
+
+        context.AddEvent(new GamePhaseChangedEventDto(
+            RoomCode: room.RoomCode,
+            NewPhase: SpyGamePhase.FinalVote,
+            PreviousPhase: previousPhase));
+
+        // 3. Створюємо голосування
         var votingDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinalVoteDurationSeconds);
 
         room.GameState.ActiveVoting = new GeneralVotingState
@@ -38,7 +52,6 @@ public static class RoundEnd
             TargetId: null,
             TargetName: null,
             VotingType: SpyVotingType.Final,
-            CurrentGamePhase: SpyGamePhase.FinalVote,
             EndsAt: room.GameState.ActiveVoting.VotingEndsAt));
 
         context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null, votingDuration));
@@ -59,6 +72,8 @@ public static class RoundEnd
             RoomCode: room.RoomCode,
             WinnerTeam: winner,
             Reason: reason,
+            Category: room.GameState?.CurrentCategory ?? string.Empty,
+            SecretWord: room.GameState?.CurrentSecretWord ?? string.Empty,
             SpiesReveal: room.GetSpyRevealDto(),
             ReasonMessage: message));
 
@@ -89,7 +104,7 @@ public static class RoundEnd
         // 1v1 scenario with spy
         if (alivePlayers == 2 && aliveSpies >= 1)
         {
-            EndGame(room, SpyTeam.Spies, SpyGameEndReason.RoundTimeExpired, "Spies control the room (1v1).", context);
+            EndGame(room, SpyTeam.Spies, SpyGameEndReason.InsufficientPlayers, "Spies control the room (1v1).", context);
             return;
         }
 

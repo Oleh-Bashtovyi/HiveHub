@@ -1,4 +1,3 @@
-// backend methods
 export const SpyHubMethods = {
     CreateRoom: "CreateRoom",
     JoinRoom: "JoinRoom",
@@ -21,7 +20,6 @@ export const SpyHubMethods = {
     MakeGuess: "MakeGuess"
 } as const;
 
-// backend events
 export const SpyHubEvents = {
     PlayerJoined: "PlayerJoined",
     PlayerLeft: "PlayerLeft",
@@ -30,19 +28,23 @@ export const SpyHubEvents = {
     PlayerReadyStatusChanged: "PlayerReadyStatusChanged",
     PlayerChangedAvatar: "PlayerChangedAvatar",
     HostChanged: "HostChanged",
-    WordPacksChanged: "WordPacksChanged",
     RulesChanged: "RulesChanged",
+    WordPacksChanged: "WordPacksChanged",
     GameStarted: "GameStarted",
     ChatMessageReceived: "ChatMessageReceived",
-    TimerVoteUpdated: "TimerVoteUpdated",
     ReturnedToLobby: "ReturnedToLobby",
-    PlayerConnectionStatusChanged: 'PlayerConnectionStatusChanged',
+    GameEnded: "GameEnded",
+    PlayerConnectionStatusChanged: "PlayerConnectionStatusChanged",
     VotingStarted: "VotingStarted",
     VoteCast: "VoteCast",
-    VotingResult: "VotingResult",
-    GameEnded: "GameEnded",
+    VotingCompleted: "VotingCompleted",
+    TimerVoteUpdated: "TimerVoteUpdated",
     RoundTimerStateChanged: "RoundTimerStateChanged",
-    SpyMadeGuess: "SpyMadeGuess"
+    GamePhaseChanged: "GamePhaseChanged",
+    PlayerEliminated: "PlayerEliminated",
+    SpyRevealed: "SpyRevealed",
+    SpyLastChanceStarted: "SpyLastChanceStarted",
+    SpyGuessAttempted: "SpyGuessAttempted"
 } as const;
 
 export type SpyHubMethod = typeof SpyHubMethods[keyof typeof SpyHubMethods];

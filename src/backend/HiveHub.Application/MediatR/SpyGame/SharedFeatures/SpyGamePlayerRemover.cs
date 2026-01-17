@@ -102,15 +102,17 @@ public static class SpyGamePlayerRemover
                 room.GameState.CurrentPhase = SpyGamePhase.Search;
 
                 context.AddEvent(new CancelTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null));
-                context.AddEvent(new VotingResultEventDto(
+
+                context.AddEvent(new VotingCompletedEventDto(
                     room.RoomCode,
                     false,
-                    SpyGamePhase.Search,
-                    cancelReason,
-                    null,
-                    null,
-                    null,
-                    null));
+                    SpyVotingType.Accusation,
+                    cancelReason));
+
+                context.AddEvent(new GamePhaseChangedEventDto(
+                    RoomCode: room.RoomCode,
+                    NewPhase: SpyGamePhase.Search,
+                    PreviousPhase: SpyGamePhase.Accusation));
 
                 RoundTimer.ResumeGameTimer(room, context);
             }

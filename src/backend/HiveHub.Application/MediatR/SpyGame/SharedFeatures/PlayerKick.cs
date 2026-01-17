@@ -1,10 +1,11 @@
 ﻿using HiveHub.Application.Constants;
 using HiveHub.Application.Dtos.Shared;
 using HiveHub.Application.Dtos.SpyGame;
-using HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Domain.Models.SpyGame;
+
+namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
 
 public static class PlayerKick
 {
@@ -22,8 +23,23 @@ public static class PlayerKick
 
         if (isSpy)
         {
+            // 1. Шпигуна викрито
+            context.AddEvent(new SpyRevealedEventDto(
+                RoomCode: room.RoomCode,
+                SpyId: targetId,
+                SpyName: player.Name));
+
+            // 2. Змінюємо фазу гри
             room.GameState.CurrentPhase = SpyGamePhase.SpyLastChance;
             room.GameState.CaughtSpyId = targetId;
+
+            context.AddEvent(new GamePhaseChangedEventDto(
+                RoomCode: room.RoomCode,
+                NewPhase: SpyGamePhase.SpyLastChance,
+                PreviousPhase: SpyGamePhase.Accusation // або FinalVote
+            ));
+
+            // 3. Запускаємо останній шанс
             var chanceDuration = TimeSpan.FromSeconds(ProjectConstants.SpyGame.FinacGuessingChanceDurationSeconds);
             room.GameState.SpyLastChanceEndsAt = DateTime.UtcNow.Add(chanceDuration);
 
@@ -36,20 +52,25 @@ public static class PlayerKick
                 targetId,
                 chanceDuration));
 
-            context.AddEvent(new VotingResultEventDto(
+            context.AddEvent(new SpyLastChanceStartedEventDto(
                 RoomCode: room.RoomCode,
-                IsSuccess: true,
-                CurrentGamePhase: SpyGamePhase.SpyLastChance,
-                ResultMessage: $"Spy {player.Name} caught! Last chance to guess.",
-                AccusedId: targetId,
-                AccusedSpyName: player.Name,
-                IsAccusedSpy: true,
-                LastChanceEndsAt: room.GameState.SpyLastChanceEndsAt));
+                SpyId: targetId,
+                SpyName: player.Name,
+                EndsAt: room.GameState.SpyLastChanceEndsAt.Value));
         }
         else
         {
+            // 1. Цивільного викинули
             room.EliminatePlayer(targetId);
 
+            context.AddEvent(new PlayerEliminatedEventDto(
+                RoomCode: room.RoomCode,
+                PlayerId: targetId,
+                PlayerName: player.Name,
+                WasSpy: false,
+                Reason: EliminationReason.VotedOut));
+
+            // 2. Перевірка режиму паранойї
             if (room.IsParanoyaMode())
             {
                 RoundEnd.EndGame(
@@ -61,6 +82,7 @@ public static class PlayerKick
                 return;
             }
 
+            // 3. Звичайний режим - шпигуни виграли
             RoundEnd.EndGame(
                 room,
                 SpyTeam.Spies,

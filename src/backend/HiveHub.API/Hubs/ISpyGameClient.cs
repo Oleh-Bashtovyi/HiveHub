@@ -13,16 +13,20 @@ public interface ISpyGameClient
     Task PlayerChangedAvatar(PlayerChangedAvatarEventDto eventDto);
     Task HostChanged(HostChangedEventDto eventDto);
     Task RulesChanged(SpyGameRulesUpdatedEventDto eventDto);
-    Task WordPacksChanged(SpyGameWordPacksUpdatedEvent eventDto);
+    Task WordPacksChanged(SpyGameWordPacksUpdatedEventDto eventDto);
     Task GameStarted(SpyGameStartedEventDto eventDto);
     Task ChatMessageReceived(ChatMessageEventDto eventDto);
-    Task TimerVoteUpdated(PlayerVotedToStopTimerEventDto eventDto);
     Task ReturnedToLobby(ReturnToLobbyEventDto eventDto);
     Task GameEnded(SpyGameEndedEventDto eventDto);
     Task PlayerConnectionStatusChanged(PlayerConnectionChangedEventDto eventDto);
     Task VotingStarted(VotingStartedEventDto eventDto);
     Task VoteCast(VoteCastEventDto eventDto);
-    Task VotingResult(VotingResultEventDto eventDto);
+    Task VotingCompleted(VotingCompletedEventDto eventDto);
+    Task TimerVoteUpdated(PlayerVotedToStopTimerEventDto eventDto);
     Task RoundTimerStateChanged(SpyGameRoundTimerStateChangedEventDto eventDto);
-    Task SpyMadeGuess(SpyMadeGuessEventDto eventDto);
+    Task GamePhaseChanged(GamePhaseChangedEventDto eventDto);
+    Task PlayerEliminated(PlayerEliminatedEventDto eventDto);
+    Task SpyRevealed(SpyRevealedEventDto eventDto);
+    Task SpyLastChanceStarted(SpyLastChanceStartedEventDto eventDto);
+    Task SpyGuessAttempted(SpyGuessAttemptedEventDto eventDto);
 }

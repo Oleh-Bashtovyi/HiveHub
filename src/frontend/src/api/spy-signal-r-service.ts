@@ -3,10 +3,12 @@ import { type SpyHubEvent, SpyHubMethods, SpyHubEvents } from "../const/spy-game
 import type {
     CreateRoomResponseDto,
     JoinRoomResponseDto,
-    SpyGameEventMap, SpyGameRulesDto, SpyGameWordPacksDto,
+    SpyGameEventMap,
+    SpyGameRulesDto,
+    SpyGameWordPacksDto,
     SpyRoomStateDto
 } from "../models/spy-game";
-import type {ApiResponse} from "../models/shared.ts";
+import type { ApiResponse } from "../models/shared";
 
 type SpyEventCallback<T extends SpyHubEvent> = (data: SpyGameEventMap[T]) => void;
 
@@ -149,9 +151,6 @@ export class SpySignalRService {
 
     public async vote(roomCode: string, targetPlayerId: string | null, voteType: string | null) {
         const voteTypeString = voteType?.toString();
-
-        console.log("Sending Vote:", { roomCode, targetPlayerId, voteTypeString });
-
         return this.invoke<void>(SpyHubMethods.Vote, roomCode, targetPlayerId, voteTypeString);
     }
 
@@ -162,7 +161,6 @@ export class SpySignalRService {
     private registerInternalListeners() {
         Object.values(SpyHubEvents).forEach((event) => {
             this.connection?.on(event, (data: unknown) => {
-                console.log(`[SignalR] ${event}:`, data);
                 const handlers = this.callbacks.get(event);
                 if (handlers) {
                     handlers.forEach((cb) => cb(data));

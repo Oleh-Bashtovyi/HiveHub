@@ -137,7 +137,7 @@ export const PlayersPanel = ({
                     </Button>
                 )}
                 {isHost && !allReady && (
-                    <div className="lobby-footer-msg">Всі гравці (мін. 3) мають бути готові</div>
+                    <div className="lobby-footer-msg">Всі гравці мають бути готові</div>
                 )}
             </div>
 

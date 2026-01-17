@@ -5,6 +5,8 @@ using HiveHub.Application.Models;
 using HiveHub.Application.Publishers;
 using HiveHub.Domain.Models.SpyGame;
 
+namespace HiveHub.Application.MediatR.SpyGame.SharedFeatures;
+
 public static class RoundTimer
 {
     public static void CheckAndResolveTimerStop(SpyRoom room, SpyGameEventsContext context)
@@ -37,9 +39,10 @@ public static class RoundTimer
                 Delay: TimeSpan.FromSeconds(remaining)));
 
             context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
-                 RoomCode: room.RoomCode,
-                 TimerStatus: room.GameState.RoundTimerState.Status,
-                 RemainingSeconds: remaining));
+                RoomCode: room.RoomCode,
+                Status: room.GameState.RoundTimerState.Status,
+                RemainingSeconds: remaining,
+                Reason: TimerChangeReason.Resumed));
         }
     }
 

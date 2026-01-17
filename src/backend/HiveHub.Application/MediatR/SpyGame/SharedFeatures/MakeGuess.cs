@@ -18,15 +18,16 @@ public static class MakeGuess
             throw new Exception("Player not found");
         }
 
-        context.AddEvent(new SpyMadeGuessEventDto(
+        // 1. Спочатку повідомляємо про спробу вгадування
+        context.AddEvent(new SpyGuessAttemptedEventDto(
             RoomCode: room.RoomCode,
-            PlayerId: playerId,
-            Word: guessWord ?? string.Empty,
-            IsGuessCorrect: isGuessCorrect,
-            IsSpyDead: player.PlayerState.IsDead));
+            SpyId: playerId,
+            GuessedWord: guessWord ?? string.Empty,
+            IsCorrect: isGuessCorrect));
 
         if (isGuessCorrect)
         {
+            // 2. Шпигун вгадав - гра закінчується
             RoundEnd.EndGame(
                 room,
                 SpyTeam.Spies,
@@ -36,8 +37,17 @@ public static class MakeGuess
             return;
         }
 
+        // 3. Неправильне вгадування - елімінація шпигуна
         room.EliminatePlayer(playerId);
 
+        context.AddEvent(new PlayerEliminatedEventDto(
+            RoomCode: room.RoomCode,
+            PlayerId: playerId,
+            PlayerName: player.Name,
+            WasSpy: true,
+            Reason: EliminationReason.FailedGuess));
+
+        // 4. Перевірка: якщо команда шпигунів програє разом
         if (room.GameSettings.SpiesPlayAsTeam)
         {
             RoundEnd.EndGame(
@@ -49,6 +59,7 @@ public static class MakeGuess
             return;
         }
 
+        // 5. Перевірка: чи залишилися живі шпигуни
         var activeSpies = room.Players.Count(p => p.PlayerState.IsSpy && !p.PlayerState.IsDead);
 
         if (activeSpies <= 0)
@@ -62,11 +73,19 @@ public static class MakeGuess
             return;
         }
 
-        // Resume phase based on current state
+        // 6. Гра продовжується - повертаємося до попередньої фази
         if (room.GameState.CurrentPhase == SpyGamePhase.SpyLastChance)
         {
-            // After last chance failed, check if we should continue final vote or search
             var shouldResumeFinalVote = room.GameState.RoundTimerState.IsStopped;
+            var previousPhase = shouldResumeFinalVote ? SpyGamePhase.FinalVote : SpyGamePhase.Search;
+
+            room.GameState.CurrentPhase = previousPhase;
+            room.GameState.CaughtSpyId = null;
+
+            context.AddEvent(new GamePhaseChangedEventDto(
+                RoomCode: room.RoomCode,
+                NewPhase: previousPhase,
+                PreviousPhase: SpyGamePhase.SpyLastChance));
 
             if (shouldResumeFinalVote)
             {
@@ -74,8 +93,6 @@ public static class MakeGuess
             }
             else
             {
-                room.GameState.CurrentPhase = SpyGamePhase.Search;
-                room.GameState.CaughtSpyId = null;
                 RoundTimer.ResumeGameTimer(room, context);
             }
         }
@@ -109,6 +126,17 @@ public static class MakeGuess
         {
             room.EliminatePlayer(playerId);
 
+            var player = room.Players.FirstOrDefault(p => p.IdInRoom == playerId);
+            if (player != null)
+            {
+                context.AddEvent(new PlayerEliminatedEventDto(
+                    RoomCode: room.RoomCode,
+                    PlayerId: playerId,
+                    PlayerName: player.Name,
+                    WasSpy: true,
+                    Reason: EliminationReason.FailedGuess));
+            }
+
             var activeSpies = room.Players.Count(p => p.PlayerState.IsSpy && !p.PlayerState.IsDead);
             if (activeSpies <= 0)
             {
@@ -122,14 +150,22 @@ public static class MakeGuess
             }
 
             var shouldResumeFinalVote = room.GameState.RoundTimerState.IsStopped;
+            var previousPhase = shouldResumeFinalVote ? SpyGamePhase.FinalVote : SpyGamePhase.Search;
+
+            room.GameState.CurrentPhase = previousPhase;
+            room.GameState.CaughtSpyId = null;
+
+            context.AddEvent(new GamePhaseChangedEventDto(
+                RoomCode: room.RoomCode,
+                NewPhase: previousPhase,
+                PreviousPhase: SpyGamePhase.SpyLastChance));
+
             if (shouldResumeFinalVote)
             {
                 RoundEnd.BeginFinalVoting(room, context);
             }
             else
             {
-                room.GameState.CurrentPhase = SpyGamePhase.Search;
-                room.GameState.CaughtSpyId = null;
                 RoundTimer.ResumeGameTimer(room, context);
             }
         }

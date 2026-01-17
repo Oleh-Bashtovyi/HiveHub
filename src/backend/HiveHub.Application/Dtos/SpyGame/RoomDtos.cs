@@ -95,5 +95,3 @@ public record VotingStateDto(
     DateTime StartedAt,
     DateTime EndsAt
 );
-
-

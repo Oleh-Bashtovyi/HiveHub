@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSpyGame } from '../../../context/spy-game/SpyGameContext';
-import { SpyGamePhase, SpyVotingType } from '../../../models/spy-game';
+import { SpyGamePhase, SpyVotingType, type SpyPlayerDto } from '../../../models/spy-game';
 import { SpyGameHeader } from './SpyGameHeader/SpyGameHeader';
 import { SpyGameRoleCard } from './SpyGameRoleCard/SpyGameRoleCard';
 import { SpyGamePlayers } from './SpyGamePlayers/SpyGamePlayers';
@@ -37,6 +37,10 @@ export const SpyGame = () => {
 
     const [isGuessModalOpen, setIsGuessModalOpen] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [toastType, setToastType] = useState<'info' | 'error' | 'success'>('info');
+
+    // Ref to track previous players state to detect changes (like death)
+    const prevPlayersRef = useRef<SpyPlayerDto[]>([]);
 
     const safeExecute = async (action: () => Promise<void>) => {
         try {
@@ -44,10 +48,12 @@ export const SpyGame = () => {
         } catch (error: unknown) {
             console.error(error);
             const msg = error instanceof Error ? error.message : 'Unknown error';
-            setToastMessage(`Error: ${msg}`);
+            setToastMessage(`Помилка: ${msg}`);
+            setToastType('error');
         }
     };
 
+    // Routing Logic
     useEffect(() => {
         if (isInitializing) return;
 
@@ -67,22 +73,48 @@ export const SpyGame = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
+    // Game Phase & Event Toasts
     useEffect(() => {
         if (!gameState) return;
 
+        // 1. Handle Last Chance Phase Start
         if (gameState.phase === SpyGamePhase.SpyLastChance) {
             if (gameState.caughtSpyId === me?.id) {
                 // eslint-disable-next-line react-hooks/set-state-in-effect
-                setToastMessage("⚠️ You are caught! Guess the location!");
+                setToastMessage("⚠️ ВАС СПІЙМАЛИ! Вгадайте локацію, щоб виграти!");
+                setToastType('error');
             } else {
-                setToastMessage(`🕵️ Spy caught! They are guessing the location...`);
+                setToastMessage(`🕵️ Шпигун спійманий! Він намагається вгадати локацію...`);
+                setToastType('info');
             }
         }
 
+        // 2. Handle Accusation Voting Start
         if (gameState.activeVoting?.type === SpyVotingType.Accusation) {
-            setToastMessage(`🗳️ Voting started against: ${gameState.activeVoting.accusedPlayerName}`);
+            setToastMessage(`🗳️ Розпочато голосування проти: ${gameState.activeVoting.accusedPlayerName}`);
+            setToastType('info');
         }
-    }, [gameState?.phase, gameState?.activeVoting?.type, gameState?.caughtSpyId, me?.id, gameState]);
+
+    }, [gameState?.phase, gameState?.activeVoting?.type, gameState?.caughtSpyId, me?.id, gameState?.activeVoting?.accusedPlayerName, gameState]);
+
+    // Detect Player Death (Wrong Guess)
+    useEffect(() => {
+        if (players.length === 0) return;
+
+        if (prevPlayersRef.current.length > 0) {
+            const newlyDead = players.find(p =>
+                p.isDead &&
+                !prevPlayersRef.current.find(prev => prev.id === p.id)?.isDead
+            );
+
+            if (newlyDead) {
+                setToastMessage(`❌ ${newlyDead.name} помилився з вгадуванням і вибуває!`);
+                setToastType('error');
+            }
+        }
+
+        prevPlayersRef.current = players;
+    }, [players]);
 
     if (isInitializing || !gameState || !me || !roomCode || !rules) return null;
 
@@ -100,6 +132,8 @@ export const SpyGame = () => {
     const caughtSpyName = gameState.caughtSpyName;
 
     const showGuessModal = isGuessModalOpen || amICaughtSpy;
+
+    // Logic for showing "Accuse" button availability
     const canAccuse = !activeVoting &&
         isSearchPhase &&
         !hasUsedAccusation &&
@@ -111,8 +145,9 @@ export const SpyGame = () => {
         <div className="spy-game-page">
             <ToastContainer
                 message={toastMessage}
+                type={toastType}
                 onClose={() => setToastMessage(null)}
-                duration={4000}
+                duration={5000}
             />
 
             <div className="spy-game-container">
@@ -135,7 +170,7 @@ export const SpyGame = () => {
                             </div>
                             <div className="spy-game-last-chance-banner__text">
                                 {amICaughtSpy
-                                    ? "У вас є останній шанс: вгадайте локацію щоб виграти!"
+                                    ? "У вас є останній шанс: вгадайте локацію, щоб перемогти!"
                                     : "Шпигун обирає локацію. Якщо він вгадає — шпигуни переможуть!"}
                             </div>
                         </div>
@@ -167,11 +202,11 @@ export const SpyGame = () => {
                         <SpyGameRules />
                         <div className="spy-game-actions">
                             {me.isHost && (
-                                <Button variant="secondary" fullWidth onClick={() => confirm('Всі в лобі?') && safeExecute(returnToLobby)}>
+                                <Button variant="secondary" fullWidth onClick={() => confirm('Повернути всіх в лобі?') && safeExecute(returnToLobby)}>
                                     🛑 В лобі (Всіх)
                                 </Button>
                             )}
-                            <Button variant="danger" fullWidth onClick={() => confirm('Вийти?') && safeExecute(async () => { await leaveRoom(); navigate('/spy'); })}>
+                            <Button variant="danger" fullWidth onClick={() => confirm('Вийти з кімнати?') && safeExecute(async () => { await leaveRoom(); navigate('/spy'); })}>
                                 🚪 Покинути гру
                             </Button>
                         </div>

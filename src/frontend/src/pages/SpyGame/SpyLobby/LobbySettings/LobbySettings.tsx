@@ -260,7 +260,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                     <div className="setting-control">
                         <button
                             className="btn-mini"
-                            onClick={() => modifyNumber('minSpiesCount', -1, 1, rules.maxSpiesCount)}
+                            onClick={() => modifyNumber('minSpiesCount', -1, 0, rules.maxSpiesCount)}
                             disabled={!isHost}
                         >
                             -

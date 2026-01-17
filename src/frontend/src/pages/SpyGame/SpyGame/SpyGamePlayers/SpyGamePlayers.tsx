@@ -41,6 +41,8 @@ export const SpyGamePlayers = ({
                     const isDead = p.isDead ?? false;
                     const isSpy = p.isSpy ?? null;
                     const showSpyBadge = shouldShowSpies && isSpy && !isMe;
+
+                    // Can accuse logic: Round is Active + Not Me + Target Connected + Target Not Caught + Target Not Dead
                     const canAccuseThis = canAccuse && !isMe && p.isConnected && !isCaught && !isDead;
 
                     return (
@@ -58,11 +60,11 @@ export const SpyGamePlayers = ({
                                     <span className="spy-game-players__name">
                                         {p.name} {isMe && '(Ви)'}
                                     </span>
-                                    {p.isHost && <span title="Хост">👑</span>}
+                                    {p.isHost && <span title="Хост" className="spy-game-players__role-icon">👑</span>}
                                     {showSpyBadge && (
                                         <span title="Союзник-шпигун" className="spy-game-players__spy-badge">🥷</span>
                                     )}
-                                    {p.isVotedToStopTimer && votesForTimer > 0 && (
+                                    {p.isVotedToStopTimer && votesForTimer > 0 && !isDead && (
                                         <span title="Голосував за стоп" className="spy-game-players__vote-hand">✋</span>
                                     )}
                                     {isCaught && <span title="Спійманий шпигун" className="spy-game-players__caught-badge">🔒</span>}

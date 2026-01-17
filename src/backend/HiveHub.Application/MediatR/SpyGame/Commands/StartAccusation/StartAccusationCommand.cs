@@ -34,7 +34,7 @@ public class StartAccusationHandler(
 
         var initiatorId = string.Empty;
 
-        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
+        var result = await roomAccessor.ExecuteAndDispatchAsync(context, (Func<SpyRoom, Result>)((room) =>
         {
             if (room.GameState.CurrentPhase != SpyGamePhase.Search)
             {
@@ -82,7 +82,8 @@ public class StartAccusationHandler(
 
                 context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
                     RoomCode: room.RoomCode,
-                    TimerStatus: room.GameState.RoundTimerState.Status,
+                    Status: room.GameState.RoundTimerState.Status,
+                    Reason: TimerChangeReason.Stopped,
                     RemainingSeconds: room.GameState.RoundTimerState.GetRemainingSeconds()));
             }
 
@@ -112,18 +113,23 @@ public class StartAccusationHandler(
 
             context.AddEvent(new ScheduleTaskEvent(TaskType.SpyGameVotingTimeUp, room.RoomCode, null, votingDuration));
 
+            context.AddEvent(new SpyGameRoundTimerStateChangedEventDto(
+                RoomCode: room.RoomCode,
+                Status: room.GameState.RoundTimerState.Status,
+                RemainingSeconds: room.GameState.RoundTimerState.GetRemainingSeconds(),
+                Reason: TimerChangeReason.Paused));
+
             context.AddEvent(new VotingStartedEventDto(
                 RoomCode: room.RoomCode,
                 InitiatorId: initiator.IdInRoom,
                 TargetId: targetPlayer.IdInRoom,
                 TargetName: targetPlayer.Name,
                 VotingType: SpyVotingType.Accusation,
-                CurrentGamePhase: SpyGamePhase.Accusation,
                 EndsAt: endsAt
             ));
 
             return Result.Ok();
-        });
+        }));
 
         if (result.IsSuccess)
         {
