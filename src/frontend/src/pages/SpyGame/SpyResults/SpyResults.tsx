@@ -28,114 +28,65 @@ const TEAM_TEXT: Record<SpyGameTeam, string> = {
 export const SpyResults = () => {
     const navigate = useNavigate();
     const {
-        isInitializing,
-        roomCode,
-        players,
-        spiesReveal,
-        returnToLobby,
-        leaveRoom,
-        roomState,
-        startGame,
-        me,
-        messages,
-        sendMessage,
-        winnerTeam,
-        gameEndReason,
-        gameEndMessage,
-        gameState,
+        isInitializing, roomCode, players, spiesReveal, returnToLobby,
+        leaveRoom, roomState, startGame, me, messages, sendMessage,
+        winnerTeam, gameEndReason, gameEndMessage, gameState,
     } = useSpyGame();
 
     const safeExecute = async (action: () => Promise<void>) => {
-        try {
-            await action();
-        } catch (error: unknown) {
-            console.error(error);
-            const msg = error instanceof Error ? error.message : 'Невідома помилка';
-            alert(`Помилка: ${msg}`);
-        }
+        try { await action(); } catch (error) { console.error(error); }
     };
 
     useEffect(() => {
         if (isInitializing) return;
-
-        if (!roomCode) {
-            navigate('/spy');
-            return;
-        }
-        if (roomState === RoomStatus.Lobby) {
-            navigate('/spy/lobby');
-        } else if (roomState === RoomStatus.InGame) {
-            navigate('/spy/game');
-        }
+        if (!roomCode) { navigate('/spy'); return; }
+        if (roomState === RoomStatus.Lobby) navigate('/spy/lobby');
+        else if (roomState === RoomStatus.InGame) navigate('/spy/game');
     }, [roomCode, roomState, navigate, isInitializing]);
-
-    const handleReturnToLobby = async () => {
-        void safeExecute(async () => {
-            await returnToLobby();
-            navigate('/spy/lobby');
-        });
-    };
-
-    const handlePlayAgain = async () => {
-        if (confirm("Почати нову гру з поточними налаштуваннями?")) {
-            void safeExecute(async () => {
-                await startGame();
-            });
-        }
-    };
-
-    const handleExit = async () => {
-        if (confirm("Ви дійсно хочете покинути кімнату?")) {
-            void safeExecute(async () => {
-                await leaveRoom();
-                navigate('/spy');
-            });
-        }
-    };
 
     const secretWord = gameState?.currentSecretWord;
     const category = gameState?.currentCategory;
 
     return (
         <div className="spy-results">
-            <div className="spy-results__content">
-                <div className="spy-results__main">
+            <div className="spy-results__container">
+                {/* RESULTS PANEL */}
+                <div className="spy-results__panel">
                     <div className="spy-card">
-                        {/* Header Section */}
-                        <div className="spy-header">
-                            <div className="icon-wrapper">
-                                {winnerTeam === SpyGameTeam.Spies ? '🥷' : '🕵️'}
+                        <div className="spy-card__header">
+                            <div className="spy-header">
+                                <div className="icon-wrapper">
+                                    {winnerTeam === SpyGameTeam.Spies ? '🥷' : '🕵️'}
+                                </div>
+                                <h1>Гра завершена!</h1>
+                                {winnerTeam && <p className={winnerTeam == SpyGameTeam.Civilians
+                                    ? "winner-text winner-text-civil"
+                                    : "winner-text winner-text-spies"}>{TEAM_TEXT[winnerTeam]}</p>}
+                                {gameEndReason && (
+                                    <p className="reason-text">
+                                        {END_REASON_TEXT[gameEndReason] || gameEndMessage}
+                                    </p>
+                                )}
                             </div>
-                            <h1>Гра завершена!</h1>
-                            {winnerTeam && (
-                                <p className="winner-text">{TEAM_TEXT[winnerTeam]}</p>
-                            )}
-                            {gameEndReason && (
-                                <p className="reason-text">
-                                    {END_REASON_TEXT[gameEndReason] || gameEndMessage}
-                                </p>
+
+                            {(secretWord || category) && (
+                                <div className="secret-info">
+                                    {category && (
+                                        <div className="secret-item">
+                                            <span className="secret-label">Категорія:</span>
+                                            <span className="secret-value">{category}</span>
+                                        </div>
+                                    )}
+                                    {secretWord && (
+                                        <div className="secret-item">
+                                            <span className="secret-label">Секретне слово:</span>
+                                            <span className="secret-value secret-word">{secretWord}</span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 
-                        {/* Secret Word Section */}
-                        {(secretWord || category) && (
-                            <div className="secret-info">
-                                {category && (
-                                    <div className="secret-item">
-                                        <span className="secret-label">Категорія:</span>
-                                        <span className="secret-value">{category}</span>
-                                    </div>
-                                )}
-                                {secretWord && (
-                                    <div className="secret-item">
-                                        <span className="secret-label">Секретне слово:</span>
-                                        <span className="secret-value secret-word">{secretWord}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Results List */}
                         <div className="results-list">
                             {spiesReveal.map(reveal => {
                                 const player = players.find(p => p.id === reveal.playerId);
@@ -150,10 +101,7 @@ export const SpyResults = () => {
                                 ].filter(Boolean).join(' ');
 
                                 return (
-                                    <div
-                                        key={reveal.playerId}
-                                        className={itemClasses}
-                                    >
+                                    <div key={reveal.playerId} className={itemClasses}>
                                         <div className="player-info">
                                             <div className="role-icon">
                                                 {reveal.isDead ? '💀' : reveal.isSpy ? '🥷' : '🕵️'}
@@ -163,45 +111,33 @@ export const SpyResults = () => {
                                                 {!isOnline && ' [Офлайн]'}
                                             </div>
                                         </div>
-
-                                        <div className="role-status">
-                                            {reveal.isDead && (
-                                                <div className="status-badge dead">Вибув</div>
-                                            )}
-                                            <div className="role-label">
-                                                {reveal.isSpy ? 'ШПИГУН' : 'Мирний'}
-                                            </div>
+                                        <div className="role-label">
+                                            {reveal.isSpy ? 'ШПИГУН' : 'Мирний'}
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        {/* Buttons */}
                         <div className="spy-actions">
                             {me?.isHost && (
-                                <div className="host-actions">
-                                    <Button fullWidth onClick={handleReturnToLobby} variant="secondary">
+                                <>
+                                    <Button fullWidth onClick={() => safeExecute(async () => { await returnToLobby(); navigate('/spy/lobby'); })} variant="secondary">
                                         🛋️ В лобі
                                     </Button>
-
-                                    <Button fullWidth onClick={handlePlayAgain}>
+                                    <Button fullWidth onClick={() => { if(confirm("Грати знову?")) safeExecute(startGame); }}>
                                         🔄 Грати знову
                                     </Button>
-                                </div>
+                                </>
                             )}
-
-                            <Button
-                                fullWidth
-                                variant="secondary"
-                                onClick={handleExit}
-                            >
+                            <Button fullWidth variant="secondary" onClick={() => { if(confirm("Вийти?")) safeExecute(async () => { await leaveRoom(); navigate('/spy'); }); }}>
                                 🚪 Покинути кімнату
                             </Button>
                         </div>
                     </div>
                 </div>
 
+                {/* CHAT PANEL */}
                 <div className="spy-results__chat">
                     <SpyGameChat
                         messages={messages}

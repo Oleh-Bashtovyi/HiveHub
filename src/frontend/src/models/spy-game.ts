@@ -116,8 +116,9 @@ export interface SpyGameStateDto {
     votesRequiredToStopTimer: number;
 
     // Final Results
-    spiecsReveal: SpyRevealDto[] | null;
+    spiesReveal: SpyRevealDto[] | null;
     roundEndReason: SpyGameEndReason | null;
+    winnerTeam: SpyGameTeam | null;
 }
 
 export interface SpyRevealDto {
@@ -205,6 +206,7 @@ export interface VotingResultEventDto {
     resultMessage: string | null;
     accusedId: string | null;
     isAccusedSpy: boolean | null;
+    accusedSpyName: string | null;
     lastChanceEndsAt: string | null;
 }
 

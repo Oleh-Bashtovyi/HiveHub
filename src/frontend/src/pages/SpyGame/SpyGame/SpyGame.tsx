@@ -13,7 +13,7 @@ import { GuessWordModal } from './GuessWordModal/GuessWordModal';
 import { Button } from '../../../components/ui/Button/Button';
 import { ToastContainer } from '../../../components/ui/ToastContainer/ToastContainer';
 import './SpyGame.scss';
-import {RoomStatus} from "../../../models/shared.ts";
+import { RoomStatus } from "../../../models/shared.ts";
 
 export const SpyGame = () => {
     const navigate = useNavigate();
@@ -43,8 +43,8 @@ export const SpyGame = () => {
             await action();
         } catch (error: unknown) {
             console.error(error);
-            const msg = error instanceof Error ? error.message : 'Невідома помилка';
-            alert(`Помилка: ${msg}`);
+            const msg = error instanceof Error ? error.message : 'Unknown error';
+            setToastMessage(`Error: ${msg}`);
         }
     };
 
@@ -67,37 +67,53 @@ export const SpyGame = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
+    useEffect(() => {
+        if (!gameState) return;
+
+        if (gameState.phase === SpyGamePhase.SpyLastChance) {
+            if (gameState.caughtSpyId === me?.id) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setToastMessage("⚠️ You are caught! Guess the location!");
+            } else {
+                setToastMessage(`🕵️ Spy caught! They are guessing the location...`);
+            }
+        }
+
+        if (gameState.activeVoting?.type === SpyVotingType.Accusation) {
+            setToastMessage(`🗳️ Voting started against: ${gameState.activeVoting.accusedPlayerName}`);
+        }
+    }, [gameState?.phase, gameState?.activeVoting?.type, gameState?.caughtSpyId, me?.id, gameState]);
+
     if (isInitializing || !gameState || !me || !roomCode || !rules) return null;
 
-    // --- LOGIC ---
     const isSpyRole = me.isSpy ?? false;
     const isSearchPhase = gameState.phase === SpyGamePhase.Search;
     const isDead = me.isDead ?? false;
 
-    // Voting Logic
     const activeVoting = gameState.activeVoting;
     const isAccusation = activeVoting?.type === SpyVotingType.Accusation;
     const isFinal = activeVoting?.type === SpyVotingType.Final;
     const hasUsedAccusation = me.hasUsedAccusation ?? false;
 
-    // Last Chance Logic
     const isLastChancePhase = gameState.phase === SpyGamePhase.SpyLastChance;
     const amICaughtSpy = isLastChancePhase && gameState.caughtSpyId === me.id;
     const caughtSpyName = gameState.caughtSpyName;
 
-    // Force open modal if it's Last Chance for me
     const showGuessModal = isGuessModalOpen || amICaughtSpy;
     const canAccuse = !activeVoting &&
         isSearchPhase &&
         !hasUsedAccusation &&
         !isDead;
 
-    // Show other spies if they know each other
     const shouldShowSpies = rules.isSpiesKnowEachOther && isSpyRole;
 
     return (
         <div className="spy-game-page">
-            <ToastContainer message={toastMessage} onClose={() => setToastMessage(null)} />
+            <ToastContainer
+                message={toastMessage}
+                onClose={() => setToastMessage(null)}
+                duration={4000}
+            />
 
             <div className="spy-game-container">
                 <SpyGameHeader
@@ -110,12 +126,18 @@ export const SpyGame = () => {
                     onVoteStopTimer={() => safeExecute(voteStopTimer)}
                 />
 
-                {/* Show Last Chance Info Banner */}
-                {isLastChancePhase && caughtSpyName && !amICaughtSpy && (
+                {isLastChancePhase && (
                     <div className="spy-game-last-chance-banner">
                         <div className="spy-game-last-chance-banner__icon">🔥</div>
-                        <div className="spy-game-last-chance-banner__text">
-                            <strong>{caughtSpyName}</strong> спіймано! Зараз намагається вгадати слово...
+                        <div className="spy-game-last-chance-banner__content">
+                            <div className="spy-game-last-chance-banner__title">
+                                {amICaughtSpy ? "ВАС СПІЙМАЛИ!" : `ШПИГУН СПІЙМАНИЙ: ${caughtSpyName}`}
+                            </div>
+                            <div className="spy-game-last-chance-banner__text">
+                                {amICaughtSpy
+                                    ? "У вас є останній шанс: вгадайте локацію щоб виграти!"
+                                    : "Шпигун обирає локацію. Якщо він вгадає — шпигуни переможуть!"}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -165,7 +187,6 @@ export const SpyGame = () => {
                 </div>
             </div>
 
-            {/* MODALS */}
             {isAccusation && activeVoting && (
                 <AccusationVotingModal
                     isOpen={true}
@@ -198,12 +219,6 @@ export const SpyGame = () => {
                     onGuess={(word) => safeExecute(async () => {
                         await makeGuess(word);
                         setIsGuessModalOpen(false);
-
-                        setTimeout(() => {
-                            if (isDead) {
-                                setToastMessage('❌ Неправильно! Ви програли.');
-                            }
-                        }, 500);
                     })}
                 />
             )}

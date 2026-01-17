@@ -109,6 +109,7 @@ public static class SpyGamePlayerRemover
                     cancelReason,
                     null,
                     null,
+                    null,
                     null));
 
                 RoundTimer.ResumeGameTimer(room, context);

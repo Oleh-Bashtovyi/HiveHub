@@ -32,7 +32,7 @@ public class HandleVotingTimeUpHandler(
                 return Result.Ok();
             }
 
-            if (room.GameState.ActiveVoting.VotingEndsAt > DateTime.UtcNow.AddSeconds(2))
+            if (room.GameState.ActiveVoting.VotingEndsAt > DateTime.UtcNow)
             {
                 return Result.Ok();
             }

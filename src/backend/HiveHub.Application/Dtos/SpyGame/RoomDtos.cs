@@ -73,8 +73,9 @@ public record SpyGameStateDto(
     int PlayersVotedToStopTimer,
     int VotesRequiredToStopTimer,
     // FinalResults
-    List<SpyRevealDto>? SpiecsReveal,
-    SpyGameEndReason? RoundEndReason
+    List<SpyRevealDto>? SpiesReveal,
+    SpyGameEndReason? RoundEndReason,
+    SpyTeam? WinnerTeam
 );
 
 public record SpyRevealDto(

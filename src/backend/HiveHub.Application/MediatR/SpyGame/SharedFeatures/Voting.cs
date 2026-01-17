@@ -11,7 +11,8 @@ public static class Voting
 {
     public static void CheckAndResolveVoting(
         SpyRoom room,
-        SpyGameEventsContext context)
+        SpyGameEventsContext context,
+        bool isTimeUp = false)
     {
         if (room.GameState.ActiveVoting == null)
         {
@@ -26,18 +27,17 @@ public static class Voting
         }
 
         var requiredVotes = room.GetMajorityRequiredVotes();
-
         var votingResolved = false;
 
         if (room.GameState.CurrentPhase == SpyGamePhase.Accusation &&
             room.GameState.ActiveVoting is AccusationVotingState accState)
         {
-            votingResolved = ResolveAccusation(room, accState, totalPlayers, requiredVotes, context);
+            votingResolved = ResolveAccusation(room, accState, totalPlayers, requiredVotes, context, isTimeUp);
         }
         else if (room.GameState.CurrentPhase == SpyGamePhase.FinalVote &&
                  room.GameState.ActiveVoting is GeneralVotingState finalState)
         {
-            votingResolved = ResolveFinalVote(room, finalState, totalPlayers, requiredVotes, context);
+            votingResolved = ResolveFinalVote(room, finalState, totalPlayers, requiredVotes, context, isTimeUp);
         }
 
         if (votingResolved)
@@ -54,22 +54,22 @@ public static class Voting
         AccusationVotingState accState,
         int totalPlayers,
         int requiredVotes,
-        SpyGameEventsContext context)
+        SpyGameEventsContext context,
+        bool isTimeUp)
     {
         var yesVotes = accState.Votes.Count(v => v.Value == TargetVoteType.Yes);
         var totalCastVotes = accState.Votes.Count;
 
-        // Majority reached
         if (yesVotes >= requiredVotes)
         {
             PlayerKick.HandlePlayerKick(room, context, accState.TargetId);
             return true;
         }
 
-        // Everyone voted or impossible to reach majority
         var potentialYesVotes = yesVotes + (totalPlayers - totalCastVotes);
+        var isImpossibleToWin = totalCastVotes >= totalPlayers || potentialYesVotes < requiredVotes;
 
-        if (totalCastVotes >= totalPlayers || potentialYesVotes < requiredVotes)
+        if (isTimeUp || isImpossibleToWin)
         {
             room.GameState.CurrentPhase = SpyGamePhase.Search;
 
@@ -77,9 +77,10 @@ public static class Voting
                 RoomCode: room.RoomCode,
                 IsSuccess: false,
                 CurrentGamePhase: SpyGamePhase.Search,
-                ResultMessage: "Not enough votes. Game resumes.",
+                ResultMessage: isTimeUp ? "Voting time expired." : "Not enough votes. Game resumes.",
                 AccusedId: accState.TargetId,
                 IsAccusedSpy: null,
+                AccusedSpyName: null,
                 LastChanceEndsAt: null));
 
             RoundTimer.ResumeGameTimer(room, context);
@@ -94,9 +95,10 @@ public static class Voting
         GeneralVotingState finalState,
         int totalPlayers,
         int requiredVotes,
-        SpyGameEventsContext context)
+        SpyGameEventsContext context,
+        bool isTimeUp)
     {
-        if (finalState.Votes.Count < totalPlayers)
+        if (!isTimeUp && finalState.Votes.Count < totalPlayers)
         {
             return false;
         }
@@ -107,10 +109,11 @@ public static class Voting
             .OrderByDescending(g => g.Count())
             .ToList();
 
-        var skipsCount = finalState.Votes.Count(x => x.Value == "SKIP" || string.IsNullOrEmpty(x.Value));
+        var explicitSkips = finalState.Votes.Count(x => x.Value == "SKIP" || string.IsNullOrEmpty(x.Value));
+        var implicitSkips = isTimeUp ? (totalPlayers - finalState.Votes.Count) : 0;
+        var totalSkips = explicitSkips + implicitSkips;
 
-        // Everyone skipped
-        if (skipsCount == totalPlayers)
+        if (totalSkips == totalPlayers)
         {
             if (room.IsParanoyaMode())
             {
@@ -133,7 +136,6 @@ public static class Voting
             return true;
         }
 
-        // No consensus
         if (!validVotes.Any() || validVotes.First().Count() < requiredVotes)
         {
             RoundEnd.EndGame(
@@ -145,7 +147,6 @@ public static class Voting
             return true;
         }
 
-        // Target selected
         var targetId = validVotes.First().Key;
         PlayerKick.HandlePlayerKick(room, context, targetId);
         return true;
@@ -158,7 +159,6 @@ public static class Voting
             return;
         }
 
-        // Auto-resolve based on current votes
-        CheckAndResolveVoting(room, context);
+        CheckAndResolveVoting(room, context, isTimeUp: true);
     }
 }

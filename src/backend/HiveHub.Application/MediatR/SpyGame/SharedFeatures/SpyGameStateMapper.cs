@@ -146,7 +146,8 @@ public static class SpyGameStateMapper
                 CaughtSpyName: caughtSpyName,
                 SpyLastChanceEndsAt: room.GameState.SpyLastChanceEndsAt,
                 RoundEndReason: room.GameState.GameEndReason,
-                SpiecsReveal: room.GetSpyRevealDto()
+                WinnerTeam: room.GameState.WinnerTeam,
+                SpiesReveal: room.GetSpyRevealDto()
             );
         }
 

@@ -93,13 +93,6 @@ public static class RoundEnd
             return;
         }
 
-        // Spies >= Civilians (spy majority)
-/*        if (aliveSpies >= aliveCivilians && aliveSpies > 0)
-        {
-            EndGame(room, SpyTeam.Spies, SpyGameEndReason.RoundTimeExpired, "Spies have majority.", context);
-            return;
-        }*/
-
         // All spies eliminated
         if (aliveSpies == 0 && room.GameState.SpiesCountSnapshot > 0)
         {

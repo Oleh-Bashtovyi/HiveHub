@@ -248,6 +248,7 @@ export function useSpyGameEvents({
                     activeVoting: null,
                     phase: e.currentGamePhase,
                     caughtSpyId: (e.isSuccess && e.accusedId) ? e.accusedId : prev.caughtSpyId,
+                    caughtSpyName: e.accusedSpyName,
                     spyLastChanceEndsAt: e.lastChanceEndsAt ?? null
                 };
             });
@@ -268,6 +269,15 @@ export function useSpyGameEvents({
                     stateSetters.setMe(prev => prev ? { ...prev, isDead: true } : null);
                 }
             }
+            stateSetters.setGameState((prev: SpyGameStateDto | null) => {
+                if (!prev) return null;
+                return {
+                    ...prev,
+                    caughtSpyName: null,
+                    caughtSpyId: null,
+                    lastChanceEndsAt: null,
+                };
+            });
 
             console.log(`Spy ${e.playerId} guessed: ${e.word} - ${e.isGuessCorrect ? 'Correct!' : 'Wrong'}`);
         };
@@ -288,7 +298,7 @@ export function useSpyGameEvents({
                 if (!prev) return null;
                 return {
                     ...prev,
-                    spiecsReveal: e.spiesReveal,
+                    spiesReveal: e.spiesReveal,
                     roundEndReason: e.reason
                 };
             });

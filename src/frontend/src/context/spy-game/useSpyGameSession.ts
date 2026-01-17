@@ -95,8 +95,9 @@ export function useSpyGameSession({
                 stateSetters.setWordPacks(fullState.wordPacks);
                 stateSetters.setPlayers(fullState.players);
                 stateSetters.setMessages(fullState.messages);
-                stateSetters.setSpiesReveal(fullState.gameState?.spiecsReveal ?? []);
+                stateSetters.setSpiesReveal(fullState.gameState?.spiesReveal ?? []);
                 stateSetters.setGameEndReason(fullState.gameState?.roundEndReason ?? null);
+                stateSetters.setWinnerTeam(fullState.gameState?.winnerTeam ?? null);
 
                 if (fullState.gameState) {
                     stateSetters.setGameState({ ...fullState.gameState });

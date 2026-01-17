@@ -59,6 +59,7 @@ public record VotingResultEventDto(
     string? ResultMessage,
     string? AccusedId,
     bool? IsAccusedSpy,
+    string? AccusedSpyName,
     DateTime? LastChanceEndsAt
 ) : IRoomEvent;
 
