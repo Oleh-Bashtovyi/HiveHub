@@ -6,7 +6,9 @@ import './SpyGamePlayers.scss';
 interface SpyGamePlayersProps {
     players: SpyPlayerDto[];
     currentPlayerId: string;
-    isTimerStopped: boolean;
+    shouldShowSpies: boolean;
+    votesForTimer: number;
+    votesRequired: number;
     caughtSpyId: string | null;
     canAccuse: boolean;
     onAccuse: (playerId: string) => void;
@@ -15,27 +17,40 @@ interface SpyGamePlayersProps {
 export const SpyGamePlayers = ({
                                    players,
                                    currentPlayerId,
-                                   isTimerStopped,
+                                   shouldShowSpies,
+                                   votesForTimer,
+                                   votesRequired,
                                    caughtSpyId,
                                    canAccuse,
                                    onAccuse
                                }: SpyGamePlayersProps) => {
     return (
         <div className="spy-game-players">
-            <h3 className="spy-game-players__title">👥 Гравці</h3>
+            <h3 className="spy-game-players__title">
+                👥 Гравці
+                {votesForTimer > 0 && (
+                    <span className="spy-game-players__timer-votes">
+                        ⏸️ {votesForTimer}/{votesRequired}
+                    </span>
+                )}
+            </h3>
             <div className="spy-game-players__list">
                 {players.map(p => {
                     const isMe = p.id === currentPlayerId;
                     const isCaught = p.id === caughtSpyId;
-                    const canAccuseThis = canAccuse && !isMe && p.isConnected && !isCaught;
+                    const isDead = p.isDead ?? false;
+                    const isSpy = p.isSpy ?? null;
+                    const showSpyBadge = shouldShowSpies && isSpy && !isMe;
+                    const canAccuseThis = canAccuse && !isMe && p.isConnected && !isCaught && !isDead;
 
                     return (
                         <div
                             key={p.id}
-                            className={`spy-game-players__item ${isCaught ? 'spy-game-players__item--caught' : ''}`}
+                            className={`spy-game-players__item ${isCaught ? 'spy-game-players__item--caught' : ''} ${isDead ? 'spy-game-players__item--dead' : ''}`}
                             style={{ opacity: p.isConnected ? 1 : 0.5 }}
                         >
                             <div className="spy-game-players__avatar">
+                                {isDead && <div className="spy-game-players__skull">💀</div>}
                                 {AVATAR_MAP[p.avatarId] || AVATAR_MAP['default']}
                             </div>
                             <div className="spy-game-players__info">
@@ -44,10 +59,14 @@ export const SpyGamePlayers = ({
                                         {p.name} {isMe && '(Ви)'}
                                     </span>
                                     {p.isHost && <span title="Хост">👑</span>}
-                                    {!isTimerStopped && p.isVotedToStopTimer && (
+                                    {showSpyBadge && (
+                                        <span title="Союзник-шпигун" className="spy-game-players__spy-badge">🥷</span>
+                                    )}
+                                    {p.isVotedToStopTimer && votesForTimer > 0 && (
                                         <span title="Голосував за стоп" className="spy-game-players__vote-hand">✋</span>
                                     )}
                                     {isCaught && <span title="Спійманий шпигун" className="spy-game-players__caught-badge">🔒</span>}
+                                    {isDead && !isCaught && <span title="Мертвий" className="spy-game-players__dead-badge">💀</span>}
                                 </div>
                                 {!p.isConnected && <span className="spy-game-players__offline">🔌 Офлайн</span>}
 

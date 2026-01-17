@@ -118,3 +118,37 @@
     margin-top: 20px;
   }
 }
+
+
+.spy-game-last-chance-banner {
+  background: linear-gradient(90deg, #ff9800, #ff5722);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+  animation: pulse 2s infinite;
+
+  &__icon {
+    font-size: 24px;
+  }
+
+  &__title {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+  }
+
+  &__text {
+    font-size: 0.95rem;
+    opacity: 0.9;
+  }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}

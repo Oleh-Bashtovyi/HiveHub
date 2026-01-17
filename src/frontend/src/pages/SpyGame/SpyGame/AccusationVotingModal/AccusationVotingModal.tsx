@@ -1,8 +1,8 @@
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import { Button } from '../../../../components/ui/Button/Button';
-import { TargetVoteType } from '../../../../models/spy-game';
 import { useGameTimer } from '../../../../hooks/useGameTimer';
 import './AccusationVotingModal.scss';
+import {TargetVoteType} from "../../../../models/shared.ts";
 
 interface AccusationVotingModalProps {
     isOpen: boolean;

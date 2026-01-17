@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import {
-    RoomStatus,
     type SpyPlayerDto,
-    type SpyRoomGameSettingsDto,
+    type SpyGameRulesDto,
+    type SpyGameWordPacksDto,
     type SpyGameStateDto,
-    type ChatMessageDto,
     type SpyGameEndReason,
-    type SpyGameTeam,
+    type SpyGameTeam, type SpyRevealDto,
 } from '../../models/spy-game';
 import { SpySignalRService } from "../../api/spy-signal-r-service";
 import { useSpyGameEvents } from './useSpyGameEvents';
 import { useSpyGameSession, type StateSetters } from './useSpyGameSession';
+import {type ChatMessageDto, RoomStatus, type TargetVoteType} from "../../models/shared.ts";
 
 interface SpyGameContextType {
     isConnected: boolean;
@@ -20,10 +20,12 @@ interface SpyGameContextType {
     roomCode: string | null;
     me: SpyPlayerDto | null;
     players: SpyPlayerDto[];
-    settings: SpyRoomGameSettingsDto | null;
+    rules: SpyGameRulesDto | null;
+    wordPacks: SpyGameWordPacksDto | null;
     roomState: RoomStatus;
     gameState: SpyGameStateDto | null;
     messages: ChatMessageDto[];
+    spiesReveal: SpyRevealDto[];
 
     // Game End Info
     winnerTeam: SpyGameTeam | null;
@@ -39,13 +41,14 @@ interface SpyGameContextType {
     startGame: () => Promise<void>;
     voteStopTimer: () => Promise<void>;
     returnToLobby: () => Promise<void>;
-    updateSettings: (newSettings: SpyRoomGameSettingsDto) => Promise<void>;
+    updateRules: (newRules: SpyGameRulesDto) => Promise<void>;
+    updateWordPacks: (newPacks: SpyGameWordPacksDto) => Promise<void>;
     changeName: (newName: string) => Promise<void>;
     changeAvatar: (avatarId: string) => Promise<void>;
     kickPlayer: (playerId: string) => Promise<void>;
     changeHost: (playerId: string) => Promise<void>;
     startAccusation: (targetPlayerId: string) => Promise<void>;
-    vote: (targetPlayerId: string, voteType: string | null) => Promise<void>;
+    vote: (targetPlayerId: string | null, voteType: TargetVoteType | null) => Promise<void>;
     makeGuess: (word: string) => Promise<void>;
 }
 
@@ -60,7 +63,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [roomCode, setRoomCode] = useState<string | null>(null);
     const [me, setMe] = useState<SpyPlayerDto | null>(null);
     const [players, setPlayers] = useState<SpyPlayerDto[]>([]);
-    const [settings, setSettings] = useState<SpyRoomGameSettingsDto | null>(null);
+    const [rules, setRules] = useState<SpyGameRulesDto | null>(null);
+    const [wordPacks, setWordPacks] = useState<SpyGameWordPacksDto | null>(null);
     const [roomState, setRoomState] = useState<RoomStatus>(RoomStatus.Lobby);
     const [gameState, setGameState] = useState<SpyGameStateDto | null>(null);
     const [messages, setMessages] = useState<ChatMessageDto[]>([]);
@@ -68,6 +72,7 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [winnerTeam, setWinnerTeam] = useState<SpyGameTeam | null>(null);
     const [gameEndReason, setGameEndReason] = useState<SpyGameEndReason | null>(null);
     const [gameEndMessage, setGameEndMessage] = useState<string | null>(null);
+    const [spiesReveal, setSpiesReveal] = useState<SpyRevealDto[]>([]);
 
     const signalRRef = useRef<SpySignalRService | null>(null);
 
@@ -83,7 +88,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const stateSetters: StateSetters = {
         setRoomCode,
         setRoomState,
-        setSettings,
+        setRules,
+        setWordPacks,
         setPlayers,
         setMessages,
         setGameState,
@@ -92,9 +98,10 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setGameEndReason,
         setGameEndMessage,
         setIsReconnecting,
+        setSpiesReveal
     };
 
-    // Session management (connect, reconnect, save/clear session)
+    // Session management
     const {
         reconnect,
         resetState,
@@ -131,7 +138,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         setRoomCode(response.roomState.roomCode);
         setMe(response.me);
-        setSettings(response.roomState.settings);
+        setRules(response.roomState.rules);
+        setWordPacks(response.roomState.wordPacks);
         setPlayers([response.me]);
         setRoomState(RoomStatus.Lobby);
 
@@ -148,7 +156,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         setRoomCode(response.roomState.roomCode);
         setMe(response.me);
-        setSettings(response.roomState.settings);
+        setRules(response.roomState.rules);
+        setWordPacks(response.roomState.wordPacks);
         setPlayers(response.roomState.players);
         setRoomState(RoomStatus.Lobby);
     }, [getService, saveSession]);
@@ -165,8 +174,12 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         resetState();
     }, [roomCode, getService, clearSession, resetState]);
 
-    const updateSettings = useCallback(async (newSettings: SpyRoomGameSettingsDto) => {
-        if (roomCode) await getService().updateSettings(roomCode, newSettings);
+    const updateRules = useCallback(async (newRules: SpyGameRulesDto) => {
+        if (roomCode) await getService().updateRules(roomCode, newRules);
+    }, [roomCode, getService]);
+
+    const updateWordPacks = useCallback(async (newPacks: SpyGameWordPacksDto) => {
+        if (roomCode) await getService().updateWordPacks(roomCode, newPacks);
     }, [roomCode, getService]);
 
     const changeName = useCallback(async (newName: string) => {
@@ -212,10 +225,7 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (roomCode) await getService().startAccusation(roomCode, targetId);
     }, [roomCode, getService]);
 
-    const vote = useCallback(async (targetId: string, voteType: string | null) => {
-        console.log("trying to vote");
-        console.log(voteType);
-        console.log(targetId);
+    const vote = useCallback(async (targetId: string | null, voteType: TargetVoteType | null) => {
         if (roomCode) await getService().vote(roomCode, targetId, voteType);
     }, [roomCode, getService]);
 
@@ -231,13 +241,15 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         roomCode,
         me,
         players,
-        settings,
+        rules,
+        wordPacks,
         roomState,
         gameState,
         messages,
         winnerTeam,
         gameEndReason,
         gameEndMessage,
+        spiesReveal,
         createRoom,
         joinRoom,
         leaveRoom,
@@ -246,7 +258,8 @@ export const SpyGameProvider: React.FC<{ children: React.ReactNode }> = ({ child
         startGame,
         voteStopTimer,
         returnToLobby,
-        updateSettings,
+        updateRules,
+        updateWordPacks,
         changeName,
         changeAvatar,
         kickPlayer,

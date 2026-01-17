@@ -1,51 +1,76 @@
 import { Button } from '../../../../components/ui/Button/Button';
-import { useGameTimer } from '../../../../hooks/useGameTimer';
+import { TimerStatus } from '../../../../models/spy-game';
 import './SpyGameHeader.scss';
+import {useEffect, useState} from "react";
 
 interface SpyGameHeaderProps {
     roomCode: string;
-    stopAt: string | null;
-    isTimerStopped: boolean;
-    timerVotesCount: number;
-    activePlayers: number;
+    remainingSeconds: number;
+    timerStatus: TimerStatus;
+    playersVoted: number;
+    votesRequired: number;
     hasVoted: boolean;
     onVoteStopTimer: () => void;
 }
 
 export const SpyGameHeader = ({
-                                  roomCode, stopAt, isTimerStopped, timerVotesCount,
-                                  activePlayers, hasVoted, onVoteStopTimer
+                                  roomCode,
+                                  remainingSeconds,
+                                  timerStatus,
+                                  playersVoted,
+                                  votesRequired,
+                                  hasVoted,
+                                  onVoteStopTimer
                               }: SpyGameHeaderProps) => {
+    const [localSeconds, setLocalSeconds] = useState(remainingSeconds);
 
-    const secondsLeft = useGameTimer(stopAt, isTimerStopped);
+    useEffect(() => {
+        setLocalSeconds(remainingSeconds);
+    }, [remainingSeconds]);
+
+    useEffect(() => {
+        if (timerStatus !== TimerStatus.Running) return;
+
+        const interval = setInterval(() => {
+            setLocalSeconds((prev: number) => Math.max(0, prev - 1));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [timerStatus]);
 
     const formatTime = (sec: number) => {
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
+        // Round down to remove decimals
+        const val = Math.floor(sec);
+        const m = Math.floor(val / 60);
+        const s = val % 60;
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const required = Math.max(1, Math.ceil(activePlayers / 2.0)); // Simple majority usually
+    const isRunning = timerStatus === TimerStatus.Running;
+    const isPaused = timerStatus === TimerStatus.Paused;
+    const isStopped = timerStatus === TimerStatus.Stopped;
+
+    const showWarning = localSeconds < 60 && isRunning;
 
     return (
         <div className="spy-game-header">
             <div className="spy-game-header__timer-section">
                 <div className="spy-game-header__timer-wrapper">
-                    <div className={`spy-game-header__timer-display ${secondsLeft < 60 && !isTimerStopped ? 'warning' : ''} ${isTimerStopped ? 'paused' : ''}`}>
-                        {isTimerStopped ? "PAUSED" : formatTime(secondsLeft)}
+                    <div className={`spy-game-header__timer-display ${showWarning ? 'warning' : ''} ${!isRunning ? 'paused' : ''}`}>
+                        {isStopped || isPaused ? "PAUSED" : formatTime(localSeconds)}
                     </div>
                     <div className="spy-game-header__timer-label">
-                        {isTimerStopped ? "Таймер зупинено" : "Залишилось часу"}
+                        {isStopped || isPaused ? "Таймер зупинено" : "Залишилось часу"}
                     </div>
                 </div>
 
-                {!isTimerStopped && (
+                {isRunning && (
                     <div className="spy-game-header__vote-controls">
                         <Button size="small" variant="secondary" onClick={onVoteStopTimer} disabled={hasVoted}>
                             {hasVoted ? "Ви проголосували" : "⏸️ Стоп"}
                         </Button>
                         <div className="spy-game-header__vote-info">
-                            Голосів: {timerVotesCount} / {required}
+                            Голосів: {playersVoted} / {votesRequired}
                         </div>
                     </div>
                 )}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSpyGame } from '../../../context/spy-game/SpyGameContext';
-import { RoomStatus, SpyGamePhase, SpyVotingType } from '../../../models/spy-game';
+import { SpyGamePhase, SpyVotingType } from '../../../models/spy-game';
 import { SpyGameHeader } from './SpyGameHeader/SpyGameHeader';
 import { SpyGameRoleCard } from './SpyGameRoleCard/SpyGameRoleCard';
 import { SpyGamePlayers } from './SpyGamePlayers/SpyGamePlayers';
@@ -11,7 +11,9 @@ import { AccusationVotingModal } from './AccusationVotingModal/AccusationVotingM
 import { FinalVotingModal } from './FinalVotingModal/FinalVotingModal';
 import { GuessWordModal } from './GuessWordModal/GuessWordModal';
 import { Button } from '../../../components/ui/Button/Button';
+import { ToastContainer } from '../../../components/ui/ToastContainer/ToastContainer';
 import './SpyGame.scss';
+import {RoomStatus} from "../../../models/shared.ts";
 
 export const SpyGame = () => {
     const navigate = useNavigate();
@@ -20,6 +22,7 @@ export const SpyGame = () => {
         players,
         me,
         gameState,
+        rules,
         roomState,
         isInitializing,
         messages,
@@ -33,6 +36,7 @@ export const SpyGame = () => {
     } = useSpyGame();
 
     const [isGuessModalOpen, setIsGuessModalOpen] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     const safeExecute = async (action: () => Promise<void>) => {
         try {
@@ -63,11 +67,12 @@ export const SpyGame = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
-    if (isInitializing || !gameState || !me || !roomCode) return null;
+    if (isInitializing || !gameState || !me || !roomCode || !rules) return null;
 
     // --- LOGIC ---
-    const isSpyRole = !gameState.currentSecretWord;
+    const isSpyRole = me.isSpy ?? false;
     const isSearchPhase = gameState.phase === SpyGamePhase.Search;
+    const isDead = me.isDead ?? false;
 
     // Voting Logic
     const activeVoting = gameState.activeVoting;
@@ -78,38 +83,58 @@ export const SpyGame = () => {
     // Last Chance Logic
     const isLastChancePhase = gameState.phase === SpyGamePhase.SpyLastChance;
     const amICaughtSpy = isLastChancePhase && gameState.caughtSpyId === me.id;
+    const caughtSpyName = gameState.caughtSpyName;
 
     // Force open modal if it's Last Chance for me
     const showGuessModal = isGuessModalOpen || amICaughtSpy;
     const canAccuse = !activeVoting &&
         isSearchPhase &&
-        !hasUsedAccusation;
+        !hasUsedAccusation &&
+        !isDead;
+
+    // Show other spies if they know each other
+    const shouldShowSpies = rules.isSpiesKnowEachOther && isSpyRole;
 
     return (
         <div className="spy-game-page">
+            <ToastContainer message={toastMessage} onClose={() => setToastMessage(null)} />
+
             <div className="spy-game-container">
                 <SpyGameHeader
                     roomCode={roomCode}
-                    stopAt={gameState.roundTimerWillStopAt}
-                    isTimerStopped={gameState.isRoundTimerStopped}
-                    timerVotesCount={gameState.timerVotesCount}
-                    activePlayers={players.filter(p => p.isConnected).length}
+                    remainingSeconds={gameState.roundRemainingSeconds}
+                    timerStatus={gameState.roundTimerStatus}
+                    playersVoted={gameState.playersVotedToStopTimer}
+                    votesRequired={gameState.votesRequiredToStopTimer}
                     hasVoted={me.isVotedToStopTimer || false}
                     onVoteStopTimer={() => safeExecute(voteStopTimer)}
                 />
+
+                {/* Show Last Chance Info Banner */}
+                {isLastChancePhase && caughtSpyName && !amICaughtSpy && (
+                    <div className="spy-game-last-chance-banner">
+                        <div className="spy-game-last-chance-banner__icon">🔥</div>
+                        <div className="spy-game-last-chance-banner__text">
+                            <strong>{caughtSpyName}</strong> спіймано! Зараз намагається вгадати слово...
+                        </div>
+                    </div>
+                )}
 
                 <div className="spy-game-layout">
                     <div className="spy-game-layout__column spy-game-layout__column--left">
                         <SpyGameRoleCard
                             isSpy={isSpyRole}
+                            isDead={isDead}
                             secretWord={gameState.currentSecretWord}
-                            category={gameState.category}
-                            onGuessWord={() => setIsGuessModalOpen(true)}
+                            category={gameState.currentCategory}
+                            onGuessWord={isDead ? undefined : () => setIsGuessModalOpen(true)}
                         />
                         <SpyGamePlayers
                             players={players}
                             currentPlayerId={me.id}
-                            isTimerStopped={gameState.isRoundTimerStopped}
+                            shouldShowSpies={shouldShowSpies}
+                            votesForTimer={gameState.playersVotedToStopTimer}
+                            votesRequired={gameState.votesRequiredToStopTimer}
                             caughtSpyId={gameState.caughtSpyId}
                             canAccuse={canAccuse}
                             onAccuse={(id) => safeExecute(() => startAccusation(id))}
@@ -155,23 +180,30 @@ export const SpyGame = () => {
             {isFinal && activeVoting && (
                 <FinalVotingModal
                     isOpen={true}
-                    players={players.filter(p => p.id !== me.id)}
+                    players={players.filter(p => p.id !== me.id && !p.isDead)}
                     hasVoted={!!activeVoting.againstVoting && me.id in activeVoting.againstVoting}
+                    myVote={activeVoting.againstVoting?.[me.id] || null}
                     endsAt={activeVoting.endsAt}
                     onVote={(targetId) => safeExecute(() => vote(targetId, null))}
                 />
             )}
 
-            {showGuessModal && isSpyRole && (
+            {showGuessModal && isSpyRole && !isDead && (
                 <GuessWordModal
                     isOpen={true}
-                    category={gameState.category}
+                    category={gameState.currentCategory}
                     isLastChance={amICaughtSpy}
-                    endsAt={gameState.lastChanceEndsAt || null}
+                    endsAt={gameState.spyLastChanceEndsAt || null}
                     onClose={() => setIsGuessModalOpen(false)}
                     onGuess={(word) => safeExecute(async () => {
                         await makeGuess(word);
                         setIsGuessModalOpen(false);
+
+                        setTimeout(() => {
+                            if (isDead) {
+                                setToastMessage('❌ Неправильно! Ви програли.');
+                            }
+                        }, 500);
                     })}
                 />
             )}
