@@ -1,18 +1,23 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button/Button';
-import { RoomStatus, SpyGameEndReason, SpyGameTeam } from '../../../models/spy-game';
+import { SpyGameEndReason, SpyGameTeam } from '../../../models/spy-game';
 import './SpyResults.scss';
-import {useSpyGame} from "../../../context/spy-game/SpyGameContext.tsx";
-import {SpyGameChat} from "../SpyGame/SpyGameChat/SpyGameChat.tsx";
+import { useSpyGame } from "../../../context/spy-game/SpyGameContext.tsx";
+import { SpyGameChat } from "../SpyGame/SpyGameChat/SpyGameChat.tsx";
+import { RoomStatus } from "../../../models/shared.ts";
 
 const END_REASON_TEXT: Record<SpyGameEndReason, string> = {
-    [SpyGameEndReason.TimerExpired]: 'Час вийшов! Шпигуни не були знайдені.',
+    [SpyGameEndReason.RoundTimeExpired]: 'Час вийшов! Шпигуни не були знайдені.',
     [SpyGameEndReason.CivilianKicked]: 'Мирного гравця вигнали помилково!',
     [SpyGameEndReason.SpyGuessedWord]: 'Шпигун вгадав секретне слово!',
     [SpyGameEndReason.SpyWrongGuess]: 'Шпигун не вгадав слово!',
-    [SpyGameEndReason.FinalVotingFailed]: 'Фінальне голосування провалилося!',
-    [SpyGameEndReason.SpyFound]: 'Шпигуна знайдено та викрито!',
+    [SpyGameEndReason.FinalVoteFailed]: 'Фінальне голосування провалилося!',
+    [SpyGameEndReason.AllSpiesEliminated]: 'Всі шпигуни були вигнані!',
+    [SpyGameEndReason.SpyLastChanceFailed]: 'Шпигун був спійманий і не вгадав слово!',
+    [SpyGameEndReason.ParanoiaSacrifice]: 'В режимі Параної вигнали невинного!',
+    [SpyGameEndReason.ParanoiaSurvived]: 'Мирні вижили в режимі Параної!',
+    [SpyGameEndReason.InsufficientPlayers]: 'Недостатньо гравців для продовження гри.',
 };
 
 const TEAM_TEXT: Record<SpyGameTeam, string> = {
@@ -26,6 +31,7 @@ export const SpyResults = () => {
         isInitializing,
         roomCode,
         players,
+        spiesReveal,
         returnToLobby,
         leaveRoom,
         roomState,
@@ -36,6 +42,7 @@ export const SpyResults = () => {
         winnerTeam,
         gameEndReason,
         gameEndMessage,
+        gameState,
     } = useSpyGame();
 
     const safeExecute = async (action: () => Promise<void>) => {
@@ -57,8 +64,7 @@ export const SpyResults = () => {
         }
         if (roomState === RoomStatus.Lobby) {
             navigate('/spy/lobby');
-        }
-        else if (roomState === RoomStatus.InGame) {
+        } else if (roomState === RoomStatus.InGame) {
             navigate('/spy/game');
         }
     }, [roomCode, roomState, navigate, isInitializing]);
@@ -87,74 +93,112 @@ export const SpyResults = () => {
         }
     };
 
+    const secretWord = gameState?.currentSecretWord;
+    const category = gameState?.currentCategory;
+
     return (
         <div className="spy-results">
             <div className="spy-results__content">
-                <div className="spy-card">
-                    {/* Header Section */}
-                    <div className="spy-header">
-                        <div className="icon-wrapper">
-                            {winnerTeam === SpyGameTeam.Spies ? '🥷' : '🕵️'}
+                <div className="spy-results__main">
+                    <div className="spy-card">
+                        {/* Header Section */}
+                        <div className="spy-header">
+                            <div className="icon-wrapper">
+                                {winnerTeam === SpyGameTeam.Spies ? '🥷' : '🕵️'}
+                            </div>
+                            <h1>Гра завершена!</h1>
+                            {winnerTeam && (
+                                <p className="winner-text">{TEAM_TEXT[winnerTeam]}</p>
+                            )}
+                            {gameEndReason && (
+                                <p className="reason-text">
+                                    {END_REASON_TEXT[gameEndReason] || gameEndMessage}
+                                </p>
+                            )}
                         </div>
-                        <h1>Гра завершена!</h1>
-                        {winnerTeam && (
-                            <p className="winner-text">{TEAM_TEXT[winnerTeam]}</p>
-                        )}
-                        {gameEndReason && (
-                            <p className="reason-text">
-                                {END_REASON_TEXT[gameEndReason] || gameEndMessage}
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Results List */}
-                    <div className="results-list">
-                        {players.map(p => {
-                            const isSpy = p.isSpy === true;
-
-                            return (
-                                <div
-                                    key={p.id}
-                                    className={`result-item ${isSpy ? 'is-spy' : 'is-civilian'}`}
-                                >
-                                    <div className="player-info">
-                                        <div className="role-icon">
-                                            {isSpy ? '🥷' : '🕵️'}
-                                        </div>
-                                        <div className="player-name">
-                                            {p.name} {p.id === me?.id && '(Ви)'}
-                                        </div>
+                        {/* Secret Word Section */}
+                        {(secretWord || category) && (
+                            <div className="secret-info">
+                                {category && (
+                                    <div className="secret-item">
+                                        <span className="secret-label">Категорія:</span>
+                                        <span className="secret-value">{category}</span>
                                     </div>
-
-                                    <div className="role-label">
-                                        {isSpy ? 'ШПИГУН' : 'Мирний'}
+                                )}
+                                {secretWord && (
+                                    <div className="secret-item">
+                                        <span className="secret-label">Секретне слово:</span>
+                                        <span className="secret-value secret-word">{secretWord}</span>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="spy-actions">
-                        {me?.isHost && (
-                            <div className="host-actions">
-                                <Button fullWidth onClick={handleReturnToLobby} variant="secondary">
-                                    🛋️ В лобі (Всіх)
-                                </Button>
-
-                                <Button fullWidth onClick={handlePlayAgain}>
-                                    🔄 Грати знову
-                                </Button>
+                                )}
                             </div>
                         )}
 
-                        <Button
-                            fullWidth
-                            variant="secondary"
-                            onClick={handleExit}
-                        >
-                            🚪 Покинути кімнату
-                        </Button>
+                        {/* Results List */}
+                        <div className="results-list">
+                            {spiesReveal.map(reveal => {
+                                const player = players.find(p => p.id === reveal.playerId);
+                                const isOnline = player?.isConnected ?? false;
+                                const isMe = me?.id === reveal.playerId;
+
+                                const itemClasses = [
+                                    'result-item',
+                                    reveal.isSpy ? 'is-spy' : 'is-civilian',
+                                    !isOnline ? 'is-offline' : '',
+                                    reveal.isDead ? 'is-dead' : ''
+                                ].filter(Boolean).join(' ');
+
+                                return (
+                                    <div
+                                        key={reveal.playerId}
+                                        className={itemClasses}
+                                    >
+                                        <div className="player-info">
+                                            <div className="role-icon">
+                                                {reveal.isDead ? '💀' : reveal.isSpy ? '🥷' : '🕵️'}
+                                            </div>
+                                            <div className="player-name">
+                                                {reveal.playerName} {isMe && '(Ви)'}
+                                                {!isOnline && ' [Офлайн]'}
+                                            </div>
+                                        </div>
+
+                                        <div className="role-status">
+                                            {reveal.isDead && (
+                                                <div className="status-badge dead">Вибув</div>
+                                            )}
+                                            <div className="role-label">
+                                                {reveal.isSpy ? 'ШПИГУН' : 'Мирний'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="spy-actions">
+                            {me?.isHost && (
+                                <div className="host-actions">
+                                    <Button fullWidth onClick={handleReturnToLobby} variant="secondary">
+                                        🛋️ В лобі
+                                    </Button>
+
+                                    <Button fullWidth onClick={handlePlayAgain}>
+                                        🔄 Грати знову
+                                    </Button>
+                                </div>
+                            )}
+
+                            <Button
+                                fullWidth
+                                variant="secondary"
+                                onClick={handleExit}
+                            >
+                                🚪 Покинути кімнату
+                            </Button>
+                        </div>
                     </div>
                 </div>
 

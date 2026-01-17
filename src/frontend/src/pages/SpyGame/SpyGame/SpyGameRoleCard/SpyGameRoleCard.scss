@@ -19,6 +19,39 @@
     background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
   }
 
+  &--dead {
+    background: linear-gradient(135deg, #424242 0%, #212121 100%);
+    filter: grayscale(0.8);
+    opacity: 0.85;
+  }
+
+  &__skull-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 120px;
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+    animation: float 3s ease-in-out infinite;
+
+    @media (max-width: 768px) {
+      font-size: 80px;
+    }
+  }
+
+  &__icon,
+  &__title,
+  &__desc,
+  &__secret-word,
+  &__category-badge,
+  &__category-text,
+  &__guess-btn {
+    position: relative;
+    z-index: 1;
+  }
+
   &__icon {
     font-size: 60px;
     margin-bottom: 10px;
@@ -87,5 +120,14 @@
   &__guess-btn {
     margin-top: 15px;
     width: 100%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-10px);
   }
 }

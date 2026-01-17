@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useSpyGame } from '../../../context/spy-game/SpyGameContext.tsx';
 import { Button } from '../../../components/ui/Button/Button';
 import { Modal } from '../../../components/ui/Modal/Modal';
-import { RoomStatus } from "../../../models/spy-game.ts";
 import './SpyEntry.scss';
+import {RoomStatus} from "../../../models/shared.ts";
 
 export const SpyEntry = () => {
     const navigate = useNavigate();

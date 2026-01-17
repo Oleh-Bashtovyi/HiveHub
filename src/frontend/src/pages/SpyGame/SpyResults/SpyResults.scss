@@ -1,13 +1,14 @@
 @use '../../../styles/variables' as *;
 
-// Обгортка сторінки результатів
 .spy-results {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 20px;
   background: linear-gradient(135deg, #1a0000 0%, $color-spy-bg 50%, #1a0000 100%);
+  overflow: hidden;
 
   &__content {
     display: grid;
@@ -15,127 +16,231 @@
     gap: 20px;
     width: 100%;
     max-width: 1200px;
-    align-items: start;
+    height: calc(100vh - 40px);
+    max-height: 900px;
 
-    // На мобільних - вертикальний стек
     @media (max-width: 1024px) {
       grid-template-columns: 1fr;
       max-width: 600px;
+      height: calc(100vh - 40px);
+      grid-template-rows: auto 1fr;
+    }
+
+    @media (max-width: 768px) {
+      padding: 0;
+      gap: 15px;
+      height: calc(100vh - 30px);
+    }
+  }
+
+  &__main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 5px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba($color-spy-primary, 0.1);
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba($color-spy-primary, 0.4);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba($color-spy-primary, 0.6);
+      }
+    }
+
+    @media (max-width: 1024px) {
+      overflow-y: visible;
+      padding-right: 0;
     }
   }
 
   &__chat {
     height: 100%;
-    min-height: 600px;
+    overflow: hidden;
 
     @media (max-width: 1024px) {
-      min-height: 400px;
-      max-height: 500px;
+      min-height: 300px;
+      max-height: 400px;
+    }
+
+    @media (max-width: 768px) {
+      min-height: 250px;
+      max-height: 350px;
     }
   }
 }
 
-// Картка
 .spy-card {
   background: $color-spy-panel;
   border-radius: 20px;
-  padding: 40px;
+  padding: 30px;
   box-shadow: 0 20px 60px rgba($color-spy-primary, 0.3);
   width: 100%;
   animation: fadeIn 0.5s ease-in;
   border: 1px solid rgba($color-spy-primary, 0.2);
 
   @media (max-width: 768px) {
-    padding: 30px 20px;
+    padding: 20px 15px;
     border-radius: 15px;
   }
 }
 
-// Заголовки
 .spy-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 
   .icon-wrapper {
-    font-size: 60px;
+    font-size: 50px;
     margin-bottom: 10px;
     display: inline-block;
     filter: drop-shadow(0 0 10px rgba($color-spy-primary, 0.5));
 
     @media (max-width: 768px) {
-      font-size: 48px;
+      font-size: 40px;
+      margin-bottom: 8px;
     }
   }
 
   h1 {
     color: $color-text-main;
-    font-size: 32px;
+    font-size: 28px;
     margin: 0 0 10px 0;
 
     @media (max-width: 768px) {
-      font-size: 26px;
+      font-size: 24px;
     }
   }
 
   .winner-text {
     color: $color-spy-primary;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
-    margin: 10px 0;
+    margin: 8px 0;
     text-shadow: 0 0 10px rgba($color-spy-primary, 0.5);
 
     @media (max-width: 768px) {
-      font-size: 18px;
+      font-size: 16px;
+      margin: 6px 0;
     }
   }
 
   .reason-text {
     color: $color-text-muted;
-    font-size: 16px;
+    font-size: 14px;
     margin: 5px 0 0 0;
+    line-height: 1.4;
 
     @media (max-width: 768px) {
-      font-size: 14px;
+      font-size: 13px;
     }
   }
 }
 
-// Група кнопок
-.spy-actions {
+.secret-info {
+  background: rgba($color-spy-primary, 0.08);
+  border: 1px solid rgba($color-spy-primary, 0.2);
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 30px;
-
-  .host-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-  }
+  gap: 10px;
 
   @media (max-width: 768px) {
-    margin-top: 20px;
-    gap: 12px;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    gap: 8px;
+  }
+
+  .secret-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+  }
+
+  .secret-label {
+    color: $color-text-muted;
+    font-size: 14px;
+    font-weight: 500;
+
+    @media (max-width: 768px) {
+      font-size: 13px;
+    }
+  }
+
+  .secret-value {
+    color: $color-text-main;
+    font-size: 16px;
+    font-weight: 600;
+
+    @media (max-width: 768px) {
+      font-size: 15px;
+    }
+
+    &.secret-word {
+      color: $color-spy-primary;
+      text-shadow: 0 0 8px rgba($color-spy-primary, 0.4);
+      font-size: 18px;
+
+      @media (max-width: 768px) {
+        font-size: 16px;
+      }
+    }
   }
 }
 
-// Стилі списку гравців
 .results-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 30px;
+  gap: 10px;
+  margin-bottom: 25px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba($color-spy-primary, 0.1);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba($color-spy-primary, 0.3);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba($color-spy-primary, 0.5);
+    }
+  }
 
   @media (max-width: 768px) {
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 20px;
+    max-height: 300px;
   }
 }
 
 .result-item {
   background: $color-spy-panel-light;
-  padding: 15px 20px;
+  padding: 12px 16px;
   border-radius: $border-radius-md;
   display: flex;
   align-items: center;
@@ -144,14 +249,15 @@
   transition: all 0.2s ease;
 
   @media (max-width: 768px) {
-    padding: 12px 15px;
+    padding: 10px 12px;
   }
 
-  // Ліва частина (іконка + ім'я)
   .player-info {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
+    min-width: 0;
 
     @media (max-width: 768px) {
       gap: 10px;
@@ -159,6 +265,7 @@
 
     .role-icon {
       font-size: 24px;
+      flex-shrink: 0;
 
       @media (max-width: 768px) {
         font-size: 20px;
@@ -168,29 +275,63 @@
     .player-name {
       font-weight: 600;
       color: $color-text-main;
-      font-size: 1.1rem;
+      font-size: 1rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
 
       @media (max-width: 768px) {
-        font-size: 1rem;
+        font-size: 0.9rem;
       }
     }
   }
 
-  // Права частина (Роль текстом)
+  .role-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+  }
+
   .role-label {
     font-weight: bold;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     white-space: nowrap;
 
     @media (max-width: 768px) {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       letter-spacing: 0.5px;
     }
   }
 
-  // --- Модифікатор для ШПИГУНА ---
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+
+    &.dead {
+      background: rgba(#ff4444, 0.2);
+      color: #ff6666;
+      border: 1px solid rgba(#ff4444, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+    }
+  }
+
   &.is-spy {
     background: rgba($color-spy-primary, 0.15);
     border-color: rgba($color-spy-primary, 0.6);
@@ -205,6 +346,43 @@
   &.is-civilian {
     .role-label {
       color: $color-spy-success;
+    }
+  }
+
+  &.is-offline {
+    opacity: 0.5;
+    filter: grayscale(70%);
+
+    .player-name {
+      color: $color-text-muted;
+      font-style: italic;
+    }
+  }
+
+  &.is-dead {
+    .player-info {
+      opacity: 0.8;
+    }
+  }
+}
+
+.spy-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .host-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    gap: 10px;
+
+    .host-actions {
+      gap: 8px;
     }
   }
 }

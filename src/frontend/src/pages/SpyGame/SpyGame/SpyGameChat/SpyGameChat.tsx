@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
-import type { ChatMessageDto } from "../../../../models/spy-game.ts";
 import './SpyGameChat.scss';
+import type {ChatMessageDto} from "../../../../models/shared.ts";
 
 interface SpyGameChatProps {
     messages: ChatMessageDto[];
