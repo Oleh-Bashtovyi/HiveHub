@@ -27,13 +27,21 @@ public class InMemoryTaskWorker(
                         await ProcessTaskAsync(task);
                     }
                 }
+
+                await Task.Delay(500, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful shutdown, do nothing or log info
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in RAM worker");
-            }
 
-            await Task.Delay(500, stoppingToken);
+                // Add a small delay safely to prevent tight loop in case of persistent error
+                try { await Task.Delay(1000, stoppingToken); } catch { }
+            }
         }
     }
 }

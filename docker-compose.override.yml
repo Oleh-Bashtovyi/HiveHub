@@ -1,0 +1,22 @@
+services:
+  hivehub.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+
+
+  hivehub.client:
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8080/api
+      - VITE_HUB_URL=http://localhost:8080/spy-game-hub
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./src/frontend:/app
+      - /app/node_modules

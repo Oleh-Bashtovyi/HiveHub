@@ -3,6 +3,7 @@ import { Modal } from '../../../../components/ui/Modal/Modal';
 import { Button } from '../../../../components/ui/Button/Button';
 import { useGameTimer } from '../../../../hooks/useGameTimer';
 import './GuessWordModal.scss';
+import { en } from '../../../../const/localization/en';
 
 interface GuessWordModalProps {
     isOpen: boolean;
@@ -17,9 +18,11 @@ export const GuessWordModal = ({ isOpen, category, isLastChance, endsAt, onClose
     const [word, setWord] = useState('');
     const timeLeft = useGameTimer(endsAt);
 
+    const t = en.spyGame.guessWord;
+
     const handleSubmit = () => {
-        if (!word.trim()) return alert('Введіть слово!');
-        if (!confirm(`Секретне слово: "${word.trim()}"?`)) return;
+        if (!word.trim()) return alert(t.enterWord);
+        if (!confirm(t.confirmGuess.replace('{word}', word.trim()))) return;
         onGuess(word.trim());
     };
 
@@ -27,25 +30,24 @@ export const GuessWordModal = ({ isOpen, category, isLastChance, endsAt, onClose
         <Modal
             isOpen={isOpen}
             onClose={isLastChance ? () => {} : onClose}
-            title={isLastChance ? "🔥 ОСТАННІЙ ШАНС" : "💡 Вгадати слово"}
+            title={isLastChance ? t.lastChanceTitle : t.title}
         >
             <div className="guess-word">
-                {endsAt && <div className="guess-word__timer">⏱️ {timeLeft} сек</div>}
+                {endsAt && <div className="guess-word__timer">{t.timer.replace('{time}', String(timeLeft))}</div>}
 
                 <div className={`guess-word__warning ${isLastChance ? 'danger' : ''}`}>
                     <div className="guess-word__warning-icon">{isLastChance ? '🔥' : '⚠️'}</div>
                     <p className="guess-word__warning-text">
                         {isLastChance
-                            ? "Вас спіймали! Це ваш єдиний шанс виграти."
-                            :  <span><strong>УВАГА!</strong> У вас є лише одна спроба. Правильна відповідь принесе перемогу,
-                            неправильна — поразку всім шпигунам!</span>
+                            ? t.warningLastChance
+                            : <span dangerouslySetInnerHTML={{ __html: t.warningNormal }} />
                         }
                     </p>
                 </div>
 
                 {category && (
                     <div className="guess-word__category">
-                        <span className="guess-word__category-label">Категорія:</span>
+                        <span className="guess-word__category-label">{t.category}</span>
                         <span className="guess-word__category-value">{category}</span>
                     </div>
                 )}
@@ -55,7 +57,7 @@ export const GuessWordModal = ({ isOpen, category, isLastChance, endsAt, onClose
                         className="guess-word__input"
                         value={word}
                         onChange={(e) => setWord(e.target.value)}
-                        placeholder="Введіть слово..."
+                        placeholder={t.placeholder}
                         maxLength={50}
                         autoFocus
                         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
@@ -64,10 +66,10 @@ export const GuessWordModal = ({ isOpen, category, isLastChance, endsAt, onClose
 
                 <div className="guess-word__buttons">
                     {!isLastChance && (
-                        <Button variant="secondary" onClick={onClose}>Скасувати</Button>
+                        <Button variant="secondary" onClick={onClose}>{t.cancel}</Button>
                     )}
                     <Button variant="primary" onClick={handleSubmit}>
-                        {isLastChance ? "Спробувати долю" : "Вгадати"}
+                        {isLastChance ? t.tryLuck : t.guess}
                     </Button>
                 </div>
             </div>

@@ -7,6 +7,7 @@ import './SpyLobby.scss';
 import { LobbySettings } from "./LobbySettings/LobbySettings.tsx";
 import { PlayersPanel } from "./PlayersPanel/PlayersPanel.tsx";
 import {RoomStatus} from "../../../models/shared.ts";
+import { en } from '../../../const/localization/en';
 
 type TabType = 'settings' | 'chat';
 
@@ -37,20 +38,20 @@ export const SpyLobby = () => {
     const [lastSeenMessageCount, setLastSeenMessageCount] = useState(0);
     const hasUnreadMessages = messages.length > lastSeenMessageCount;
 
+    const t = en.spyGame.lobby;
+
     const safeExecute = async (action: () => Promise<void>) => {
         try {
             await action();
         } catch (error: unknown) {
             console.error(error);
-            const msg = error instanceof Error ? error.message : 'Невідома помилка';
-            alert(`Помилка: ${msg}`);
+            const msg = error instanceof Error ? error.message : t.errors.generic;
+            alert(`${t.errors.generic}${msg}`);
         }
     };
 
-    // Mark messages as read when chat tab is opened
     useEffect(() => {
         if (activeTab === 'chat') {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setLastSeenMessageCount(messages.length);
         }
     }, [activeTab, messages.length]);
@@ -69,14 +70,14 @@ export const SpyLobby = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
-    if (!roomCode || !rules || !wordPacks || !me) return <div>Loading Lobby...</div>;
+    if (!roomCode || !rules || !wordPacks || !me) return <div>{t.loadingLobby}</div>;
 
     const copyCode = () => {
         navigator.clipboard.writeText(roomCode);
     };
 
     const handleLeave = () => {
-        if (confirm('Leave room?')) {
+        if (confirm(t.leaveConfirm)) {
             void safeExecute(async () => {
                 await leaveRoom();
                 navigate('/spy');
@@ -97,21 +98,19 @@ export const SpyLobby = () => {
     return (
         <div className="spy-lobby-page theme-spy">
             <div className="lobby-container">
-                {/* Header */}
                 <div className="lobby-header">
                     <div className="room-code-group">
-                        <h2>Кімната</h2>
-                        <div className="code-badge" onClick={copyCode} title="Клікніть, щоб скопіювати">
+                        <h2>{t.room}</h2>
+                        <div className="code-badge" onClick={copyCode} title={en.common.copyToClipboard}>
                             {roomCode}
                         </div>
                     </div>
                     <Button variant="danger" onClick={handleLeave} size="small">
-                        Вийти
+                        {t.leave}
                     </Button>
                 </div>
 
                 <div className="lobby-content">
-                    {/* LEFT: Players Grid */}
                     <PlayersPanel
                         players={players}
                         me={me}
@@ -127,20 +126,19 @@ export const SpyLobby = () => {
                         onChangeAvatar={(avatarId) => safeExecute(async () => await changeAvatar(avatarId))}
                     />
 
-                    {/* RIGHT: Sidebar (Tabs: Settings / Chat) */}
                     <div className="section-panel sidebar-panel">
                         <div className="sidebar-tabs">
                             <button
                                 className={`tab-btn ${activeTab === 'settings' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('settings')}
                             >
-                                ⚙️ Налаштування
+                                {t.tabs.settings}
                             </button>
                             <button
                                 className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('chat')}
                             >
-                                💬 Чат
+                                {t.tabs.chat}
                                 {hasUnreadMessages && <span className="tab-badge"></span>}
                             </button>
                         </div>

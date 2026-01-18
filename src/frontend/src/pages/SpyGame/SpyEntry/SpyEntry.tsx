@@ -5,17 +5,17 @@ import { Button } from '../../../components/ui/Button/Button';
 import { Modal } from '../../../components/ui/Modal/Modal';
 import './SpyEntry.scss';
 import {RoomStatus} from "../../../models/shared.ts";
+import { en } from '../../../const/localization/en';
 
 export const SpyEntry = () => {
     const navigate = useNavigate();
     const { isConnected, roomState, createRoom, joinRoom, roomCode } = useSpyGame();
 
-    // UI State
     const [isJoinModalOpen, setJoinModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-
-    // Form Data
     const [joinCode, setJoinCode] = useState('');
+
+    const t = en.spyGame.entry;
 
     useEffect(() => {
         if (roomCode) {
@@ -29,8 +29,8 @@ export const SpyEntry = () => {
         try {
             await createRoom();
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Невідома помилка';
-            alert("Помилка створення кімнати: " + message);
+            const message = error instanceof Error ? error.message : t.errors.unknownError;
+            alert(t.errors.createRoom + message);
         } finally {
             setIsLoading(false);
         }
@@ -38,7 +38,7 @@ export const SpyEntry = () => {
 
     const handleJoinRoom = async () => {
         if (!joinCode.trim() || joinCode.length < 6) {
-            alert("Введіть коректний код кімнати");
+            alert(t.errors.invalidCode);
             return;
         }
 
@@ -46,8 +46,8 @@ export const SpyEntry = () => {
         try {
             await joinRoom(joinCode.toUpperCase());
         } catch (error) {
-            const message = error instanceof Error ? error.message : 'Невідома помилка';
-            alert("Помилка входу: " + message);
+            const message = error instanceof Error ? error.message : t.errors.unknownError;
+            alert(t.errors.joinRoom + message);
         } finally {
             setIsLoading(false);
         }
@@ -58,13 +58,13 @@ export const SpyEntry = () => {
             <div className="spy-card">
                 <div className="spy-logo">
                     <div className="spy-logo-icon">🕵️</div>
-                    <h1 className="spy-title">Знайди Шпигуна</h1>
-                    <p className="spy-subtitle">Хто з вас зрадник? Вичисліть його!</p>
+                    <h1 className="spy-title">{t.title}</h1>
+                    <p className="spy-subtitle">{t.subtitle}</p>
                 </div>
 
                 {!isConnected && (
                     <div className="connection-status">
-                        ⏳ Підключення до сервера...
+                        {t.connectingToServer}
                     </div>
                 )}
 
@@ -75,7 +75,7 @@ export const SpyEntry = () => {
                         disabled={!isConnected}
                         isLoading={isLoading && !isJoinModalOpen}
                     >
-                        Створити кімнату
+                        {t.createRoom}
                     </Button>
                     <Button
                         variant="secondary"
@@ -83,52 +83,51 @@ export const SpyEntry = () => {
                         onClick={() => setJoinModalOpen(true)}
                         disabled={!isConnected}
                     >
-                        Приєднатися до гри
+                        {t.joinGame}
                     </Button>
                 </div>
 
                 <div className="features">
                     <div className="feature-item">
                         <div className="feature-icon">👥</div>
-                        <span>3-8 гравців</span>
+                        <span>{t.features.players}</span>
                     </div>
                     <div className="feature-item">
                         <div className="feature-icon">⏱️</div>
-                        <span>5-8 хвилин гри</span>
+                        <span>{t.features.duration}</span>
                     </div>
                     <div className="feature-item">
                         <div className="feature-icon">🎮</div>
-                        <span>Без реєстрації</span>
+                        <span>{t.features.noRegistration}</span>
                     </div>
                 </div>
 
                 <div className="back-link">
-                    <Link to="/">← Назад до HiveHub</Link>
+                    <Link to="/">{t.backToHiveHub}</Link>
                 </div>
             </div>
 
-            {/* Join Room Modal */}
             <Modal
                 isOpen={isJoinModalOpen}
                 onClose={() => setJoinModalOpen(false)}
-                title="Приєднатися до гри"
+                title={t.joinModal.title}
             >
                 <p className="modal-description">
-                    Введіть код кімнати, який надав вам хост гри.
+                    {t.joinModal.description}
                 </p>
                 <div className="input-group">
-                    <label>Код кімнати</label>
+                    <label>{t.joinModal.roomCodeLabel}</label>
                     <input
                         className="uppercase"
                         value={joinCode}
                         onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                        placeholder="ABC12345"
+                        placeholder={t.joinModal.roomCodePlaceholder}
                         maxLength={8}
                         autoFocus
                     />
                 </div>
                 <Button fullWidth onClick={handleJoinRoom} isLoading={isLoading}>
-                    Приєднатися
+                    {t.joinModal.joinButton}
                 </Button>
             </Modal>
         </div>

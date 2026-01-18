@@ -4,6 +4,7 @@ import { AVATAR_MAP } from '../../../../const/avatars';
 import type { SpyPlayerDto } from '../../../../models/spy-game';
 import { useGameTimer } from '../../../../hooks/useGameTimer';
 import './FinalVotingModal.scss';
+import { en } from '../../../../const/localization/en';
 
 interface FinalVotingModalProps {
     isOpen: boolean;
@@ -17,25 +18,27 @@ interface FinalVotingModalProps {
 export const FinalVotingModal = ({ isOpen, players, hasVoted, myVote, endsAt, onVote }: FinalVotingModalProps) => {
     const timeLeft = useGameTimer(endsAt);
 
+    const t = en.spyGame.finalVoting;
+
     const votedPlayer = myVote ? players.find(p => p.id === myVote) : null;
 
     return (
-        <Modal isOpen={isOpen} onClose={() => {}} title={`🗳️ Фінальне голосування (${timeLeft}с)`}>
+        <Modal isOpen={isOpen} onClose={() => {}} title={t.title.replace('{time}', String(timeLeft))}>
             <div className="final-voting">
                 <div className="final-voting__header">
                     <div className="final-voting__icon">⏱️</div>
-                    <h3 className="final-voting__title">Час вийшов!</h3>
+                    <h3 className="final-voting__title">{t.timeUp}</h3>
                     <p className="final-voting__desc">
-                        Оберіть гравця, якого ви підозрюєте у шпигунстві, або пропустіть
+                        {t.description}
                     </p>
                 </div>
                 {hasVoted ? (
                     <div className="final-voting__voted">
                         <div className="final-voting__voted-icon">✅</div>
                         <div className="final-voting__voted-text">
-                            {votedPlayer ? `Ви проголосували за: ${votedPlayer.name}` : 'Ви пропустили голосування'}
+                            {votedPlayer ? `${t.youVotedFor}${votedPlayer.name}` : t.youSkipped}
                         </div>
-                        <p className="final-voting__voted-info">Очікуємо інших гравців...</p>
+                        <p className="final-voting__voted-info">{t.waitingForOthers}</p>
                     </div>
                 ) : (
                     <>
@@ -45,10 +48,10 @@ export const FinalVotingModal = ({ isOpen, players, hasVoted, myVote, endsAt, on
                                 fullWidth
                                 onClick={() => onVote(null)}
                             >
-                                ⏭️ ПРОПУСТИТИ (Немає підозр)
+                                {t.skip}
                             </Button>
                         </div>
-                        <div className="final-voting__divider">або оберіть гравця</div>
+                        <div className="final-voting__divider">{t.orChoosePlayer}</div>
                         <div className="final-voting__players">
                             {players.map(p => (
                                 <button

@@ -30,13 +30,20 @@ public class RoomCleanupService : BackgroundService
                 {
                     _logger.LogInformation("Cleanup: Removed {Count} inactive rooms.", removedCount);
                 }
+
+                await Task.Delay(checkInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Graceful shutdown
+                break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred during room cleanup.");
+                // Prevent tight loop on error
+                try { await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken); } catch { }
             }
-
-            await Task.Delay(checkInterval, stoppingToken);
         }
     }
 }

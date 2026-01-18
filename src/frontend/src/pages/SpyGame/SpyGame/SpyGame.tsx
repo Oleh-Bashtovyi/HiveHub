@@ -14,6 +14,7 @@ import { Button } from '../../../components/ui/Button/Button';
 import { ToastContainer } from '../../../components/ui/ToastContainer/ToastContainer';
 import './SpyGame.scss';
 import { RoomStatus } from "../../../models/shared.ts";
+import { en } from '../../../const/localization/en';
 
 export const SpyGame = () => {
     const navigate = useNavigate();
@@ -39,21 +40,21 @@ export const SpyGame = () => {
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [toastType, setToastType] = useState<'info' | 'error' | 'success'>('info');
 
-    // Ref to track previous players state to detect changes (like death)
     const prevPlayersRef = useRef<SpyPlayerDto[]>([]);
+
+    const t = en.spyGame.game;
 
     const safeExecute = async (action: () => Promise<void>) => {
         try {
             await action();
         } catch (error: unknown) {
             console.error(error);
-            const msg = error instanceof Error ? error.message : 'Unknown error';
-            setToastMessage(`Помилка: ${msg}`);
+            const msg = error instanceof Error ? error.message : t.unknownError;
+            setToastMessage(`${t.error}${msg}`);
             setToastType('error');
         }
     };
 
-    // Routing Logic
     useEffect(() => {
         if (isInitializing) return;
 
@@ -73,31 +74,27 @@ export const SpyGame = () => {
         }
     }, [roomCode, roomState, navigate, isInitializing]);
 
-    // Game Phase & Event Toasts
     useEffect(() => {
         if (!gameState) return;
 
-        // 1. Handle Last Chance Phase Start
         if (gameState.phase === SpyGamePhase.SpyLastChance) {
             if (gameState.caughtSpyId === me?.id) {
                 // eslint-disable-next-line react-hooks/set-state-in-effect
-                setToastMessage("⚠️ ВАС СПІЙМАЛИ! Вгадайте локацію, щоб виграти!");
+                setToastMessage(t.toast.youCaught);
                 setToastType('error');
             } else {
-                setToastMessage(`🕵️ Шпигун спійманий! Він намагається вгадати локацію...`);
+                setToastMessage(t.toast.spyCaught);
                 setToastType('info');
             }
         }
 
-        // 2. Handle Accusation Voting Start
         if (gameState.activeVoting?.type === SpyVotingType.Accusation) {
-            setToastMessage(`🗳️ Розпочато голосування проти: ${gameState.activeVoting.accusedPlayerName}`);
+            setToastMessage(`${t.toast.votingStarted}${gameState.activeVoting.accusedPlayerName}`);
             setToastType('info');
         }
 
-    }, [gameState?.phase, gameState?.activeVoting?.type, gameState?.caughtSpyId, me?.id, gameState?.activeVoting?.accusedPlayerName, gameState]);
+    }, [gameState?.phase, gameState?.activeVoting?.type, gameState?.caughtSpyId, me?.id, gameState?.activeVoting?.accusedPlayerName, gameState, t]);
 
-    // Detect Player Death (Wrong Guess)
     useEffect(() => {
         if (players.length === 0) return;
 
@@ -108,13 +105,13 @@ export const SpyGame = () => {
             );
 
             if (newlyDead) {
-                setToastMessage(`❌ ${newlyDead.name} помилився з вгадуванням і вибуває!`);
+                setToastMessage(t.toast.playerWrongGuess.replace('{name}', newlyDead.name));
                 setToastType('error');
             }
         }
 
         prevPlayersRef.current = players;
-    }, [players]);
+    }, [players, t]);
 
     if (isInitializing || !gameState || !me || !roomCode || !rules) return null;
 
@@ -133,7 +130,6 @@ export const SpyGame = () => {
 
     const showGuessModal = isGuessModalOpen || amICaughtSpy;
 
-    // Logic for showing "Accuse" button availability
     const canAccuse = !activeVoting &&
         isSearchPhase &&
         !hasUsedAccusation &&
@@ -166,12 +162,12 @@ export const SpyGame = () => {
                         <div className="spy-game-last-chance-banner__icon">🔥</div>
                         <div className="spy-game-last-chance-banner__content">
                             <div className="spy-game-last-chance-banner__title">
-                                {amICaughtSpy ? "ВАС СПІЙМАЛИ!" : `ШПИГУН СПІЙМАНИЙ: ${caughtSpyName}`}
+                                {amICaughtSpy ? t.lastChanceBanner.youCaught : `${t.lastChanceBanner.spyCaught}${caughtSpyName}`}
                             </div>
                             <div className="spy-game-last-chance-banner__text">
                                 {amICaughtSpy
-                                    ? "У вас є останній шанс: вгадайте локацію, щоб перемогти!"
-                                    : "Шпигун обирає локацію. Якщо він вгадає — шпигуни переможуть!"}
+                                    ? t.lastChanceBanner.youCaughtDesc
+                                    : t.lastChanceBanner.spyCaughtDesc}
                             </div>
                         </div>
                     </div>
@@ -202,12 +198,12 @@ export const SpyGame = () => {
                         <SpyGameRules />
                         <div className="spy-game-actions">
                             {me.isHost && (
-                                <Button variant="secondary" fullWidth onClick={() => confirm('Повернути всіх в лобі?') && safeExecute(returnToLobby)}>
-                                    🛑 В лобі (Всіх)
+                                <Button variant="secondary" fullWidth onClick={() => confirm(t.actions.toLobbyConfirm) && safeExecute(returnToLobby)}>
+                                    {t.actions.toLobbyAll}
                                 </Button>
                             )}
-                            <Button variant="danger" fullWidth onClick={() => confirm('Вийти з кімнати?') && safeExecute(async () => { await leaveRoom(); navigate('/spy'); })}>
-                                🚪 Покинути гру
+                            <Button variant="danger" fullWidth onClick={() => confirm(t.actions.leaveConfirm) && safeExecute(async () => { await leaveRoom(); navigate('/spy'); })}>
+                                {t.actions.leaveGame}
                             </Button>
                         </div>
                     </div>

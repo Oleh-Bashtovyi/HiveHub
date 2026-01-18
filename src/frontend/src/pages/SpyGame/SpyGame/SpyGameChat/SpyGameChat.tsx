@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
 import './SpyGameChat.scss';
 import type {ChatMessageDto} from "../../../../models/shared.ts";
+import { en } from '../../../../const/localization/en';
 
 interface SpyGameChatProps {
     messages: ChatMessageDto[];
@@ -12,6 +13,8 @@ interface SpyGameChatProps {
 export const SpyGameChat = ({ messages, currentPlayerId, onSendMessage }: SpyGameChatProps) => {
     const [msgText, setMsgText] = useState('');
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+    const t = en.spyGame.chat;
 
     useEffect(() => {
         if (messagesContainerRef.current) {
@@ -37,11 +40,11 @@ export const SpyGameChat = ({ messages, currentPlayerId, onSendMessage }: SpyGam
 
     return (
         <div className="spy-game-chat">
-            <h3 className="spy-game-chat__title">💬 Чат</h3>
+            <h3 className="spy-game-chat__title">{t.title}</h3>
 
             <div className="spy-game-chat__messages" ref={messagesContainerRef}>
                 {messages.length === 0 && (
-                    <div className="spy-game-chat__empty">Повідомлень ще немає...</div>
+                    <div className="spy-game-chat__empty">{t.noMessages}</div>
                 )}
                 {messages.map((msg, idx) => (
                     <div
@@ -65,10 +68,10 @@ export const SpyGameChat = ({ messages, currentPlayerId, onSendMessage }: SpyGam
                     value={msgText}
                     onChange={e => setMsgText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Повідомлення..."
+                    placeholder={t.messagePlaceholder}
                     maxLength={200}
                 />
-                <Button size="small" onClick={handleSend}>📤</Button>
+                <Button size="small" onClick={handleSend}>{t.sendButton}</Button>
             </div>
         </div>
     );

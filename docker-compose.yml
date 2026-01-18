@@ -1,0 +1,12 @@
+services:
+  hivehub.api:
+    image: ${DOCKER_REGISTRY-}hivehubapi
+    build:
+      context: src/backend
+      dockerfile: HiveHub.API/Dockerfile
+
+  hivehub.client:
+    image: ${DOCKER_REGISTRY-}hivehubclient
+    build:
+      context: src/frontend
+      dockerfile: Dockerfile

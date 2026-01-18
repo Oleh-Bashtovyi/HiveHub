@@ -2,6 +2,7 @@ import { AVATAR_MAP } from '../../../../const/avatars';
 import { Button } from '../../../../components/ui/Button/Button';
 import type { SpyPlayerDto } from '../../../../models/spy-game';
 import './SpyGamePlayers.scss';
+import { en } from '../../../../const/localization/en';
 
 interface SpyGamePlayersProps {
     players: SpyPlayerDto[];
@@ -24,10 +25,12 @@ export const SpyGamePlayers = ({
                                    canAccuse,
                                    onAccuse
                                }: SpyGamePlayersProps) => {
+    const t = en.spyGame.players;
+
     return (
         <div className="spy-game-players">
             <h3 className="spy-game-players__title">
-                👥 Гравці
+                {t.title}
                 {votesForTimer > 0 && (
                     <span className="spy-game-players__timer-votes">
                         ⏸️ {votesForTimer}/{votesRequired}
@@ -42,7 +45,6 @@ export const SpyGamePlayers = ({
                     const isSpy = p.isSpy ?? null;
                     const showSpyBadge = shouldShowSpies && isSpy && !isMe;
 
-                    // Can accuse logic: Round is Active + Not Me + Target Connected + Target Not Caught + Target Not Dead
                     const canAccuseThis = canAccuse && !isMe && p.isConnected && !isCaught && !isDead;
 
                     return (
@@ -58,19 +60,19 @@ export const SpyGamePlayers = ({
                             <div className="spy-game-players__info">
                                 <div className="spy-game-players__name-row">
                                     <span className="spy-game-players__name">
-                                        {p.name} {isMe && '(Ви)'}
+                                        {p.name} {isMe && t.you}
                                     </span>
-                                    {p.isHost && <span title="Хост" className="spy-game-players__role-icon">👑</span>}
+                                    {p.isHost && <span title="Host" className="spy-game-players__role-icon">👑</span>}
                                     {showSpyBadge && (
-                                        <span title="Союзник-шпигун" className="spy-game-players__spy-badge">🥷</span>
+                                        <span title={t.allySpyTooltip} className="spy-game-players__spy-badge">🥷</span>
                                     )}
                                     {p.isVotedToStopTimer && votesForTimer > 0 && !isDead && (
-                                        <span title="Голосував за стоп" className="spy-game-players__vote-hand">✋</span>
+                                        <span title={t.votedToStopTooltip} className="spy-game-players__vote-hand">✋</span>
                                     )}
-                                    {isCaught && <span title="Спійманий шпигун" className="spy-game-players__caught-badge">🔒</span>}
-                                    {isDead && !isCaught && <span title="Мертвий" className="spy-game-players__dead-badge">💀</span>}
+                                    {isCaught && <span title={t.caughtSpyTooltip} className="spy-game-players__caught-badge">🔒</span>}
+                                    {isDead && !isCaught && <span title={t.deadTooltip} className="spy-game-players__dead-badge">💀</span>}
                                 </div>
-                                {!p.isConnected && <span className="spy-game-players__offline">🔌 Офлайн</span>}
+                                {!p.isConnected && <span className="spy-game-players__offline">{t.offline}</span>}
 
                                 {canAccuseThis && (
                                     <Button
@@ -79,7 +81,7 @@ export const SpyGamePlayers = ({
                                         onClick={() => onAccuse(p.id)}
                                         className="spy-game-players__accuse-btn"
                                     >
-                                        ⚠️ Звинуватити
+                                        {t.accuse}
                                     </Button>
                                 )}
                             </div>

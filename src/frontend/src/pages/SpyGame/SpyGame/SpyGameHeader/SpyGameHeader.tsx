@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
 import { TimerStatus } from '../../../../models/spy-game';
 import './SpyGameHeader.scss';
+import { en } from '../../../../const/localization/en';
 
 interface SpyGameHeaderProps {
     roomCode: string;
@@ -24,12 +25,12 @@ export const SpyGameHeader = ({
                               }: SpyGameHeaderProps) => {
     const [localSeconds, setLocalSeconds] = useState(remainingSeconds);
 
-    // Sync with backend time whenever it pushes an update
+    const t = en.spyGame.header;
+
     useEffect(() => {
         setLocalSeconds(remainingSeconds);
     }, [remainingSeconds]);
 
-    // Local countdown
     useEffect(() => {
         if (timerStatus !== TimerStatus.Running) return;
 
@@ -50,13 +51,13 @@ export const SpyGameHeader = ({
     const isRunning = timerStatus === TimerStatus.Running;
     const isPaused = timerStatus === TimerStatus.Paused;
     const isStopped = timerStatus === TimerStatus.Stopped;
-    const isExpired = timerStatus === 'Expired'; // Check against string literal if needed or enum
+    const isExpired = timerStatus === 'Expired';
 
     const showWarning = localSeconds < 60 && isRunning;
 
     let statusText = formatTime(localSeconds);
-    if (isPaused) statusText = "ПАУЗА";
-    if (isStopped) statusText = "ЗУПИНЕНО";
+    if (isPaused) statusText = t.pause;
+    if (isStopped) statusText = t.stopped;
     if (isExpired) statusText = "00:00";
 
     return (
@@ -67,23 +68,23 @@ export const SpyGameHeader = ({
                         {statusText}
                     </div>
                     <div className="spy-game-header__timer-label">
-                        {isStopped || isPaused ? "Таймер зупинено" : "Залишилось часу"}
+                        {isStopped || isPaused ? t.timerStopped : t.timeLeft}
                     </div>
                 </div>
 
                 {isRunning && (
                     <div className="spy-game-header__vote-controls">
                         <Button size="small" variant="secondary" onClick={onVoteStopTimer} disabled={hasVoted}>
-                            {hasVoted ? "Ви проголосували" : "⏸️ Стоп"}
+                            {hasVoted ? t.youVoted : t.voteStop}
                         </Button>
                         <div className="spy-game-header__vote-info">
-                            Голосів: {playersVoted} / {votesRequired}
+                            {t.votes}{playersVoted} / {votesRequired}
                         </div>
                     </div>
                 )}
             </div>
             <div className="spy-game-header__room-code">
-                КІМНАТА: {roomCode}
+                {t.room}{roomCode}
             </div>
         </div>
     );

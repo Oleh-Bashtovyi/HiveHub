@@ -3,6 +3,7 @@ import { Button } from '../../../../components/ui/Button/Button';
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import type { SpyGameRulesDto, SpyGameWordPacksDto, WordsCategoryDto } from '../../../../models/spy-game';
 import './LobbySettings.scss';
+import { en } from '../../../../const/localization/en';
 
 const PROJECT_CONSTANTS = {
     SPY_GAME: {
@@ -31,6 +32,8 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
     const [editingOriginalName, setEditingOriginalName] = useState<string | null>(null);
     const [newWordInput, setNewWordInput] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const t = en.spyGame.settings;
 
     const modifyNumber = (
         key: keyof SpyGameRulesDto,
@@ -78,7 +81,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
     };
 
     const handleDeleteCategory = (nameToRemove: string) => {
-        if (!isHost || !confirm(`Видалити категорію "${nameToRemove}"?`)) return;
+        if (!isHost || !confirm(t.categoryModal.errors.enterCategoryName)) return;
         const newCats = wordPacks.customCategories.filter(c => c.name !== nameToRemove);
         onUpdateWordPacks({ customCategories: newCats });
     };
@@ -88,7 +91,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
         const word = newWordInput.trim();
 
         if (word.length > PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH) {
-            alert(`Слово занадто довге (макс. ${PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH} символів)`);
+            alert(t.categoryModal.errors.wordTooLong.replace('{max}', String(PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH)));
             return;
         }
 
@@ -102,11 +105,11 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
     };
 
     const handleSaveCategory = () => {
-        if (!editingCatName.trim()) return alert("Введіть назву категорії");
-        if (editingCatWords.length < 3) return alert("Додайте щонайменше 3 слова");
+        if (!editingCatName.trim()) return alert(t.categoryModal.errors.enterCategoryName);
+        if (editingCatWords.length < 3) return alert(t.categoryModal.errors.minWords);
 
         if (wordPacks.customCategories.length >= PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT && !editingOriginalName) {
-            return alert(`Максимум ${PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT} категорій`);
+            return alert(t.categoryModal.errors.maxCategories.replace('{count}', String(PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT)));
         }
 
         let newCategories = [...wordPacks.customCategories];
@@ -119,7 +122,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
             );
         } else {
             if (newCategories.some(c => c.name.toLowerCase() === editingCatName.toLowerCase())) {
-                return alert("Категорія з такою назвою вже існує");
+                return alert(t.categoryModal.errors.categoryExists);
             }
             newCategories.push({ name: editingCatName, words: editingCatWords });
         }
@@ -133,7 +136,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
         if (!file) return;
 
         if (!file.name.endsWith('.txt')) {
-            alert('Будь ласка, виберіть TXT файл');
+            alert(t.fileUpload.selectTxt);
             return;
         }
 
@@ -144,13 +147,13 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 const parsedCategories = parseWordsFile(content);
 
                 if (parsedCategories.length === 0) {
-                    alert('Не знайдено категорій у файлі');
+                    alert(t.fileUpload.noCategoriesFound);
                     return;
                 }
 
                 const totalCategories = wordPacks.customCategories.length + parsedCategories.length;
                 if (totalCategories > PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT) {
-                    alert(`Перевищено ліміт категорій (макс. ${PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT})`);
+                    alert(t.fileUpload.limitExceeded.replace('{max}', String(PROJECT_CONSTANTS.SPY_GAME.MAX_CUSTOM_CATEGORIES_COUNT)));
                     return;
                 }
 
@@ -159,7 +162,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
 
                 for (const cat of parsedCategories) {
                     if (newCategories.some(c => c.name.toLowerCase() === cat.name.toLowerCase())) {
-                        continue; // Skip duplicates
+                        continue;
                     }
                     newCategories.push(cat);
                     addedCount++;
@@ -167,18 +170,17 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
 
                 if (addedCount > 0) {
                     onUpdateWordPacks({ customCategories: newCategories });
-                    alert(`Додано ${addedCount} категорій`);
+                    alert(t.fileUpload.categoriesAdded.replace('{count}', String(addedCount)));
                 } else {
-                    alert('Всі категорії з файлу вже існують');
+                    alert(t.fileUpload.allExist);
                 }
             } catch (error) {
-                alert('Помилка читання файлу. Перевірте формат.');
+                alert(t.fileUpload.readError);
                 console.error(error);
             }
         };
         reader.readAsText(file);
 
-        // Reset input
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -211,7 +213,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
         <div className="settings-container">
             <div className="settings-list">
                 <div className="setting-item">
-                    <span>Час гри (хв)</span>
+                    <span>{t.gameTime}</span>
                     <div className="setting-control">
                         <button
                             className="btn-mini"
@@ -236,7 +238,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Макс. гравців</span>
+                    <span>{t.maxPlayers}</span>
                     <div className="setting-control">
                         <button
                             className="btn-mini"
@@ -257,7 +259,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Мін. шпигунів</span>
+                    <span>{t.minSpies}</span>
                     <div className="setting-control">
                         <button
                             className="btn-mini"
@@ -278,7 +280,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Макс. шпигунів</span>
+                    <span>{t.maxSpies}</span>
                     <div className="setting-control">
                         <button
                             className="btn-mini"
@@ -299,7 +301,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Шпигуни знають один одного</span>
+                    <span>{t.spiesKnowEachOther}</span>
                     <label className="switch">
                         <input
                             type="checkbox"
@@ -312,7 +314,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Шпигуни бачать категорію</span>
+                    <span>{t.showCategoryToSpy}</span>
                     <label className="switch">
                         <input
                             type="checkbox"
@@ -325,7 +327,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                 </div>
 
                 <div className="setting-item">
-                    <span>Шпигуни грають командою</span>
+                    <span>{t.spiesPlayAsTeam}</span>
                     <label className="switch">
                         <input
                             type="checkbox"
@@ -339,36 +341,36 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
 
                 <div className="categories-section">
                     <div className="categories-header">
-                        <span>📚 Категорії слів</span>
+                        <span>{t.categories.title}</span>
                     </div>
                     <div className="category-list">
                         {wordPacks.customCategories.map((cat, idx) => (
                             <div key={idx} className="category-item">
                                 <div className="cat-info" onClick={() => openViewCategory(cat)} style={{ cursor: 'pointer' }}>
                                     <span className="cat-name">{cat.name}</span>
-                                    <span className="cat-count">({cat.words.length})</span>
+                                    <span className="cat-count">{t.categories.wordCount.replace('{count}', String(cat.words.length))}</span>
                                 </div>
                                 {isHost && (
                                     <div className="cat-actions">
                                         <button className="category-edit-btn" onClick={() => openEditCategory(cat)}>
-                                            ✏️
+                                            {t.categories.editButton}
                                         </button>
                                         <button className="category-remove-btn" onClick={() => handleDeleteCategory(cat.name)}>
-                                            ✕
+                                            {t.categories.removeButton}
                                         </button>
                                     </div>
                                 )}
                             </div>
                         ))}
                         {wordPacks.customCategories.length === 0 && (
-                            <div className="empty-categories-msg">Немає категорій</div>
+                            <div className="empty-categories-msg">{t.categories.noCategories}</div>
                         )}
                     </div>
 
                     {isHost && (
                         <div className="category-actions-wrapper">
                             <Button size="small" variant="secondary" fullWidth onClick={openAddCategory}>
-                                + Додати категорію
+                                {t.categories.addCategory}
                             </Button>
                             <input
                                 ref={fileInputRef}
@@ -384,42 +386,41 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                                 onClick={() => fileInputRef.current?.click()}
                                 className="mt-1"
                             >
-                                📁 Завантажити з файлу
+                                {t.categories.uploadFromFile}
                             </Button>
                             <div className="file-format-hint">
-                                Формат: категорія: слово1, слово2, слово3
+                                {t.categories.fileFormatHint}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Edit/Add Category Modal */}
             <Modal
                 isOpen={isCatModalOpen}
                 onClose={() => setCatModalOpen(false)}
-                title={editingOriginalName ? "Редагувати категорію" : "Нова категорія"}
+                title={editingOriginalName ? t.categoryModal.titleEdit : t.categoryModal.titleNew}
             >
                 <div className="category-modal-content">
                     <div className="form-group">
-                        <label>Назва категорії</label>
+                        <label>{t.categoryModal.categoryName}</label>
                         <input
                             value={editingCatName}
                             onChange={(e) => setEditingCatName(e.target.value)}
-                            placeholder="Наприклад: Тварини"
+                            placeholder={t.categoryModal.categoryPlaceholder}
                         />
                     </div>
                     <div className="form-group">
-                        <label>Слова ({editingCatWords.length})</label>
+                        <label>{t.categoryModal.words} ({editingCatWords.length})</label>
                         <div className="words-input-group">
                             <input
                                 value={newWordInput}
                                 onChange={(e) => setNewWordInput(e.target.value)}
-                                placeholder="Нове слово..."
+                                placeholder={t.categoryModal.newWordPlaceholder}
                                 maxLength={PROJECT_CONSTANTS.SPY_GAME.MAX_WORD_IN_CATEGORY_LENGTH}
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddWordToBuffer()}
                             />
-                            <Button size="small" onClick={handleAddWordToBuffer}>+</Button>
+                            <Button size="small" onClick={handleAddWordToBuffer}>{t.categoryModal.addWord}</Button>
                         </div>
                         <div className="words-manager">
                             <div className="word-chips">
@@ -432,17 +433,16 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                         </div>
                     </div>
                     <div className="modal-actions">
-                        <Button variant="secondary" onClick={() => setCatModalOpen(false)}>Скасувати</Button>
-                        <Button onClick={handleSaveCategory}>Зберегти</Button>
+                        <Button variant="secondary" onClick={() => setCatModalOpen(false)}>{t.categoryModal.cancel}</Button>
+                        <Button onClick={handleSaveCategory}>{t.categoryModal.save}</Button>
                     </div>
                 </div>
             </Modal>
 
-            {/* View Category Modal */}
             <Modal
                 isOpen={isViewCatModalOpen}
                 onClose={() => setViewCatModalOpen(false)}
-                title={viewingCategory?.name || 'Категорія'}
+                title={viewingCategory?.name || t.viewCategoryModal.title}
             >
                 <div className="view-category-content">
                     <div className="words-view-grid">
@@ -454,7 +454,7 @@ export const LobbySettings = ({ rules, wordPacks, isHost, onUpdateRules, onUpdat
                     </div>
                     <div className="modal-actions">
                         <Button variant="secondary" fullWidth onClick={() => setViewCatModalOpen(false)}>
-                            Закрити
+                            {t.viewCategoryModal.close}
                         </Button>
                     </div>
                 </div>

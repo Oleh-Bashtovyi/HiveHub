@@ -1,16 +1,10 @@
 using HiveHub.API.Hubs;
 using HiveHub.API.Services;
-using HiveHub.Application.Interfaces;
 using HiveHub.Application.Publishers;
 using HiveHub.Application.Services;
 using HiveHub.Application.Utils;
-using HiveHub.Domain.Models.SpyGame;
 using HiveHub.Infrastructure.BackgroundJobs;
 using HiveHub.Infrastructure.Services;
-using RedLockNet;
-using RedLockNet.SERedis;
-using RedLockNet.SERedis.Configuration;
-using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,7 +61,8 @@ if (builder.Environment.IsDevelopment() || true)
     builder.Services.AddHostedService<InMemoryTaskWorker>();
     builder.Services.AddHostedService<RoomCleanupService>();
 }
-else
+// UNAVAILABLE
+/*else
 {
     Console.WriteLine("Running in PRODUCTION mode (Redis Storage & Scheduler)");
 
@@ -93,7 +88,7 @@ else
     builder.Services.AddSingleton<ITaskScheduler, RedisTaskScheduler>();
 
     builder.Services.AddHostedService<RedisTaskWorker>();
-}
+}*/
 
 var app = builder.Build();
 

@@ -4,6 +4,7 @@ import { Modal } from '../../../../components/ui/Modal/Modal';
 import { AVAILABLE_AVATARS, AVATAR_MAP } from '../../../../const/avatars';
 import type { SpyPlayerDto } from '../../../../models/spy-game';
 import './PlayersPanel.scss';
+import { en } from '../../../../const/localization/en';
 
 interface PlayersPanelProps {
     players: SpyPlayerDto[];
@@ -37,13 +38,15 @@ export const PlayersPanel = ({
     const [isProfileModalOpen, setProfileModalOpen] = useState(false);
     const [tempName, setTempName] = useState('');
 
+    const t = en.spyGame.players;
+
     const openProfileModal = () => {
         setTempName(me.name);
         setProfileModalOpen(true);
     };
 
     const handleSaveName = () => {
-        if (!tempName.trim()) return alert("Ім'я не може бути порожнім");
+        if (!tempName.trim()) return alert(t.profile.errors.emptyName);
         if (tempName === me.name) return;
         onChangeName(tempName.trim());
     };
@@ -58,7 +61,7 @@ export const PlayersPanel = ({
     return (
         <div className="section-panel players-panel">
             <div className="section-title">
-                👥 Гравці ({players.length}/{maxPlayersCount})
+                {t.title} ({players.length}/{maxPlayersCount})
             </div>
 
             <div className="player-grid">
@@ -67,12 +70,12 @@ export const PlayersPanel = ({
                         key={p.id}
                         className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''} ${!p.isConnected ? 'disconnected' : ''}`}
                     >
-                        {p.isHost && <div className="host-badge">👑 ХОСТ</div>}
+                        {p.isHost && <div className="host-badge">{t.hostBadge}</div>}
 
                         {!p.isConnected && (
                             <>
                                 <div className="offline-icon">🔌</div>
-                                <div className="offline-tooltip">Connection lost</div>
+                                <div className="offline-tooltip">{t.connectionLost}</div>
                             </>
                         )}
 
@@ -87,13 +90,13 @@ export const PlayersPanel = ({
                         </div>
 
                         <div className="player-name">
-                            {p.name} {p.id === me.id && '(Ви)'}
+                            {p.name} {p.id === me.id && t.you}
                         </div>
 
                         {p.isReady ? (
-                            <span className="ready-badge">✓ Готовий</span>
+                            <span className="ready-badge">{t.ready}</span>
                         ) : (
-                            <span className="not-ready-text">Не готовий</span>
+                            <span className="not-ready-text">{t.notReady}</span>
                         )}
 
                         {isHost && p.id !== me.id && (
@@ -102,13 +105,13 @@ export const PlayersPanel = ({
                                     className="icon-btn"
                                     onClick={() => onKickPlayer(p.id)}
                                 >
-                                    🚫
+                                    {t.kick}
                                 </button>
                                 <button
                                     className="icon-btn"
                                     onClick={() => onChangeHost(p.id)}
                                 >
-                                    👑
+                                    {t.makeHost}
                                 </button>
                             </div>
                         )}
@@ -118,7 +121,7 @@ export const PlayersPanel = ({
                 {Array.from({ length: emptySlots }).map((_, i) => (
                     <div key={`empty-${i}`} className="player-card empty-slot">
                         <div className="player-avatar avatar-placeholder">❓</div>
-                        <div className="player-name">Очікування...</div>
+                        <div className="player-name">{t.waitingForPlayers}</div>
                     </div>
                 ))}
             </div>
@@ -129,37 +132,37 @@ export const PlayersPanel = ({
                     variant={isReady ? "danger" : "secondary"}
                     onClick={onToggleReady}
                 >
-                    {isReady ? "⏸️ Не готовий" : "✓ Я готовий"}
+                    {isReady ? t.actions.notReady : t.actions.ready}
                 </Button>
 
                 {isHost && (
                     <Button fullWidth disabled={!allReady} onClick={onStartGame} className="mt-2">
-                        🎮 Почати гру
+                        {t.actions.startGame}
                     </Button>
                 )}
                 {isHost && !allReady && (
-                    <div className="lobby-footer-msg">Всі гравці мають бути готові</div>
+                    <div className="lobby-footer-msg">{t.actions.allPlayersMustBeReady}</div>
                 )}
             </div>
 
-            <Modal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} title="Мій Профіль">
+            <Modal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} title={t.profile.title}>
                 <div className="profile-modal-content">
                     <div className="form-group">
-                        <label>Ваше ім'я</label>
+                        <label>{t.profile.yourName}</label>
                         <div className="name-edit-row">
                             <div className="input-wrapper">
                                 <input
                                     value={tempName}
                                     onChange={(e) => setTempName(e.target.value)}
-                                    placeholder="Введіть ім'я"
+                                    placeholder={t.profile.namePlaceholder}
                                     maxLength={50}
                                 />
                             </div>
-                            <Button size="small" onClick={handleSaveName}>Зберегти</Button>
+                            <Button size="small" onClick={handleSaveName}>{t.profile.save}</Button>
                         </div>
                     </div>
                     <div className="avatar-selection-section">
-                        <h4>Оберіть аватар</h4>
+                        <h4>{t.profile.selectAvatar}</h4>
                         <div className="avatar-grid-select">
                             {AVAILABLE_AVATARS.map(avatarKey => (
                                 <div
@@ -174,7 +177,7 @@ export const PlayersPanel = ({
                     </div>
                     <div className="modal-actions">
                         <Button variant="secondary" fullWidth onClick={() => setProfileModalOpen(false)}>
-                            Закрити
+                            {t.profile.close}
                         </Button>
                     </div>
                 </div>

@@ -1,6 +1,0 @@
-services:
-  hivehub.api:
-    image: ${DOCKER_REGISTRY-}hivehubapi
-    build:
-      context: .
-      dockerfile: HiveHub.API/Dockerfile

@@ -1,5 +1,6 @@
 import { Button } from '../../../../components/ui/Button/Button';
 import './SpyGameRoleCard.scss';
+import { en } from '../../../../const/localization/en';
 
 interface SpyGameRoleCardProps {
     isSpy: boolean;
@@ -10,6 +11,8 @@ interface SpyGameRoleCardProps {
 }
 
 export const SpyGameRoleCard = ({ isSpy, isDead, secretWord, category, onGuessWord }: SpyGameRoleCardProps) => {
+    const t = en.spyGame.roleCard;
+
     return (
         <div className={`spy-role-card ${isSpy ? 'spy-role-card--spy' : 'spy-role-card--civilian'} ${isDead ? 'spy-role-card--dead' : ''}`}>
             {isDead && (
@@ -20,16 +23,16 @@ export const SpyGameRoleCard = ({ isSpy, isDead, secretWord, category, onGuessWo
 
             <div className="spy-role-card__icon">{isSpy ? '🥷' : '🕵️'}</div>
             <div className="spy-role-card__title">
-                {isDead ? "ВИ МЕРТВІ" : (isSpy ? "ВИ ШПИГУН" : "Мирний Житель")}
+                {isDead ? t.youAreDead : (isSpy ? t.youAreSpy : t.civilian)}
             </div>
 
             <div className="spy-role-card__desc">
                 {isDead ? (
-                    <>Ви програли і більше не можете впливати на гру. Але можете спостерігати за грою в чаті!</>
+                    <>{t.deadDescription}</>
                 ) : isSpy ? (
-                    <>Ваша ціль: дізнатися слово з розмов інших або протриматися до кінця і не видати себе.</>
+                    <>{t.spyDescription}</>
                 ) : (
-                    <>Ваша ціль: знайти шпигуна серед гравців, задаючи навідні питання.</>
+                    <>{t.civilianDescription}</>
                 )}
             </div>
 
@@ -37,7 +40,7 @@ export const SpyGameRoleCard = ({ isSpy, isDead, secretWord, category, onGuessWo
                 <>
                     {isSpy ? (
                         <>
-                            {category && <div className="spy-role-card__category-badge">Категорія: {category}</div>}
+                            {category && <div className="spy-role-card__category-badge">{t.category}{category}</div>}
                             {onGuessWord && (
                                 <Button
                                     size="small"
@@ -45,14 +48,14 @@ export const SpyGameRoleCard = ({ isSpy, isDead, secretWord, category, onGuessWo
                                     onClick={onGuessWord}
                                     className="spy-role-card__guess-btn"
                                 >
-                                    💡 Вгадати слово
+                                    {t.guessWord}
                                 </Button>
                             )}
                         </>
                     ) : (
                         <>
                             <div className="spy-role-card__secret-word">{secretWord}</div>
-                            <div className="spy-role-card__category-text">Категорія: <strong>{category}</strong></div>
+                            <div className="spy-role-card__category-text">{t.category}<strong>{category}</strong></div>
                         </>
                     )}
                 </>
