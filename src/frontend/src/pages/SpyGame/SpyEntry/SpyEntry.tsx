@@ -27,7 +27,7 @@ export const SpyEntry = () => {
     const handleCreateRoom = async () => {
         setIsLoading(true);
         try {
-            await createRoom('');
+            await createRoom();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Невідома помилка';
             alert("Помилка створення кімнати: " + message);
@@ -94,7 +94,7 @@ export const SpyEntry = () => {
                     </div>
                     <div className="feature-item">
                         <div className="feature-icon">⏱️</div>
-                        <span>5-30 хвилин гри</span>
+                        <span>5-8 хвилин гри</span>
                     </div>
                     <div className="feature-item">
                         <div className="feature-icon">🎮</div>

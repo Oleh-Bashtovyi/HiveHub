@@ -147,6 +147,7 @@ export function useSpyGameEvents({
         };
 
         const handleConnectionChanged = (e: PlayerConnectionChangedEventDto) => {
+            console.log("Connection changed, user: " + e.playerId + " is connected: " + e.isConnected);
             stateSetters.setPlayers((prev: SpyPlayerDto[]) =>
                 prev.map(p => p.id === e.playerId ? { ...p, isConnected: e.isConnected } : p)
             );
@@ -296,6 +297,8 @@ export function useSpyGameEvents({
         };
 
         const handleGameEnded = (e: SpyGameEndedEventDto) => {
+            console.log("Game Ended");
+            console.log(e);
             stateSetters.setRoomState(RoomStatus.Ended);
             stateSetters.setWinnerTeam(e.winnerTeam);
             stateSetters.setGameEndReason(e.reason);
@@ -313,8 +316,8 @@ export function useSpyGameEvents({
                     ...prev,
                     spiesReveal: e.spiesReveal,
                     roundEndReason: e.reason,
-                    currentSecretWord: e.SecretWord,
-                    currentCategory: e.Category
+                    currentSecretWord: e.secretWord,
+                    currentCategory: e.category,
                 };
             });
         };

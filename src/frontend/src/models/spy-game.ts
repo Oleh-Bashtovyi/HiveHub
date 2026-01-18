@@ -165,8 +165,8 @@ export interface SpyGameEndedEventDto {
     winnerTeam: SpyGameTeam;
     reason: SpyGameEndReason;
     spiesReveal: SpyRevealDto[];
-    Category: string;
-    SecretWord: string;
+    category: string;
+    secretWord: string;
     reasonMessage: string | null;
 }
 

@@ -67,6 +67,11 @@ public class StartGameHandler(
                 return Results.ActionFailed(ProjectMessages.SpyGameStartGame.SomeCategoryIsEmpty);
             }
 
+            if (room.Players.Count > room.GameSettings.MaxPlayerCount)
+            {
+                return Results.ActionFailed(ProjectMessages.StartGame.ExceedingMaxPlayerLimit);
+            }
+
             var random = Random.Shared;
             var newGameState = new SpyRoomGameState();
 

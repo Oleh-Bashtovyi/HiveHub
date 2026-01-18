@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Button } from '../../../../components/ui/Button/Button';
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import type { SpyGameRulesDto, SpyGameWordPacksDto, WordsCategoryDto } from '../../../../models/spy-game';
+import './LobbySettings.scss';
 
 const PROJECT_CONSTANTS = {
     SPY_GAME: {

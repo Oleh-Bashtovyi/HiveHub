@@ -46,6 +46,7 @@ export const SpyResults = () => {
 
     const secretWord = gameState?.currentSecretWord;
     const category = gameState?.currentCategory;
+    console.log("Current game state: ", gameState);
 
     return (
         <div className="spy-results">

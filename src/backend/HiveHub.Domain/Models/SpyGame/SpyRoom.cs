@@ -85,7 +85,9 @@ public sealed class SpyRoom : RoomBase<SpyRoomGameState, SpyRoomSettings, SpyPla
     }
 
     public int CountVotedForTimerStop() => Players.Count(p => p.PlayerState.VotedToStopTimer);
-    public bool IsParanoyaMode() => GameState.SpiesCountSnapshot > 0 && GameState.SpyRevealSnapshot.Count(p => p.IsSpy) == 0;
+    public bool IsParanoyaMode() => 
+        GameState.SpiesCountSnapshot == 0 && 
+        GameState.SpyRevealSnapshot.Count(p => p.IsSpy) == 0;
 
     public void EliminatePlayer(string playerId)
     {

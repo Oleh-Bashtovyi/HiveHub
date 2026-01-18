@@ -159,12 +159,24 @@ public static class Voting
                 VotingType: SpyVotingType.Final,
                 ResultMessage: "Consensus not reached"));
 
-            RoundEnd.EndGame(
-                room,
-                SpyTeam.Spies,
-                SpyGameEndReason.FinalVoteFailed,
-                "Consensus not reached.",
-                context);
+            if (room.IsParanoyaMode())
+            {
+                RoundEnd.EndGame(
+                    room,
+                    SpyTeam.Civilians,
+                    SpyGameEndReason.ParanoiaSurvived,
+                    "Consensus failed, paranoya mode survived.",
+                    context);
+            }
+            else
+            {
+                RoundEnd.EndGame(
+                    room,
+                    SpyTeam.Spies,
+                    SpyGameEndReason.FinalVoteFailed,
+                    "Consensus not reached.",
+                    context);
+            }
             return true;
         }
 

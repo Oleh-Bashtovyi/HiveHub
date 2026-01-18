@@ -79,6 +79,7 @@ public static class ProjectMessages
 
     public static class StartGame
     {
+        public static readonly string ExceedingMaxPlayerLimit = "Exceeding max players limit";
         public static readonly string GameIsAlreadyStarted = "Game is already in progress. Finish current game first.";
         public static readonly string OnlyHostCanStartGame = "Only host can start the game.";
         public static readonly string NotAllPlayersIsReady = "Not all players are ready. Everyone must press 'Ready'.";
@@ -144,6 +145,8 @@ public static class ProjectMessages
         public static readonly string MaxCustomCategoriesCountCannotBeGraterThan =
             $"Maximum custom categories count cannont be grater than {ProjectConstants.SpyGame.MaxCustomCategoriesCount}.";
 
+        public static readonly string MaxPlayersCountCanNotBeLessThanAlreadyJoined = "Players max count can not be less than already joined";
+        
         public static readonly string GameTimeMustBeInRange =
             $"Game time must be between {ProjectConstants.SpyGame.MinGameDurationMinutes} and {ProjectConstants.SpyGame.MaxGameDurationMinutes} minutes.";
     }

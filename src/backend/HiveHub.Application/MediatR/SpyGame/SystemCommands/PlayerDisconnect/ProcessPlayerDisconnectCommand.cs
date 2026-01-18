@@ -39,7 +39,7 @@ public class ProcessPlayerDisconnectHandler(
 
         var result = await roomAccessor.ExecuteAndDispatchAsync(context, (room) =>
         {
-            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player) || player.IsConnected)
+            if (!room.TryGetPlayerByConnectionId(request.ConnectionId, out var player) || !player.IsConnected)
             {
                 return Result.Ok();
             }

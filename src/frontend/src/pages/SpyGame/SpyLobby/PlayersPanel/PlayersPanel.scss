@@ -1,0 +1,345 @@
+@use '../../../../styles/variables' as *;
+
+$color-spy-offline: #2A2A32;
+$color-spy-offline-border: #3A3A42;
+
+.players-panel {
+  padding: 30px;
+  height: 100%;
+
+  @media (max-width: 900px) {
+    height: auto;
+    min-height: 500px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px;
+  }
+}
+
+.section-title {
+  font-size: 22px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
+}
+
+.player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 5px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+}
+
+.player-card {
+  background: $color-spy-panel-light;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  position: relative;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &.ready {
+    border-color: $color-spy-success;
+    background: rgba($color-spy-success, 0.1);
+  }
+
+  &.host {
+    background: linear-gradient(135deg, rgba($color-spy-primary, 0.1) 0%, rgba($color-spy-dark, 0.1) 100%);
+  }
+
+  &.empty-slot {
+    opacity: 0.3;
+    border: 2px dashed #444;
+    background: transparent;
+    cursor: default;
+  }
+
+  &.disconnected {
+    background: $color-spy-offline;
+    border-color: $color-spy-offline-border;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px;
+    min-height: 140px;
+  }
+
+  .host-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: $color-spy-primary;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .offline-icon {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 20px;
+    z-index: 10;
+    cursor: help;
+
+    &:hover + .offline-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .offline-tooltip {
+    position: absolute;
+    top: 35px;
+    left: 10px;
+    background: $color-spy-panel;
+    color: $color-text-main;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    pointer-events: none;
+    z-index: 100;
+    border: 1px solid $color-spy-offline-border;
+  }
+
+  .edit-profile-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0,0,0,0.5);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+
+    &:hover {
+      opacity: 1;
+      background: $color-spy-primary;
+    }
+  }
+}
+
+.player-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $color-spy-primary, $color-spy-dark);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 35px;
+
+  &.avatar-placeholder {
+    background: #333;
+  }
+
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+  }
+}
+
+.player-name {
+  font-weight: 600;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  font-size: 0.95rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
+}
+
+.ready-badge {
+  display: inline-block;
+  background: $color-spy-success;
+  color: white;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.not-ready-text {
+  font-size: 11px;
+  color: $color-text-muted;
+}
+
+.player-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: $color-spy-primary;
+  }
+}
+
+.lobby-actions-area {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+
+  .mt-2 {
+    margin-top: 10px;
+  }
+}
+
+.lobby-footer-msg {
+  text-align: center;
+  font-size: 12px;
+  color: $color-text-muted;
+  margin-top: 5px;
+}
+
+.profile-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+
+  input {
+    background: $color-spy-panel-light;
+    border: 1px solid #444;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    outline: none;
+
+    &:focus {
+      border-color: $color-spy-primary;
+    }
+  }
+}
+
+.avatar-selection-section {
+  h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: $color-text-muted;
+  }
+}
+
+.avatar-grid-select {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 10px;
+}
+
+.avatar-option {
+  aspect-ratio: 1;
+  background: $color-spy-panel-light;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba($color-spy-primary, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &.selected {
+    border-color: $color-spy-success;
+    background: rgba($color-spy-success, 0.1);
+  }
+}
+
+.name-edit-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+
+  .input-wrapper {
+    flex: 1;
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}

@@ -3,6 +3,7 @@ import { Button } from '../../../../components/ui/Button/Button';
 import { Modal } from '../../../../components/ui/Modal/Modal';
 import { AVAILABLE_AVATARS, AVATAR_MAP } from '../../../../const/avatars';
 import type { SpyPlayerDto } from '../../../../models/spy-game';
+import './PlayersPanel.scss';
 
 interface PlayersPanelProps {
     players: SpyPlayerDto[];
@@ -64,17 +65,19 @@ export const PlayersPanel = ({
                 {players.map(p => (
                     <div
                         key={p.id}
-                        className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''}`}
-                        style={{ opacity: p.isConnected ? 1 : 0.5 }}
+                        className={`player-card ${p.isReady ? 'ready' : ''} ${p.isHost ? 'host' : ''} ${!p.isConnected ? 'disconnected' : ''}`}
                     >
                         {p.isHost && <div className="host-badge">👑 ХОСТ</div>}
 
                         {!p.isConnected && (
-                            <div title="Гравець втратив з'єднання" className="offline-icon">🔌</div>
+                            <>
+                                <div className="offline-icon">🔌</div>
+                                <div className="offline-tooltip">Connection lost</div>
+                            </>
                         )}
 
                         {p.id === me.id && (
-                            <button className="edit-profile-btn" onClick={openProfileModal} title="Редагувати профіль">
+                            <button className="edit-profile-btn" onClick={openProfileModal}>
                                 ✏️
                             </button>
                         )}
@@ -97,14 +100,12 @@ export const PlayersPanel = ({
                             <div className="player-actions">
                                 <button
                                     className="icon-btn"
-                                    title="Вигнати"
                                     onClick={() => onKickPlayer(p.id)}
                                 >
                                     🚫
                                 </button>
                                 <button
                                     className="icon-btn"
-                                    title="Передати права"
                                     onClick={() => onChangeHost(p.id)}
                                 >
                                     👑
@@ -141,7 +142,6 @@ export const PlayersPanel = ({
                 )}
             </div>
 
-            {/* Profile Edit Modal */}
             <Modal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} title="Мій Профіль">
                 <div className="profile-modal-content">
                     <div className="form-group">

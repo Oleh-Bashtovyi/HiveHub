@@ -86,6 +86,7 @@ public class UpdateGameRulesHandler(
             room.GameSettings.RoundDurationMinutes = request.NewRules.TimerMinutes;
             room.GameSettings.MinSpiesCount = request.NewRules.MinSpiesCount;
             room.GameSettings.MaxSpiesCount = request.NewRules.MaxSpiesCount;
+            room.GameSettings.MaxPlayerCount = request.NewRules.MaxPlayersCount;
             room.GameSettings.SpiesKnowEachOther = request.NewRules.IsSpiesKnowEachOther;
             room.GameSettings.ShowCategoryToSpy = request.NewRules.IsShowCategoryToSpy;
             room.GameSettings.SpiesPlayAsTeam = request.NewRules.IsSpiesPlayAsTeam;
