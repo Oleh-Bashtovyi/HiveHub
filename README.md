@@ -80,3 +80,11 @@ http://localhost:8081/
 
 * Add **Crocodile** (Draw & Guess) game mode.
 * Add **Uno Online** card game.
+
+## Project Status
+
+The project is currently in the Active Development phase. We have successfully implemented the MVP with the core "Find the Spy" game engine, featuring stable real-time synchronization via SignalR and full Docker containerization.
+
+## License
+
+This project is licensed under the MIT License.
